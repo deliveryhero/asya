@@ -13,8 +13,8 @@ def test_compile_help():
     runner = CliRunner()
     result = runner.invoke(compile_cmd, ["--help"])
     assert result.exit_code == 0
-    assert "TARGET" in result.output
-    assert "--output-dir" in result.output
+    assert "FLOW_NAME" in result.output
+    assert "--file" in result.output
     assert "--plot" in result.output
     assert "--verbose" in result.output
     assert "--strict" in result.output
@@ -23,12 +23,14 @@ def test_compile_help():
 def test_compile_rejects_nonexistent_file():
     """Compiling a nonexistent file should fail."""
     runner = CliRunner()
-    result = runner.invoke(compile_cmd, ["nonexistent.py"])
+    result = runner.invoke(compile_cmd, ["test-flow", "-f", "nonexistent.py"])
     assert result.exit_code != 0
 
 
 def test_compile_py_file(tmp_path: Path):
     """Compile a simple sequential flow .py file."""
+    import os
+
     flow_source = tmp_path / "my_flow.py"
     flow_source.write_text(
         "@flow\n"
@@ -44,15 +46,24 @@ def test_compile_py_file(tmp_path: Path):
         "    return p\n"
     )
 
-    output_dir = tmp_path / "out"
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text("compiler:\n  code: ./code\n  artifacts: ./artifacts\n  manifests: ./out\n")
+
     runner = CliRunner()
-    result = runner.invoke(compile_cmd, [str(flow_source), "-o", str(output_dir)])
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(tmp_path)
+        result = runner.invoke(compile_cmd, ["my-flow", "-f", str(flow_source)])
+    finally:
+        os.chdir(old_cwd)
 
     assert result.exit_code == 0, (
         f"stdout: {result.output}\nstderr: {result.stderr if hasattr(result, 'stderr') else ''}"
     )
 
-    routers_file = output_dir / "routers.py"
+    code_dir = tmp_path / "code"
+    routers_file = code_dir / "routers.py"
     assert routers_file.exists()
     router_code = routers_file.read_text()
     assert "my_flow" in router_code or "start_" in router_code

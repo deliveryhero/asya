@@ -489,7 +489,8 @@ def patch(
     if all_actors:
         actor_names = _resolve_actors(base_dir)
     else:
-        assert actor_ref is not None  # guaranteed by scope validation above
+        if actor_ref is None:
+            raise RuntimeError("actor_ref must be set when all_actors is False")
         actor_names = [_resolve_actor_name(actor_ref, base_dir)]
 
     env_remove = [k[4:] for k in remove_keys if k.startswith("env.")]

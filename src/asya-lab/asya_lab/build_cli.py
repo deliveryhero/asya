@@ -74,7 +74,7 @@ def _run_skaffold_build(
     if not push:
         cmd.append("--push=false")
 
-    result = subprocess.run(cmd, cwd=str(skaffold_dir), check=False)  # nosec B603, B607
+    result = subprocess.run(cmd, cwd=str(skaffold_dir), check=False)  # nosec B603  # nosemgrep
     if result.returncode != 0:
         output_path.unlink(missing_ok=True)
         return []
