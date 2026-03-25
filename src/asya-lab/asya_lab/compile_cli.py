@@ -94,12 +94,14 @@ def compile_cmd(
     from asya_lab.flow import _infer_flow_function
 
     asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/config.yaml found. Run 'asya init' first.", err=True)
-        sys.exit(1)
 
     # Resolve source file: -f flag > saved registry > error
     if source_file is None:
+        if asya_dir is None:
+            click.echo(
+                f"[-] No source file for '{flow_name}'. Usage: asya compile {flow_name} -f path/to/flow.py", err=True
+            )
+            sys.exit(1)
         reg = _load_flow_registry(asya_dir, flow_name)
         if reg and reg.get("source"):
             source_file = reg["source"]
@@ -122,11 +124,12 @@ def compile_cmd(
     # Infer flow function name from AST
     flow_function = _infer_flow_function(source_path) or source_path.stem
 
-    # Save to registry
-    rel_source = str(source_path.relative_to(Path.cwd()))
-    reg_path = _save_flow_registry(asya_dir, flow_name, rel_source, flow_function)
-    if verbose:
-        click.echo(f"[.] Saved flow registry: {_rel(reg_path)}", err=True)
+    # Save to registry (if .asya/ exists)
+    if asya_dir is not None:
+        rel_source = str(source_path.relative_to(Path.cwd()))
+        reg_path = _save_flow_registry(asya_dir, flow_name, rel_source, flow_function)
+        if verbose:
+            click.echo(f"[.] Saved flow registry: {_rel(reg_path)}", err=True)
 
     # Resolve output dirs from config
     dirs = _resolve_compiler_dirs(project)
