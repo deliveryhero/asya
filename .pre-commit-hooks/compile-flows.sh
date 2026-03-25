@@ -61,11 +61,10 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
 
   flow_dir="$(dirname "$flow_file")"
 
-  # Extract flow name and output directory
+  # Extract flow name
   if [[ "$flow_file" == */flow.py ]]; then
-    # Subdirectory structure: nested_if/flow.py -> compile to nested_if/compiled/
+    # Subdirectory structure: nested_if/flow.py
     flow_name="$(basename "$flow_dir")"
-    output_dir="$flow_dir/compiled"
   else
     # Flat structure: nested_if.py -> compile to examples/flows/compiled/nested_if/
     flow_name="$(basename "$flow_file" .py)"
@@ -75,7 +74,6 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     # Flows requiring unsupported syntax (inline with)
     [[ "$flow_name" == adk_llm_auditor ]] && continue
     [[ "$flow_name" == guardrails_sandwich ]] && continue
-    output_dir="$flow_dir/compiled/$flow_name"
   fi
 
   uv run --with-editable src/asya-lab --with-requirements examples/flows/requirements.txt asya compile "$flow_name" -f "$flow_file" --plot &
