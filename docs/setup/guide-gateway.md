@@ -214,7 +214,60 @@ The gateway acts as its own authorization server, issuing HMAC-SHA256 JWTs.
 
 ## Tool Registration
 
-The gateway reads tool definitions from a ConfigMap named `gateway-flows`, mounted into the api pod. The gateway polls this ConfigMap every 10 seconds (configurable via `ASYA_CONFIG_POLL_INTERVAL`) and hot-reloads without a pod restart.
+The gateway reads tool definitions from `*.yaml` files in `/etc/asya/flows/`. It polls
+every 10 seconds (configurable via `ASYA_CONFIG_POLL_INTERVAL`) and hot-reloads without
+a pod restart.
+
+The directory is populated from ConfigMaps via a projected volume. Two sources:
+
+1. **Helm-managed** (`asya-gateway-flows` CM) — seeded at deploy time via `exposedFlows`
+2. **Per-flow CMs** — deployed alongside actors by `asya k apply`, auto-registered
+
+### Using the CLI (recommended)
+
+The `asya expose` and `asya k apply` commands handle flow registration automatically:
+
+```bash
+# Compile the flow
+asya compile text-flow -f src/flows/text_flow.py
+
+# Create the gateway config (writes to common/ or overlay)
+asya expose text-flow -d "Analyze text" --mcp --a2a --context dev
+
+# Deploy actors + gateway config, auto-register with gateway
+asya k apply text-flow --context dev
+```
+
+`asya k apply` detects the per-flow ConfigMap and patches the gateway deployment
+to include it as a projected volume source. No Helm upgrade needed.
+
+To disable for an environment:
+
+```bash
+asya unexpose text-flow --context dev
+asya k apply text-flow --context dev
+```
+
+### Using Helm Values
+
+Seed flows at deploy time via `exposedFlows`, or list per-flow CMs via `flowConfigMaps`:
+
+```yaml
+# values.yaml
+exposedFlows:
+- name: echo
+  entrypoint: echo-actor
+  description: Echo handler
+  mcp: {}
+
+flowConfigMaps:
+- asya-flow-text-flow-config
+- asya-flow-greet-flow-config
+```
+
+### Manual ConfigMap
+
+For custom setups, create a flows ConfigMap directly:
 
 ### Step 1: Create flows.yaml
 

@@ -2509,12 +2509,10 @@ compiler templates.</p>
 </tbody>
 </table></div>
 <h3 id="asya-compile"><code>asya compile</code><a class="headerlink" href="#asya-compile" title="Permanent link">#</a></h3>
-<p>Compile a flow from a <code>.py</code> source file or recompile from existing manifests.</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>compile<span class="w"> </span>TARGET<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+<p>Compile a flow from a <code>.py</code> source file into Kubernetes manifests.</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>compile<span class="w"> </span>FLOW_NAME<span class="w"> </span>-f<span class="w"> </span>SOURCE_FILE<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
-<p>TARGET can be:
-- A <code>.py</code> file (or <code>file.py:function</code>) — compile flow from source
-- A kebab-case or snake_case name — recompile from existing manifests</p>
+<p>FLOW_NAME is a kebab-case identifier used across all commands.</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
@@ -2524,8 +2522,16 @@ compiler templates.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--output-dir</code>, <code>-o</code></td>
-<td>Where to write generated router files</td>
+<td><code>-f</code>, <code>--file</code></td>
+<td>Path to flow <code>.py</code> source file (required)</td>
+</tr>
+<tr>
+<td><code>-o</code>, <code>--output-dir</code></td>
+<td>Override compiled output directory</td>
+</tr>
+<tr>
+<td><code>-I</code>, <code>--python-path</code></td>
+<td>Add directory to Python import path for compile-time resolution (repeatable)</td>
 </tr>
 <tr>
 <td><code>--plot</code></td>
@@ -2533,22 +2539,21 @@ compiler templates.</p>
 </tr>
 <tr>
 <td><code>--plot-format</code></td>
-<td>Diagram format (default: svg)</td>
+<td>Diagram format: <code>svg</code> or <code>png</code> (default: png)</td>
 </tr>
 <tr>
-<td><code>--verbose</code></td>
-<td>Detailed output</td>
+<td><code>-v</code>, <code>--verbose</code></td>
+<td>Detailed output (shows handler resolution)</td>
 </tr>
 <tr>
-<td><code>--force</code></td>
-<td>Overwrite existing files</td>
-</tr>
-<tr>
-<td><code>--flow-name</code></td>
-<td>Override the flow function name</td>
+<td><code>--strict</code></td>
+<td>Treat warnings as errors</td>
 </tr>
 </tbody>
 </table></div>
+<p>The compiler uses <code>skaffold.yaml</code> as the single source of truth for image names.
+Skaffold artifact context directories are automatically added to <code>sys.path</code> for
+bare-script handler imports.</p>
 <h3 id="asya-validate"><code>asya validate</code><a class="headerlink" href="#asya-validate" title="Permanent link">#</a></h3>
 <p>Validate a flow source file without generating code.</p>
 <div class="highlight"><pre><span></span><code>asya<span class="w"> </span>validate<span class="w"> </span>FLOW_FILE
@@ -2559,17 +2564,59 @@ compiler templates.</p>
 <div class="highlight"><pre><span></span><code>asya<span class="w"> </span>build<span class="w"> </span><span class="o">[</span>TARGET<span class="o">]</span>
 </code></pre></div>
 <p>TARGET is an optional flow name. Without it, all build entries are executed.</p>
-<h3 id="asya-expose"><code>asya expose</code><a class="headerlink" href="#asya-expose" title="Permanent link">#</a></h3>
-<p>Register a compiled flow as a tool in the gateway's <code>gateway-flows</code> ConfigMap.</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>expose<span class="w"> </span>TARGET
+<h3 id="asya-patch"><code>asya patch</code><a class="headerlink" href="#asya-patch" title="Permanent link">#</a></h3>
+<p>Patch compiled flow manifests with kustomize overrides. Requires exactly one
+scope: <code>--actor</code> or <code>--gateway</code>.</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>patch<span class="w"> </span>FLOW_NAME<span class="w"> </span><span class="o">[</span><span class="nv">KEY</span><span class="o">=</span>VALUE...<span class="o">]</span><span class="w"> </span>--actor<span class="w"> </span>NAME<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+asya<span class="w"> </span>patch<span class="w"> </span>FLOW_NAME<span class="w"> </span><span class="o">[</span><span class="nv">KEY</span><span class="o">=</span>VALUE...<span class="o">]</span><span class="w"> </span>--gateway<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
-<h3 id="asya-unexpose"><code>asya unexpose</code><a class="headerlink" href="#asya-unexpose" title="Permanent link">#</a></h3>
-<p>Remove a flow from the gateway's <code>gateway-flows</code> ConfigMap.</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>unexpose<span class="w"> </span>TARGET
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-a</code>, <code>--actor</code></td>
+<td>Target a specific actor (accepts function name or manifest name)</td>
+</tr>
+<tr>
+<td><code>--gateway</code></td>
+<td>Target gateway flow registration</td>
+</tr>
+<tr>
+<td><code>--context</code></td>
+<td>Write to overlay (default: common/)</td>
+</tr>
+<tr>
+<td><code>-p</code></td>
+<td>Raw JSON patch (escape hatch, actors only)</td>
+</tr>
+<tr>
+<td><code>--remove</code></td>
+<td>Remove a key from the patch (repeatable, e.g. <code>--remove env.FOO</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Actor patches:</strong></p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>patch<span class="w"> </span>text-flow<span class="w"> </span>--actor<span class="w"> </span>analyze<span class="w"> </span>scaling.min<span class="o">=</span><span class="m">1</span>
+asya<span class="w"> </span>patch<span class="w"> </span>text-flow<span class="w"> </span>--actor<span class="w"> </span>analyze<span class="w"> </span>env.MY_VAR<span class="o">=</span>value
+asya<span class="w"> </span>patch<span class="w"> </span>text-flow<span class="w"> </span>--actor<span class="w"> </span>analyze<span class="w"> </span>env.API_KEY<span class="o">=</span>secret:my-secret:key
+asya<span class="w"> </span>patch<span class="w"> </span>text-flow<span class="w"> </span>--actor<span class="w"> </span>analyze<span class="w"> </span>--remove<span class="w"> </span>env.OLD_VAR
 </code></pre></div>
-<h3 id="asya-show"><code>asya show</code><a class="headerlink" href="#asya-show" title="Permanent link">#</a></h3>
+<p>Env shorthand: <code>env.NAME=value</code> (plain), <code>env.NAME=secret:name:key</code> (secretKeyRef),
+<code>env.NAME=configmap:name:key</code> (configMapKeyRef).</p>
+<p>Scaling shorthand: <code>scaling.min</code>, <code>scaling.max</code>, <code>scaling.cooldown</code>, <code>scaling.polling</code>.</p>
+<p><strong>Gateway patches:</strong></p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>patch<span class="w"> </span>text-flow<span class="w"> </span>--gateway<span class="w"> </span><span class="nv">expose</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="nv">description</span><span class="o">=</span><span class="s2">&quot;Analyze text&quot;</span><span class="w"> </span><span class="nv">mcp</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="nv">a2a</span><span class="o">=</span><span class="nb">true</span>
+asya<span class="w"> </span>patch<span class="w"> </span>text-flow<span class="w"> </span>--gateway<span class="w"> </span><span class="nv">expose</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>--context<span class="w"> </span>dev
+asya<span class="w"> </span>patch<span class="w"> </span>text-flow<span class="w"> </span>--gateway<span class="w"> </span><span class="nv">expose</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span>--context<span class="w"> </span>dev
+</code></pre></div>
+<h3 id="asya-render-alias-show"><code>asya render</code> (alias: <code>show</code>)<a class="headerlink" href="#asya-render-alias-show" title="Permanent link">#</a></h3>
 <p>Render kustomize manifests for a compiled flow.</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>show<span class="w"> </span>TARGET<span class="w"> </span><span class="o">[</span>--context<span class="w"> </span>CTX<span class="o">]</span>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>render<span class="w"> </span>FLOW_NAME<span class="w"> </span><span class="o">[</span>--context<span class="w"> </span>CTX<span class="o">]</span><span class="w"> </span><span class="o">[</span>--actor<span class="w"> </span>NAME<span class="o">]</span>
 </code></pre></div>
 <div class="table-wrapper"><table>
 <thead>
@@ -2582,6 +2629,10 @@ compiler templates.</p>
 <tr>
 <td><code>--context</code></td>
 <td>Overlay context to select (uses <code>common/</code> or <code>base/</code> if omitted)</td>
+</tr>
+<tr>
+<td><code>-a</code>, <code>--actor</code></td>
+<td>Show only this actor (accepts function name or manifest name)</td>
 </tr>
 </tbody>
 </table></div>
@@ -3791,22 +3842,16 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             asya build
         </a>
         
-        <a href="#asya-expose"
+        <a href="#asya-patch"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            asya expose
+            asya patch
         </a>
         
-        <a href="#asya-unexpose"
+        <a href="#asya-render-alias-show"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            asya unexpose
-        </a>
-        
-        <a href="#asya-show"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            asya show
+            asya render (alias: show)
         </a>
         
         <a href="#asya-status"

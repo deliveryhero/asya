@@ -40,24 +40,27 @@ asya init [--registry REGISTRY] [--dir TARGET_DIR]
 
 ### `asya compile`
 
-Compile a flow from a `.py` source file or recompile from existing manifests.
+Compile a flow from a `.py` source file into Kubernetes manifests.
 
 ```bash
-asya compile TARGET [OPTIONS]
+asya compile FLOW_NAME -f SOURCE_FILE [OPTIONS]
 ```
 
-TARGET can be:
-- A `.py` file (or `file.py:function`) — compile flow from source
-- A kebab-case or snake_case name — recompile from existing manifests
+FLOW_NAME is a kebab-case identifier used across all commands.
 
 | Option | Description |
 |--------|-------------|
-| `--output-dir`, `-o` | Where to write generated router files |
+| `-f`, `--file` | Path to flow `.py` source file (required) |
+| `-o`, `--output-dir` | Override compiled output directory |
+| `-I`, `--python-path` | Add directory to Python import path for compile-time resolution (repeatable) |
 | `--plot` | Generate Graphviz DOT and PNG flow diagrams |
-| `--plot-format` | Diagram format (default: svg) |
-| `--verbose` | Detailed output |
-| `--force` | Overwrite existing files |
-| `--flow-name` | Override the flow function name |
+| `--plot-format` | Diagram format: `svg` or `png` (default: png) |
+| `-v`, `--verbose` | Detailed output (shows handler resolution) |
+| `--strict` | Treat warnings as errors |
+
+The compiler uses `skaffold.yaml` as the single source of truth for image names.
+Skaffold artifact context directories are automatically added to `sys.path` for
+bare-script handler imports.
 
 ### `asya validate`
 
@@ -78,33 +81,58 @@ asya build [TARGET]
 
 TARGET is an optional flow name. Without it, all build entries are executed.
 
-### `asya expose`
+### `asya patch`
 
-Register a compiled flow as a tool in the gateway's `gateway-flows` ConfigMap.
-
-```bash
-asya expose TARGET
-```
-
-### `asya unexpose`
-
-Remove a flow from the gateway's `gateway-flows` ConfigMap.
+Patch compiled flow manifests with kustomize overrides. Requires exactly one
+scope: `--actor` or `--gateway`.
 
 ```bash
-asya unexpose TARGET
+asya patch FLOW_NAME [KEY=VALUE...] --actor NAME [OPTIONS]
+asya patch FLOW_NAME [KEY=VALUE...] --gateway [OPTIONS]
 ```
 
-### `asya show`
+| Option | Description |
+|--------|-------------|
+| `-a`, `--actor` | Target a specific actor (accepts function name or manifest name) |
+| `--gateway` | Target gateway flow registration |
+| `--context` | Write to overlay (default: common/) |
+| `-p` | Raw JSON patch (escape hatch, actors only) |
+| `--remove` | Remove a key from the patch (repeatable, e.g. `--remove env.FOO`) |
+
+**Actor patches:**
+
+```bash
+asya patch text-flow --actor analyze scaling.min=1
+asya patch text-flow --actor analyze env.MY_VAR=value
+asya patch text-flow --actor analyze env.API_KEY=secret:my-secret:key
+asya patch text-flow --actor analyze --remove env.OLD_VAR
+```
+
+Env shorthand: `env.NAME=value` (plain), `env.NAME=secret:name:key` (secretKeyRef),
+`env.NAME=configmap:name:key` (configMapKeyRef).
+
+Scaling shorthand: `scaling.min`, `scaling.max`, `scaling.cooldown`, `scaling.polling`.
+
+**Gateway patches:**
+
+```bash
+asya patch text-flow --gateway expose=true description="Analyze text" mcp=true a2a=true
+asya patch text-flow --gateway expose=true --context dev
+asya patch text-flow --gateway expose=false --context dev
+```
+
+### `asya render` (alias: `show`)
 
 Render kustomize manifests for a compiled flow.
 
 ```bash
-asya show TARGET [--context CTX]
+asya render FLOW_NAME [--context CTX] [--actor NAME]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--context` | Overlay context to select (uses `common/` or `base/` if omitted) |
+| `-a`, `--actor` | Show only this actor (accepts function name or manifest name) |
 
 ### `asya status`
 

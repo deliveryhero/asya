@@ -2655,7 +2655,46 @@ asya-gateway-mesh  (mode: mesh)  — ClusterIP only, cluster-internal
 </tbody>
 </table></div>
 <h2 id="tool-registration">Tool Registration<a class="headerlink" href="#tool-registration" title="Permanent link">#</a></h2>
-<p>The gateway reads tool definitions from a ConfigMap named <code>gateway-flows</code>, mounted into the api pod. The gateway polls this ConfigMap every 10 seconds (configurable via <code>ASYA_CONFIG_POLL_INTERVAL</code>) and hot-reloads without a pod restart.</p>
+<p>The gateway reads tool definitions from <code>*.yaml</code> files in <code>/etc/asya/flows/</code>. It polls
+every 10 seconds (configurable via <code>ASYA_CONFIG_POLL_INTERVAL</code>) and hot-reloads without
+a pod restart.</p>
+<p>The directory is populated from ConfigMaps via a projected volume. Two sources:</p>
+<ol>
+<li><strong>Helm-managed</strong> (<code>asya-gateway-flows</code> CM) — seeded at deploy time via <code>exposedFlows</code></li>
+<li><strong>Per-flow CMs</strong> — deployed alongside actors by <code>asya k apply</code>, auto-registered</li>
+</ol>
+<h3 id="using-the-cli-recommended">Using the CLI (recommended)<a class="headerlink" href="#using-the-cli-recommended" title="Permanent link">#</a></h3>
+<p>The <code>asya expose</code> and <code>asya k apply</code> commands handle flow registration automatically:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Compile the flow</span>
+asya<span class="w"> </span>compile<span class="w"> </span>text-flow<span class="w"> </span>-f<span class="w"> </span>src/flows/text_flow.py
+
+<span class="c1"># Create the gateway config (writes to common/ or overlay)</span>
+asya<span class="w"> </span>expose<span class="w"> </span>text-flow<span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;Analyze text&quot;</span><span class="w"> </span>--mcp<span class="w"> </span>--a2a<span class="w"> </span>--context<span class="w"> </span>dev
+
+<span class="c1"># Deploy actors + gateway config, auto-register with gateway</span>
+asya<span class="w"> </span>k<span class="w"> </span>apply<span class="w"> </span>text-flow<span class="w"> </span>--context<span class="w"> </span>dev
+</code></pre></div>
+<p><code>asya k apply</code> detects the per-flow ConfigMap and patches the gateway deployment
+to include it as a projected volume source. No Helm upgrade needed.</p>
+<p>To disable for an environment:</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>unexpose<span class="w"> </span>text-flow<span class="w"> </span>--context<span class="w"> </span>dev
+asya<span class="w"> </span>k<span class="w"> </span>apply<span class="w"> </span>text-flow<span class="w"> </span>--context<span class="w"> </span>dev
+</code></pre></div>
+<h3 id="using-helm-values">Using Helm Values<a class="headerlink" href="#using-helm-values" title="Permanent link">#</a></h3>
+<p>Seed flows at deploy time via <code>exposedFlows</code>, or list per-flow CMs via <code>flowConfigMaps</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># values.yaml</span>
+<span class="nt">exposedFlows</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">echo</span>
+<span class="w">  </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">echo-actor</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Echo handler</span>
+<span class="w">  </span><span class="nt">mcp</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+
+<span class="nt">flowConfigMaps</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-flow-text-flow-config</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-flow-greet-flow-config</span>
+</code></pre></div>
+<h3 id="manual-configmap">Manual ConfigMap<a class="headerlink" href="#manual-configmap" title="Permanent link">#</a></h3>
+<p>For custom setups, create a flows ConfigMap directly:</p>
 <h3 id="step-1-create-flowsyaml">Step 1: Create flows.yaml<a class="headerlink" href="#step-1-create-flowsyaml" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="nt">flows</span><span class="p">:</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">echo</span>
@@ -4112,6 +4151,24 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             Tool Registration
         </a>
         
+        
+        <a href="#using-the-cli-recommended"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Using the CLI (recommended)
+        </a>
+        
+        <a href="#using-helm-values"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Using Helm Values
+        </a>
+        
+        <a href="#manual-configmap"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Manual ConfigMap
+        </a>
         
         <a href="#step-1-create-flowsyaml"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"

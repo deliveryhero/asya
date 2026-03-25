@@ -2916,6 +2916,31 @@ before loading the handler module, so <code>@retry(...)</code> does not execute 
 and its compiled output in
 <a href="../../../examples/flows/compiled/decorator_retry/"><code>examples/flows/compiled/decorator_retry/</code></a>
 for a full walkthrough.</p>
+<h3 id="rule-matched-vs-unknown-decorators">Rule-matched vs unknown decorators<a class="headerlink" href="#rule-matched-vs-unknown-decorators" title="Permanent link">#</a></h3>
+<p>The compiler <strong>only strips decorators that match a rule</strong>. This is a core design
+principle: the rules file is the knowledge base for what the compiler understands.</p>
+<ul>
+<li>
+<p><strong>Rule-matched decorators</strong> (e.g. <code>tenacity.retry</code> with <code>treat-as: config</code>) are
+  stripped at runtime via <code>ASYA_IGNORE_DECORATORS</code>. Their behavior is implemented
+  by the Asya platform (sidecar retry policies, Crossplane manifest fields), so
+  running them in Python would be redundant or conflicting.</p>
+</li>
+<li>
+<p><strong>Unknown decorators</strong> (no rule match) are <strong>never stripped</strong>. They are user
+  business logic — logging, auth, caching, validation — and must execute at
+  runtime. The compiler passes them through unchanged. The <code># asya: actor</code>
+  directive and <code>@actor</code> decorator classify the function as an actor, but they
+  do not affect other decorators on the same function.</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nd">@some_logging_decorator</span>       <span class="c1"># unknown — preserved, runs at runtime</span>
+<span class="nd">@retry</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop_after_attempt</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>  <span class="c1"># rule-matched — stripped, config extracted</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">handler</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>  <span class="c1"># asya: actor</span>
+    <span class="o">...</span>
+</code></pre></div>
+<p>In the generated manifest, <code>@retry</code> params appear as <code>spec.resiliency.policies</code>,
+and <code>@some_logging_decorator</code> remains on the handler at runtime.</p>
 <h3 id="both-mechanisms-in-one-flow">Both mechanisms in one flow<a class="headerlink" href="#both-mechanisms-in-one-flow" title="Permanent link">#</a></h3>
 <p>Context managers and decorators can work together on the same flow. The
 templater applies scope configs first (context managers), then decorator configs.
@@ -4280,6 +4305,12 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
             Decorators on actor definitions
+        </a>
+        
+        <a href="#rule-matched-vs-unknown-decorators"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Rule-matched vs unknown decorators
         </a>
         
         <a href="#both-mechanisms-in-one-flow"

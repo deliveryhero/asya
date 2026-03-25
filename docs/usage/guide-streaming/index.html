@@ -2690,6 +2690,113 @@
 </code></pre></div>
 <p>FLY events bypass message queues entirely — they travel from the sidecar directly to the mesh gateway via HTTP, then are broadcast to the API gateway via PG LISTEN/NOTIFY (in-memory, no disk persistence), and finally streamed to SSE clients. This makes them fast but ephemeral — clients connecting after task completion will NOT see historical FLY events.</p>
 <hr />
+<h2 id="mcp-vs-a2a-when-to-use-which">MCP vs A2A: when to use which<a class="headerlink" href="#mcp-vs-a2a-when-to-use-which" title="Permanent link">#</a></h2>
+<p>Both protocols expose your flows to external clients, but they serve different
+audiences and have different streaming semantics.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>MCP</th>
+<th>A2A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>LLM clients, developer tools</td>
+<td>AI agents, orchestrators</td>
+</tr>
+<tr>
+<td><strong>Interaction</strong></td>
+<td>Tool invocation (call + result)</td>
+<td>Task lifecycle (send, subscribe, cancel)</td>
+</tr>
+<tr>
+<td><strong>Streaming</strong></td>
+<td>SSE on same connection</td>
+<td>SSE via subscribe endpoint</td>
+</tr>
+<tr>
+<td><strong>FLY events</strong></td>
+<td>Delivered as <code>event: partial</code> (or <code>artifact_update</code>/<code>status_update</code> if payload matches A2A shapes)</td>
+<td>Same SSE event types</td>
+</tr>
+<tr>
+<td><strong>Session</strong></td>
+<td>Requires MCP session (initialize handshake)</td>
+<td>Stateless per-request</td>
+</tr>
+<tr>
+<td><strong>Pause/resume</strong></td>
+<td>Not supported</td>
+<td>Built-in (<code>input_required</code> state)</td>
+</tr>
+<tr>
+<td><strong>Multi-turn</strong></td>
+<td>Not natively supported</td>
+<td>Context ID tracks conversation</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Use MCP when:</strong>
+- Building LLM tool integrations (Claude, GPT, Gemini)
+- Your flow is a single request-response operation
+- You want standard MCP client compatibility</p>
+<p><strong>Use A2A when:</strong>
+- Building agent-to-agent communication
+- Your flow involves pause/resume (human-in-the-loop)
+- You need multi-turn conversations
+- You want structured streaming with <code>TaskArtifactUpdateEvent</code></p>
+<p><strong>Use both when:</strong>
+- You want maximum interoperability</p>
+<p>Register your flow with both protocols:</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>expose<span class="w"> </span>my-flow<span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;Description&quot;</span><span class="w"> </span>--mcp<span class="w"> </span>--a2a
+</code></pre></div>
+<h3 id="fly-event-shapes-for-a2a-compatibility">FLY event shapes for A2A compatibility<a class="headerlink" href="#fly-event-shapes-for-a2a-compatibility" title="Permanent link">#</a></h3>
+<p>If you want FLY events to appear as standard A2A SSE event types (not just
+<code>event: partial</code>), structure the payload with the appropriate top-level key:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Standard A2A artifact streaming (event type: artifact_update)</span>
+<span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span>
+    <span class="s2">&quot;artifact_update&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;artifact&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;parts&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">}]</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1"># Standard A2A status update (event type: status_update)</span>
+<span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span>
+    <span class="s2">&quot;status_update&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;state&quot;</span><span class="p">:</span> <span class="s2">&quot;working&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;agent&quot;</span><span class="p">,</span> <span class="s2">&quot;parts&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Processing...&quot;</span><span class="p">}]}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1"># Non-standard (event type: partial) — works with custom clients</span>
+<span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="dual-gateway-streaming-latency">Dual-gateway streaming latency<a class="headerlink" href="#dual-gateway-streaming-latency" title="Permanent link">#</a></h2>
+<p>In dual-gateway mode (separate api + mesh pods), FLY events are relayed
+via PostgreSQL:</p>
+<div class="highlight"><pre><span></span><code>Sidecar ---POST /mesh/{id}/fly---&gt; Gateway mesh
+                                       |
+                                   writes to PostgreSQL
+                                       |
+Gateway api &lt;---polls DB (500ms)-------+
+    |
+SSE client
+</code></pre></div>
+<p>This adds up to <strong>500ms latency</strong> per FLY event. For progress updates and
+stage transitions this is acceptable. For per-token LLM streaming
+(~30 tokens/sec), events arrive in batches rather than individually.</p>
+<p><strong>Workarounds:</strong>
+- Run in <strong>single-gateway mode</strong> (api + mesh in one pod) for near-zero FLY
+  latency via in-process channels
+- A future improvement will add a direct pub/sub relay (Redis/NATS) between
+  mesh and api pods for sub-millisecond FLY delivery (see aint <code>debt/jhre</code>)</p>
+<hr />
 <h2 id="client-side-consumption">Client-side consumption<a class="headerlink" href="#client-side-consumption" title="Permanent link">#</a></h2>
 <h3 id="protocol-agnostic-sse">Protocol-agnostic SSE<a class="headerlink" href="#protocol-agnostic-sse" title="Permanent link">#</a></h3>
 <p>Connect to <code>/stream/{task_id}</code> (API gateway) for protocol-agnostic FLY event streaming:</p>
@@ -3945,6 +4052,30 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             How FLY reaches clients
+        </a>
+        
+
+        
+        <a href="#mcp-vs-a2a-when-to-use-which"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            MCP vs A2A: when to use which
+        </a>
+        
+        
+        <a href="#fly-event-shapes-for-a2a-compatibility"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            FLY event shapes for A2A compatibility
+        </a>
+        
+        
+
+        
+        <a href="#dual-gateway-streaming-latency"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Dual-gateway streaming latency
         </a>
         
 
