@@ -13,21 +13,21 @@ Regenerate by running: asya flow compile try_except_catch_all.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-async def start_resilient_pipeline(payload: dict):
-    """Entrypoint for flow 'resilient_pipeline'"""
+async def start_try_except_catch_all(payload: dict):
+    """Entrypoint for flow 'try_except_catch_all'"""
     _next = []
     _next.append(resolve("risky_operation"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resilient_pipeline_except_valueerror(payload: dict):
+async def router_try_except_catch_all_except_valueerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error_type'] = 'known'
     yield "SET", ".route.next", [resolve('handle_known_error')]
     yield payload
 
-async def router_resilient_pipeline_except_all(payload: dict):
+async def router_try_except_catch_all_except_all(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error_type'] = 'unknown'

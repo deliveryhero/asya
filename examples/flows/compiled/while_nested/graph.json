@@ -70,6 +70,11 @@
       "label": "start_while_nested_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -150,6 +155,18 @@
       "to": "router_while_nested_flow_while_i_lt_max_i",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "handler_outer_end",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

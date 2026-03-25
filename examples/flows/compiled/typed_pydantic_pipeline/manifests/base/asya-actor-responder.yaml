@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-responder
   image: examples.asya.sh/responder:latest
-  handler: responder
+  handler: typed_pydantic_pipeline.responder
   scaling:
     enabled: true
     minReplicaCount: 0

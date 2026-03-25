@@ -17,21 +17,21 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_CHECK_QUALITY
-    value: handler_check_quality
+    value: complex_with_while.handler_check_quality
   - name: ASYA_HANDLER_ACTOR_HANDLER_ENRICH_DATA
-    value: handler_enrich_data
+    value: complex_with_while.handler_enrich_data
   - name: ASYA_HANDLER_ACTOR_HANDLER_ERROR
-    value: handler_error
+    value: complex_with_while.handler_error
   - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
-    value: handler_finalize
+    value: complex_with_while.handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_PREPROCESS
-    value: handler_preprocess
+    value: complex_with_while.handler_preprocess
   - name: ASYA_HANDLER_ACTOR_HANDLER_RETRY_HANDLER
-    value: handler_retry_handler
+    value: complex_with_while.handler_retry_handler
   - name: ASYA_HANDLER_ACTOR_HANDLER_TRANSFORM_BATCH
-    value: handler_transform_batch
+    value: complex_with_while.handler_transform_batch
   - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
-    value: handler_validate
+    value: complex_with_while.handler_validate
   - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_IF_NEEDS_ENRICHMENT
     value: routers.router_complex_flow_if_needs_enrichment
   - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_IF_NOT_VALID
@@ -44,3 +44,12 @@ spec:
     value: routers.router_complex_flow_if_requires_retry
   - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_WHILE_BATCH_COUNT_LT_MAX_BATCHES
     value: routers.router_complex_flow_while_batch_count_lt_max_batches
+  volumes:
+  - name: routers
+    configMap:
+      name: complex-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

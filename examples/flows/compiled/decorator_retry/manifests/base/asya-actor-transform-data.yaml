@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-transform-data
   image: examples.asya.sh/transform-data:latest
-  handler: transform_data
+  handler: decorator_retry.transform_data
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -45,6 +45,11 @@
       "mutations": [
         "p['iteration'] = 0"
       ]
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -101,6 +106,12 @@
       "to": "router_evaluator_optimizer_while_loop",
       "label": "else",
       "type": "continuation"
+    },
+    {
+      "from": "polisher",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

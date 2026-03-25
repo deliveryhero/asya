@@ -26,8 +26,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_failover_pipeline start
-    class finalize endnode
+    class finalize,__end__ endnode
     class router_failover_pipeline_except_connectionerror,router_failover_pipeline_except_valueerror router
     class call_fallback,call_primary,handle_validation_error handler
-    class __end__ endpoint
     linkStyle 6,7 stroke:#DC143C

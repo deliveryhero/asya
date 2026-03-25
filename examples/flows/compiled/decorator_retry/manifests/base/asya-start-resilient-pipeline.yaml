@@ -17,8 +17,17 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_FETCH_DATA
-    value: fetch_data
+    value: decorator_retry.fetch_data
   - name: ASYA_HANDLER_ACTOR_STORE_RESULTS
-    value: store_results
+    value: decorator_retry.store_results
   - name: ASYA_HANDLER_ACTOR_TRANSFORM_DATA
-    value: transform_data
+    value: decorator_retry.transform_data
+  volumes:
+  - name: routers
+    configMap:
+      name: resilient-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

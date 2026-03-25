@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-general-agent
   image: examples.asya.sh/general-agent:latest
-  handler: general_agent
+  handler: routing_classifier.general_agent
   scaling:
     enabled: true
     minReplicaCount: 0

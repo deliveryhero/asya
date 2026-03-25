@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-standard-handler
   image: examples.asya.sh/standard-handler:latest
-  handler: standard_handler
+  handler: decorator_inline_comments.standard_handler
   scaling:
     enabled: true
     minReplicaCount: 0

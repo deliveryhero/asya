@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-process-abort
   image: examples.asya.sh/process-abort:latest
-  handler: process_abort
+  handler: while_loop_processing.process_abort
   scaling:
     enabled: true
     minReplicaCount: 0

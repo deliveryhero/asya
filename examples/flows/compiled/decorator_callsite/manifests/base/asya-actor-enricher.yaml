@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-enricher
   image: examples.asya.sh/enricher:latest
-  handler: enricher
+  handler: decorator_callsite.enricher
   scaling:
     enabled: true
     minReplicaCount: 0

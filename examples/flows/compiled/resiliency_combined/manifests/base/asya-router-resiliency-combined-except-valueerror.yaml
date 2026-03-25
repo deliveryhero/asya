@@ -1,0 +1,34 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-resiliency-combined-except-valueerror
+  namespace: default
+  labels:
+    asya.sh/flow: resiliency-combined
+    asya.sh/generated: 'true'
+spec:
+  actor: router-resiliency-combined-except-valueerror
+  image: python:3.13-slim
+  handler: routers.router_resiliency_combined_except_valueerror
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_FETCH_DATA
+    value: resiliency_combined.fetch_data
+  - name: ASYA_HANDLER_ACTOR_HANDLE_BAD_DATA
+    value: resiliency_combined.handle_bad_data
+  - name: ASYA_HANDLER_ACTOR_PARSE_DATA
+    value: resiliency_combined.parse_data
+  - name: ASYA_HANDLER_ACTOR_STORE_RESULTS
+    value: resiliency_combined.store_results
+  volumes:
+  - name: routers
+    configMap:
+      name: resiliency-combined-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

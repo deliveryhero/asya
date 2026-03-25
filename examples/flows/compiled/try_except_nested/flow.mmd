@@ -38,8 +38,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_nested_error_handling start
-    class store_results endnode
+    class store_results,__end__ endnode
     class router_nested_error_handling_except_connectionerror,router_nested_error_handling_except_valueerror router
     class cleanup,fetch_data,handle_connection_error,handle_parse_error,parse_data,transform_data,validate_data handler
-    class __end__ endpoint
     linkStyle 10,11,12,13,14,15 stroke:#DC143C

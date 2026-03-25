@@ -8,7 +8,6 @@ digraph "resilient_pipeline" {
     start_resilient_pipeline [label="start_resilient_pipeline\n\np['status'] = 'processing'", fillcolor=palegreen];
     store_results [label="store_results", fillcolor=lightsalmon];
     transform_data [label="transform_data", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_resilient_pipeline -> fetch_data;

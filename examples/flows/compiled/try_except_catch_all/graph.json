@@ -1,5 +1,5 @@
 {
-  "flow_name": "resilient_pipeline",
+  "flow_name": "try_except_catch_all",
   "nodes": [
     {
       "id": "handle_known_error",
@@ -16,58 +16,75 @@
       "label": "risky_operation"
     },
     {
-      "id": "router_resilient_pipeline_except_all",
-      "label": "router_resilient_pipeline_except_all",
+      "id": "router_try_except_catch_all_except_all",
+      "label": "router_try_except_catch_all_except_all",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'unknown'"
       ]
     },
     {
-      "id": "router_resilient_pipeline_except_valueerror",
-      "label": "router_resilient_pipeline_except_valueerror",
+      "id": "router_try_except_catch_all_except_valueerror",
+      "label": "router_try_except_catch_all_except_valueerror",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'known'"
       ]
     },
     {
-      "id": "start_resilient_pipeline",
-      "label": "start_resilient_pipeline",
+      "id": "start_try_except_catch_all",
+      "label": "start_try_except_catch_all",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
     {
-      "from": "start_resilient_pipeline",
+      "from": "start_try_except_catch_all",
       "to": "risky_operation",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_resilient_pipeline_except_valueerror",
+      "from": "router_try_except_catch_all_except_valueerror",
       "to": "handle_known_error",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_resilient_pipeline_except_all",
+      "from": "router_try_except_catch_all_except_all",
       "to": "handle_unknown_error",
       "label": null,
       "type": "set"
     },
     {
       "from": "risky_operation",
-      "to": "router_resilient_pipeline_except_valueerror",
+      "to": "router_try_except_catch_all_except_valueerror",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "risky_operation",
-      "to": "router_resilient_pipeline_except_all",
+      "to": "router_try_except_catch_all_except_all",
       "label": "except *",
       "type": "error"
+    },
+    {
+      "from": "handle_known_error",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "handle_unknown_error",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

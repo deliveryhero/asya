@@ -13,29 +13,29 @@ Regenerate by running: asya flow compile try_except_multiple_handlers.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-async def start_data_pipeline(payload: dict):
-    """Entrypoint for flow 'data_pipeline'"""
+async def start_try_except_multiple_handlers(payload: dict):
+    """Entrypoint for flow 'try_except_multiple_handlers'"""
     _next = []
     _next.append(resolve("parse_input"))
     _next.append(resolve("transform_data"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_except_valueerror(payload: dict):
+async def router_try_except_multiple_handlers_except_valueerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error_type'] = 'validation'
     yield "SET", ".route.next", [resolve('handle_validation_error')]
     yield payload
 
-async def router_data_pipeline_except_typeerror(payload: dict):
+async def router_try_except_multiple_handlers_except_typeerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error_type'] = 'type_mismatch'
     yield "SET", ".route.next", [resolve('handle_type_error')]
     yield payload
 
-async def router_data_pipeline_except_runtimeerror(payload: dict):
+async def router_try_except_multiple_handlers_except_runtimeerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error_type'] = 'runtime'

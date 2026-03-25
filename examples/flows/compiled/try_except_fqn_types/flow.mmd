@@ -23,8 +23,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_llm_pipeline start
-    class call_fallback_llm,notify_admin endnode
+    class call_fallback_llm,notify_admin,__end__ endnode
     class router_llm_pipeline_except_authenticationerror,router_llm_pipeline_except_ratelimiterror router
     class call_llm handler
-    class __end__ endpoint
     linkStyle 3,4 stroke:#DC143C

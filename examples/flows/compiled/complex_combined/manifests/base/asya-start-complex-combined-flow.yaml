@@ -17,19 +17,19 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_DEFAULT
-    value: handler_default
+    value: complex_combined.handler_default
   - name: ASYA_HANDLER_ACTOR_HANDLER_ERROR
-    value: handler_error
+    value: complex_combined.handler_error
   - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
-    value: handler_finalize
+    value: complex_combined.handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
-    value: handler_init
+    value: complex_combined.handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
-    value: handler_process
+    value: complex_combined.handler_process
   - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_A
-    value: handler_type_a
+    value: complex_combined.handler_type_a
   - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
-    value: handler_type_b
+    value: complex_combined.handler_type_b
   - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_NEEDS_LOOP
     value: routers.router_complex_combined_flow_if_needs_loop
   - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_NOT_VALID
@@ -46,3 +46,12 @@ spec:
     value: routers.router_complex_combined_flow_seq_set_i
   - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_WHILE_I_LT_MAX_ITERATIONS
     value: routers.router_complex_combined_flow_while_i_lt_max_iterations
+  volumes:
+  - name: routers
+    configMap:
+      name: complex-combined-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

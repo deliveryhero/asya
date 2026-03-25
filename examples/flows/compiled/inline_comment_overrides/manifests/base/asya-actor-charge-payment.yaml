@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-charge-payment
   image: examples.asya.sh/charge-payment:latest
-  handler: charge_payment
+  handler: inline_comment_overrides.charge_payment
   scaling:
     enabled: true
     minReplicaCount: 0

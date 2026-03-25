@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-splitter
   image: examples.asya.sh/splitter:latest
-  handler: splitter
+  handler: map_reduce.splitter
   scaling:
     enabled: true
     minReplicaCount: 0

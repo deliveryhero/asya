@@ -57,6 +57,11 @@
       "mutations": [
         "p['retrieval_attempts'] = 0"
       ]
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -131,6 +136,12 @@
       "to": "router_rag_pipeline_while_loop",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "fact_checker",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

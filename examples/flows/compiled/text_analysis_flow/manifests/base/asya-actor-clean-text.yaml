@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-clean-text
   image: examples.asya.sh/clean-text:latest
-  handler: clean_text
+  handler: text_analysis_flow.clean_text
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-check
   image: examples.asya.sh/handler-check:latest
-  handler: handler_check
+  handler: while_break_continue.handler_check
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -55,6 +55,11 @@
     {
       "id": "validate_data",
       "label": "validate_data"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -153,6 +158,12 @@
       "to": "router_nested_error_handling_except_connectionerror",
       "label": "ConnectionError",
       "type": "error"
+    },
+    {
+      "from": "store_results",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

@@ -1,9 +1,9 @@
 flowchart TD
     %% Flow: mutations_only_flow
 
+    __end__((( )))
     router_mutations_only_flow_seq_set_step{{"router_mutations_only_flow_seq_set_step<br/><br/>p['step'] = 1<br/>p['x'] = 10<br/>p['y'] = 20<br/>p['x'] += p['y']<br/>p['z'] = p['x'] + 30"}}
     start_mutations_only_flow([start_mutations_only_flow])
-    __end__((( )))
 
     start_mutations_only_flow --> router_mutations_only_flow_seq_set_step
     router_mutations_only_flow_seq_set_step --> __end__
@@ -14,5 +14,5 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_mutations_only_flow start
+    class __end__ endnode
     class router_mutations_only_flow_seq_set_step router
-    class __end__ endpoint

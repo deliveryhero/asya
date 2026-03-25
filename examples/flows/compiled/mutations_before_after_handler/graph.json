@@ -2,6 +2,11 @@
   "flow_name": "mutations_before_after_handler_flow",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "handler_a",
       "label": "handler_a"
     },
@@ -47,6 +52,12 @@
       "to": "router_mutations_before_after_handler_flow_seq_set_step_2",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "router_mutations_before_after_handler_flow_seq_set_step",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     },
     {
       "from": "router_mutations_before_after_handler_flow_seq_set_step_2",

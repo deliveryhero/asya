@@ -4,7 +4,7 @@ metadata:
   name: actor-handle-type-error
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: try-except-multiple-handlers
     asya.sh/role: end
 spec:
   actor: actor-handle-type-error

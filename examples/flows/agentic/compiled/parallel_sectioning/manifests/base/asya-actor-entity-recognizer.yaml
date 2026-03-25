@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-entity-recognizer
   image: examples.asya.sh/entity-recognizer:latest
-  handler: entity_recognizer
+  handler: parallel_sectioning.entity_recognizer
   scaling:
     enabled: true
     minReplicaCount: 0

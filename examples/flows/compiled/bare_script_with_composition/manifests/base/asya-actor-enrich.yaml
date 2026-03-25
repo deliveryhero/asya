@@ -8,9 +8,9 @@ metadata:
 spec:
   actor: actor-enrich
   image: examples.asya.sh/enrich:latest
-  handler: enrich
+  handler: bare_script_with_composition.enrich
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []

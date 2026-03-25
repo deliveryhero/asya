@@ -9,9 +9,9 @@ metadata:
 spec:
   actor: actor-format-output
   image: examples.asya.sh/format-output:latest
-  handler: format_output
+  handler: bare_script_with_composition.format_output
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []

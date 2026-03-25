@@ -3,6 +3,6 @@ kind: Kustomization
 resources:
 - asya-actor-handler-finalize.yaml
 - asya-actor-handler-setup.yaml
-- asya-router-if-empty-branches-flow-if-skip-processing.yaml
-- asya-start-if-empty-branches-flow.yaml
+- asya-router-if-all-empty-branches-flow-if-skip-processing.yaml
+- asya-start-if-all-empty-branches-flow.yaml
 - configmap-routers.yaml

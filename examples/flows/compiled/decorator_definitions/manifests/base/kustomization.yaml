@@ -3,6 +3,5 @@ kind: Kustomization
 resources:
 - asya-actor-enrich.yaml
 - asya-actor-validate.yaml
-- asya-router-decorator-definitions-flow-seq-p-inject-trace-p.yaml
 - asya-start-decorator-definitions-flow.yaml
 - configmap-routers.yaml

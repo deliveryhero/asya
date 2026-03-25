@@ -81,6 +81,11 @@
     {
       "id": "writer",
       "label": "writer"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -221,6 +226,12 @@
       "to": "final_assembler",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "final_assembler",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

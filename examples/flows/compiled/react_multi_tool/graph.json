@@ -2,6 +2,11 @@
   "flow_name": "research_agent",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "router_research_agent_if_tool_name_eq_calculator",
       "label": "router_research_agent_if_tool_name_eq_calculator",
       "generated": true
@@ -37,6 +42,12 @@
       "to": "router_research_agent_while_loop",
       "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_if_tool_name_eq_code_exec",
+      "to": "__end__",
+      "label": "else",
+      "type": "set"
     },
     {
       "from": "router_research_agent_if_tool_name_eq_calculator",

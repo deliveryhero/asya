@@ -5,6 +5,5 @@ resources:
 - asya-actor-fast-handler.yaml
 - asya-actor-standard-handler.yaml
 - asya-router-decorator-inline-comments-flow-if-category-eq-priority.yaml
-- asya-router-decorator-inline-comments-flow-seq-p-inject-id-p.yaml
 - asya-start-decorator-inline-comments-flow.yaml
 - configmap-routers.yaml

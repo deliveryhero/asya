@@ -11,7 +11,6 @@ digraph "while_with_continue_flow" {
     router_while_with_continue_flow_seq_set_i [label="router_while_with_continue_flow_seq_set_i\n\np['i'] = 0", fillcolor=wheat];
     router_while_with_continue_flow_while_i_lt_max_iterations [label="router_while_with_continue_flow_while_i_lt_max_iterations", fillcolor=wheat];
     start_while_with_continue_flow [label="start_while_with_continue_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_while_with_continue_flow -> handler_init;

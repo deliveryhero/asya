@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-debater-a
   image: examples.asya.sh/debater-a:latest
-  handler: debater_a
+  handler: multi_agent_debate.debater_a
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handle-validation-error
   image: examples.asya.sh/handle-validation-error:latest
-  handler: handle_validation_error
+  handler: resiliency_error_routing.handle_validation_error
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-formatter
   image: examples.asya.sh/formatter:latest
-  handler: formatter
+  handler: typed_dataclass_pipeline.formatter
   scaling:
     enabled: true
     minReplicaCount: 0

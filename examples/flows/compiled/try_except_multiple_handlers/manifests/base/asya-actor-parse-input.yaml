@@ -4,7 +4,7 @@ metadata:
   name: actor-parse-input
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: try-except-multiple-handlers
 spec:
   actor: actor-parse-input
   image: examples.asya.sh/parse-input:latest
@@ -19,15 +19,15 @@ spec:
       except_valueerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-except-valueerror
+        - router-try-except-multiple-handlers-except-valueerror
       except_typeerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-except-typeerror
+        - router-try-except-multiple-handlers-except-typeerror
       except_runtimeerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-except-runtimeerror
+        - router-try-except-multiple-handlers-except-runtimeerror
     rules:
     - errors:
       - ValueError

@@ -11,7 +11,6 @@ digraph "failover_pipeline" {
     router_failover_pipeline_except_connectionerror [label="router_failover_pipeline_except_connectionerror\n\np['fallback'] = True", fillcolor=wheat];
     router_failover_pipeline_except_valueerror [label="router_failover_pipeline_except_valueerror\n\np['error_type'] = 'validation'", fillcolor=wheat];
     start_failover_pipeline [label="start_failover_pipeline\n\np['status'] = 'started'", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_failover_pipeline -> call_primary;

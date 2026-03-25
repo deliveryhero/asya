@@ -16,11 +16,11 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CRITIC
-    value: critic
+    value: research_and_refine.critic
   - name: ASYA_HANDLER_ACTOR_REFINE_QUERY
-    value: refine_query
+    value: research_and_refine.refine_query
   - name: ASYA_HANDLER_ACTOR_RESEARCHER
-    value: researcher
+    value: research_and_refine.researcher
   - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_IF_ITERATION_GE_5
     value: routers.router_research_and_refine_if_iteration_ge_5
   - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_IF_NOT_GAPS_OR_QUALITY_SCORE_GE_85
@@ -30,4 +30,13 @@ spec:
   - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_WHILE_LOOP
     value: routers.router_research_and_refine_while_loop
   - name: ASYA_HANDLER_ACTOR_WRITE_REPORT
-    value: write_report
+    value: research_and_refine.write_report
+  volumes:
+  - name: routers
+    configMap:
+      name: research-and-refine-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

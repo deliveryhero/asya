@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-a
   image: examples.asya.sh/handler-a:latest
-  handler: handler_a
+  handler: mutations_before_after_handler.handler_a
   scaling:
     enabled: true
     minReplicaCount: 0

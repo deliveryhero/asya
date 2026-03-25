@@ -21,12 +21,21 @@ spec:
   - name: ASYA_HANDLER_FANIN_MULTI_STAGE_FLOW_REVIEWS
     value: routers.fanin_multi_stage_flow_reviews
   - name: ASYA_HANDLER_ACTOR_RESEARCH_AGENT
-    value: research_agent
+    value: fanout_sequential.research_agent
   - name: ASYA_HANDLER_ACTOR_REVIEW_AGENT
-    value: review_agent
+    value: fanout_sequential.review_agent
   - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_FANOUT_RESEARCH
     value: routers.router_multi_stage_flow_fanout_research
   - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_FANOUT_REVIEWS
     value: routers.router_multi_stage_flow_fanout_reviews
   - name: ASYA_HANDLER_ACTOR_SUMMARIZER
-    value: summarizer
+    value: fanout_sequential.summarizer
+  volumes:
+  - name: routers
+    configMap:
+      name: multi-stage-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

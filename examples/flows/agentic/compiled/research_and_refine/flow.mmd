@@ -30,9 +30,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_research_and_refine start
-    class write_report endnode
+    class write_report,__end__ endnode
     class router_research_and_refine_if_iteration_ge_5,router_research_and_refine_if_not_gaps_or_quality_score_ge_85,router_research_and_refine_seq_set_iteration,router_research_and_refine_while_loop router
     class critic,refine_query,researcher handler
-    class __end__ endpoint
     linkStyle 1,4 stroke:#2E8B57
     linkStyle 2,9 stroke:#E07040

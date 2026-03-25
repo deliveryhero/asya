@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-prepare-request
   image: examples.asya.sh/prepare-request:latest
-  handler: prepare_request
+  handler: try_except_retry_loop.prepare_request
   scaling:
     enabled: true
     minReplicaCount: 0

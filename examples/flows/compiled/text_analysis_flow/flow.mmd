@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: text_analysis_flow
 
+    __end__((( )))
     clean_text[clean_text]
     english_sentiment[english_sentiment]
     extract_entities[extract_entities]
@@ -11,11 +12,11 @@ flowchart TD
     spanish_sentiment[spanish_sentiment]
     start_text_analysis_flow([start_text_analysis_flow])
     tokenize[tokenize]
-    __end__((( )))
 
     start_text_analysis_flow --> clean_text
     clean_text --> tokenize
     tokenize --> router_text_analysis_flow_if_language_eq_en
+    router_text_analysis_flow_seq_set_extracted --> __end__
     router_text_analysis_flow_if_language_eq_es -->|"p['language'] == 'es'"| spanish_sentiment
     router_text_analysis_flow_if_language_eq_es -->|"else"| router_text_analysis_flow_seq_set_sentiment
     router_text_analysis_flow_if_language_eq_en -->|"p['language'] == 'en'"| english_sentiment
@@ -24,7 +25,6 @@ flowchart TD
     router_text_analysis_flow_if_language_eq_en -->|"else"| router_text_analysis_flow_if_language_eq_es
     spanish_sentiment --> extract_entities
     router_text_analysis_flow_seq_set_sentiment --> extract_entities
-    router_text_analysis_flow_seq_set_extracted --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -32,8 +32,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_text_analysis_flow start
+    class __end__ endnode
     class router_text_analysis_flow_if_language_eq_en,router_text_analysis_flow_if_language_eq_es,router_text_analysis_flow_seq_set_extracted,router_text_analysis_flow_seq_set_sentiment router
     class clean_text,english_sentiment,extract_entities,spanish_sentiment,tokenize handler
-    class __end__ endpoint
-    linkStyle 3,5 stroke:#2E8B57
-    linkStyle 4,8 stroke:#E07040
+    linkStyle 4,6 stroke:#2E8B57
+    linkStyle 5,9 stroke:#E07040

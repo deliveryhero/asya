@@ -23,9 +23,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_early_return_flow start
-    class handler_error,handler_finalize endnode
+    class handler_error,handler_finalize,__end__ endnode
     class router_early_return_flow_if_not_valid router
     class handler_process,handler_validate handler
-    class __end__ endpoint
     linkStyle 4 stroke:#2E8B57
     linkStyle 2 stroke:#E07040

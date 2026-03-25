@@ -17,14 +17,23 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
-    value: handler_finalize
+    value: while_simple.handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
-    value: handler_init
+    value: while_simple.handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
-    value: handler_process
+    value: while_simple.handler_process
   - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_SEQ_SET_I
     value: routers.router_while_simple_flow_seq_set_i
   - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_SEQ_SET_I_2
     value: routers.router_while_simple_flow_seq_set_i_2
   - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_WHILE_I_LT_MAX_ITERATIONS
     value: routers.router_while_simple_flow_while_i_lt_max_iterations
+  volumes:
+  - name: routers
+    configMap:
+      name: while-simple-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

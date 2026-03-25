@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-enricher
   image: examples.asya.sh/enricher:latest
-  handler: enricher
+  handler: typed_dataclass_pipeline.enricher
   scaling:
     enabled: true
     minReplicaCount: 0

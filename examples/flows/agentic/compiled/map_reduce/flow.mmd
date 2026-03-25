@@ -23,8 +23,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_map_reduce start
-    class reducer endnode
+    class reducer,__end__ endnode
     class router_map_reduce_fanout_chunk_results router
     class chunk_processor,fanin_map_reduce_chunk_results,splitter handler
-    class __end__ endpoint
     linkStyle 2 stroke:#7B68EE

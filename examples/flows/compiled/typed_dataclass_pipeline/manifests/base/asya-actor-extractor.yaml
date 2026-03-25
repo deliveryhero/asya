@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-extractor
   image: examples.asya.sh/extractor:latest
-  handler: extractor
+  handler: typed_dataclass_pipeline.extractor
   scaling:
     enabled: true
     minReplicaCount: 0

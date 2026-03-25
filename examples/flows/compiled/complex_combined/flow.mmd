@@ -50,9 +50,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_complex_combined_flow start
-    class handler_error,handler_finalize endnode
+    class handler_error,handler_finalize,__end__ endnode
     class router_complex_combined_flow_if_needs_loop,router_complex_combined_flow_if_not_valid,router_complex_combined_flow_if_skip_even_and_p_i_2_eq_0,router_complex_combined_flow_if_stop_early,router_complex_combined_flow_if_type_eq_a,router_complex_combined_flow_if_type_eq_b,router_complex_combined_flow_seq_set_i,router_complex_combined_flow_while_i_lt_max_iterations router
     class handler_default,handler_init,handler_process,handler_type_a,handler_type_b handler
-    class __end__ endpoint
     linkStyle 2,3,6,9,11,13,16 stroke:#2E8B57
     linkStyle 4,7,10,12,14,15,17 stroke:#E07040

@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-fast-handler
   image: examples.asya.sh/fast-handler:latest
-  handler: fast_handler
+  handler: decorator_inline_comments.fast_handler
   scaling:
     enabled: true
     minReplicaCount: 0

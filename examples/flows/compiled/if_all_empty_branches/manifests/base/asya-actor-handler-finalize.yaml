@@ -4,12 +4,12 @@ metadata:
   name: actor-handler-finalize
   namespace: default
   labels:
-    asya.sh/flow: if-empty-branches-flow
+    asya.sh/flow: if-all-empty-branches-flow
     asya.sh/role: end
 spec:
   actor: actor-handler-finalize
   image: examples.asya.sh/handler-finalize:latest
-  handler: handler_finalize
+  handler: if_all_empty_branches.handler_finalize
   scaling:
     enabled: true
     minReplicaCount: 0

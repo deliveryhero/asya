@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-retriever
   image: examples.asya.sh/retriever:latest
-  handler: retriever
+  handler: rag_pipeline.retriever
   scaling:
     enabled: true
     minReplicaCount: 0

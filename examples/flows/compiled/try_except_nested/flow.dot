@@ -15,7 +15,6 @@ digraph "nested_error_handling" {
     store_results [label="store_results", fillcolor=lightsalmon];
     transform_data [label="transform_data", fillcolor=lightblue];
     validate_data [label="validate_data", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_nested_error_handling -> fetch_data;

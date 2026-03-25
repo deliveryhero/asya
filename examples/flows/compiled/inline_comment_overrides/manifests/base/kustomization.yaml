@@ -4,7 +4,6 @@ resources:
 - asya-actor-charge-payment.yaml
 - asya-actor-validate-order.yaml
 - asya-router-order-pipeline-if-fraud-score-gt-0.8.yaml
-- asya-router-order-pipeline-seq-p-normalize-keys-p.yaml
 - asya-router-order-pipeline-seq-set-status.yaml
 - asya-start-order-pipeline.yaml
 - configmap-routers.yaml

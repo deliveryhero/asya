@@ -16,10 +16,19 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CALL_FALLBACK
-    value: call_fallback
+    value: resiliency_error_routing.call_fallback
   - name: ASYA_HANDLER_ACTOR_CALL_PRIMARY
-    value: call_primary
+    value: resiliency_error_routing.call_primary
   - name: ASYA_HANDLER_ACTOR_FINALIZE
-    value: finalize
+    value: resiliency_error_routing.finalize
   - name: ASYA_HANDLER_ACTOR_HANDLE_VALIDATION_ERROR
-    value: handle_validation_error
+    value: resiliency_error_routing.handle_validation_error
+  volumes:
+  - name: routers
+    configMap:
+      name: failover-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

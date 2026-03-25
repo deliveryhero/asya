@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-log-retry
   image: examples.asya.sh/log-retry:latest
-  handler: log_retry
+  handler: try_except_retry_loop.log_retry
   scaling:
     enabled: true
     minReplicaCount: 0

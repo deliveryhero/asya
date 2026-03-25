@@ -16,16 +16,25 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_DEFAULT
-    value: handler_default
+    value: if_elif_else.handler_default
   - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
-    value: handler_finalize
+    value: if_elif_else.handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_A
-    value: handler_type_a
+    value: if_elif_else.handler_type_a
   - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
-    value: handler_type_b
+    value: if_elif_else.handler_type_b
   - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
-    value: handler_validate
+    value: if_elif_else.handler_validate
   - name: ASYA_HANDLER_ROUTER_IF_ELIF_ELSE_FLOW_IF_TYPE_EQ_A
     value: routers.router_if_elif_else_flow_if_type_eq_a
   - name: ASYA_HANDLER_ROUTER_IF_ELIF_ELSE_FLOW_IF_TYPE_EQ_B
     value: routers.router_if_elif_else_flow_if_type_eq_b
+  volumes:
+  - name: routers
+    configMap:
+      name: if-elif-else-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-store-results
   image: examples.asya.sh/store-results:latest
-  handler: store_results
+  handler: decorator_retry.store_results
   scaling:
     enabled: true
     minReplicaCount: 0

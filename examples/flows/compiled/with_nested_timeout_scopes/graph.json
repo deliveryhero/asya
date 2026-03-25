@@ -23,6 +23,11 @@
       "label": "start_ingestion_pipeline",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -49,6 +54,12 @@
       "to": "data_writer",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "data_writer",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": [

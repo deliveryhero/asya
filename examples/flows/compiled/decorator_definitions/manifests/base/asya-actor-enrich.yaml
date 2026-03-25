@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-enrich
   image: examples.asya.sh/enrich:latest
-  handler: enrich
+  handler: decorator_definitions.enrich
   scaling:
     enabled: true
     minReplicaCount: 0

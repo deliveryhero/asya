@@ -14,7 +14,6 @@ digraph "payment_flow" {
     send_receipt [label="send_receipt", fillcolor=lightsalmon];
     start_payment_flow [label="start_payment_flow", fillcolor=palegreen];
     validate_payment [label="validate_payment", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_payment_flow -> validate_payment;

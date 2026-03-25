@@ -8,9 +8,18 @@ metadata:
 spec:
   actor: actor-web-search
   image: examples.asya.sh/web-search:latest
-  handler: web_search
+  handler: adapter_web_search.adapter_web_search
   scaling:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 5
   env: []
+  volumes:
+  - name: adapter
+    configMap:
+      name: tool-calling-agent-web-search-adapter
+  volumeMounts:
+  - name: adapter
+    mountPath: /opt/asya/adapter_web_search.py
+    subPath: adapter_web_search.py
+    readOnly: true

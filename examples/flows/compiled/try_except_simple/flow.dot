@@ -8,7 +8,6 @@ digraph "order_processing" {
     router_order_processing_except_valueerror [label="router_order_processing_except_valueerror\n\np['status'] = 'invalid'", fillcolor=wheat];
     start_order_processing [label="start_order_processing", fillcolor=palegreen];
     validate_order [label="validate_order", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_order_processing -> validate_order;

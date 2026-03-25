@@ -23,6 +23,11 @@
     {
       "id": "trading_analyst",
       "label": "trading_analyst"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -49,6 +54,12 @@
       "to": "risk_evaluator",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "risk_evaluator",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

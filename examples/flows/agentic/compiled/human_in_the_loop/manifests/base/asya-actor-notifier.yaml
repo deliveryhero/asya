@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-notifier
   image: examples.asya.sh/notifier:latest
-  handler: notifier
+  handler: human_in_the_loop.notifier
   scaling:
     enabled: true
     minReplicaCount: 0

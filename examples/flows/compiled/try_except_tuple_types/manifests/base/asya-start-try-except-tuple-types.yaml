@@ -1,16 +1,16 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: start-ingestion-pipeline
+  name: start-try-except-tuple-types
   namespace: default
   labels:
-    asya.sh/flow: ingestion-pipeline
+    asya.sh/flow: try-except-tuple-types
     asya.sh/role: start
     asya.sh/generated: 'true'
 spec:
-  actor: start-ingestion-pipeline
+  actor: start-try-except-tuple-types
   image: python:3.13-slim
-  handler: routers.start_ingestion_pipeline
+  handler: routers.start_try_except_tuple_types
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -24,3 +24,12 @@ spec:
     value: queue_for_retry
   - name: ASYA_HANDLER_ACTOR_REJECT_INPUT
     value: reject_input
+  volumes:
+  - name: routers
+    configMap:
+      name: try-except-tuple-types-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -15,6 +15,11 @@
       "label": "start_llm_auditor_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -29,6 +34,12 @@
       "to": "reviser",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "reviser",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

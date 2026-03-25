@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-review-agent
   image: examples.asya.sh/review-agent:latest
-  handler: review_agent
+  handler: fanout_sequential.review_agent
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-transformer
   image: examples.asya.sh/transformer:latest
-  handler: transformer
+  handler: typed_dict_pipeline.transformer
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,7 +8,6 @@ digraph "async_research_flow" {
     research_agent [label="research_agent", fillcolor=lightblue];
     router_async_research_flow_fanout_results [label="router_async_research_flow_fanout_results", fillcolor=wheat];
     start_async_research_flow [label="start_async_research_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_async_research_flow -> router_async_research_flow_fanout_results;

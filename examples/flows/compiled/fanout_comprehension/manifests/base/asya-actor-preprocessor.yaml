@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-preprocessor
   image: examples.asya.sh/preprocessor:latest
-  handler: preprocessor
+  handler: fanout_comprehension.preprocessor
   scaling:
     enabled: true
     minReplicaCount: 0

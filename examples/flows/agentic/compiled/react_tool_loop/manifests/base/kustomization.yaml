@@ -12,7 +12,6 @@ resources:
 - asya-router-react-tool-loop-if-tool-name-eq-code-exec.yaml
 - asya-router-react-tool-loop-if-tool-name-eq-web-search.yaml
 - asya-router-react-tool-loop-seq-set-iteration.yaml
-- asya-router-react-tool-loop-seq-set-messages.yaml
 - asya-router-react-tool-loop-seq-set-observation.yaml
 - asya-router-react-tool-loop-while-loop.yaml
 - asya-start-react-tool-loop.yaml

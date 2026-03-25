@@ -30,3 +30,12 @@ spec:
     value: routers.router_sample_flow_seq_set_branch
   - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_SEQ_SET_BRANCH_2
     value: routers.router_sample_flow_seq_set_branch_2
+  volumes:
+  - name: routers
+    configMap:
+      name: sample-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

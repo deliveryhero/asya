@@ -36,6 +36,11 @@
     {
       "id": "topic_extractor",
       "label": "topic_extractor"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -98,6 +103,12 @@
       "to": "fanin_parallel_sectioning_analysis",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "aggregator",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-analytical-writer
   image: examples.asya.sh/analytical-writer:latest
-  handler: analytical_writer
+  handler: voting_ensemble.analytical_writer
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -4,7 +4,6 @@ resources:
 - asya-actor-execute-tool.yaml
 - asya-actor-llm-call.yaml
 - asya-router-agent-with-tools-if-tool-calls.yaml
-- asya-router-agent-with-tools-seq-set-messages.yaml
 - asya-router-agent-with-tools-while-loop.yaml
 - asya-start-agent-with-tools.yaml
 - configmap-routers.yaml

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-executor
   image: examples.asya.sh/executor:latest
-  handler: executor
+  handler: human_in_the_loop.executor
   scaling:
     enabled: true
     minReplicaCount: 0

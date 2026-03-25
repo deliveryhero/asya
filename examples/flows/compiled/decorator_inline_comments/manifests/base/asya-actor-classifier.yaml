@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-classifier
   image: examples.asya.sh/classifier:latest
-  handler: classifier
+  handler: decorator_inline_comments.classifier
   scaling:
     enabled: true
     minReplicaCount: 0

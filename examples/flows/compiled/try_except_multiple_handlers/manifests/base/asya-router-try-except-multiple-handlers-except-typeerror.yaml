@@ -1,15 +1,15 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-data-pipeline-except-typeerror
+  name: router-try-except-multiple-handlers-except-typeerror
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: try-except-multiple-handlers
     asya.sh/generated: 'true'
 spec:
-  actor: router-data-pipeline-except-typeerror
+  actor: router-try-except-multiple-handlers-except-typeerror
   image: python:3.13-slim
-  handler: routers.router_data_pipeline_except_typeerror
+  handler: routers.router_try_except_multiple_handlers_except_typeerror
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -25,3 +25,12 @@ spec:
     value: parse_input
   - name: ASYA_HANDLER_ACTOR_TRANSFORM_DATA
     value: transform_data
+  volumes:
+  - name: routers
+    configMap:
+      name: try-except-multiple-handlers-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

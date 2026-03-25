@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-parse-syntax
   image: examples.asya.sh/parse-syntax:latest
-  handler: parse_syntax
+  handler: flow_composition_nested.parse_syntax
   scaling:
     enabled: true
     minReplicaCount: 0

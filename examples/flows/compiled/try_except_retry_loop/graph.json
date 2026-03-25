@@ -2,6 +2,11 @@
   "flow_name": "retry_pipeline",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "call_another_api",
       "label": "call_another_api"
     },
@@ -71,6 +76,12 @@
       "type": "set"
     },
     {
+      "from": "router_retry_pipeline_except_valueerror",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
       "from": "router_retry_pipeline_seq_set_attempt",
       "to": "call_external_api",
       "label": null,
@@ -87,6 +98,12 @@
       "to": "router_retry_pipeline_seq_set_attempt",
       "label": "p['attempt'] < 3",
       "type": "prepend"
+    },
+    {
+      "from": "router_retry_pipeline_while_attempt_lt_3",
+      "to": "__end__",
+      "label": "else",
+      "type": "set"
     },
     {
       "from": "call_external_api",
@@ -117,6 +134,12 @@
       "to": "router_retry_pipeline_while_attempt_lt_3",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "log_retry",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

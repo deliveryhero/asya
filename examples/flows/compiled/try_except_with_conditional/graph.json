@@ -48,6 +48,11 @@
     {
       "id": "validate_payment",
       "label": "validate_payment"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -128,6 +133,12 @@
       "to": "audit_log",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "send_receipt",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

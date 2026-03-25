@@ -9,7 +9,6 @@ digraph "typed_dataclass_pipeline" {
     extractor [label="extractor", fillcolor=lightblue];
     formatter [label="formatter", fillcolor=lightsalmon];
     start_typed_dataclass_pipeline [label="start_typed_dataclass_pipeline", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_typed_dataclass_pipeline -> extractor;

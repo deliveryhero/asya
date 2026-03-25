@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-generator
   image: examples.asya.sh/generator:latest
-  handler: generator
+  handler: rag_pipeline.generator
   scaling:
     enabled: true
     minReplicaCount: 0

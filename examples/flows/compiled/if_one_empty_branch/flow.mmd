@@ -1,17 +1,17 @@
 flowchart TD
-    %% Flow: if_empty_branches_flow
+    %% Flow: if_one_empty_branch_flow
 
     handler_finalize[handler_finalize]
     handler_process[handler_process]
     handler_setup[handler_setup]
-    router_if_empty_branches_flow_if_skip_processing{{router_if_empty_branches_flow_if_skip_processing}}
-    start_if_empty_branches_flow([start_if_empty_branches_flow])
+    router_if_one_empty_branch_flow_if_skip_processing{{router_if_one_empty_branch_flow_if_skip_processing}}
+    start_if_one_empty_branch_flow([start_if_one_empty_branch_flow])
     __end__((( )))
 
-    start_if_empty_branches_flow --> handler_setup
-    handler_setup --> router_if_empty_branches_flow_if_skip_processing
-    router_if_empty_branches_flow_if_skip_processing -->|"p['skip_processing']"| handler_finalize
-    router_if_empty_branches_flow_if_skip_processing -->|"else"| handler_process
+    start_if_one_empty_branch_flow --> handler_setup
+    handler_setup --> router_if_one_empty_branch_flow_if_skip_processing
+    router_if_one_empty_branch_flow_if_skip_processing -->|"p['skip_processing']"| handler_finalize
+    router_if_one_empty_branch_flow_if_skip_processing -->|"else"| handler_process
     handler_process --> handler_finalize
     handler_finalize --> __end__
 
@@ -20,10 +20,9 @@ flowchart TD
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_if_empty_branches_flow start
-    class handler_finalize endnode
-    class router_if_empty_branches_flow_if_skip_processing router
+    class start_if_one_empty_branch_flow start
+    class handler_finalize,__end__ endnode
+    class router_if_one_empty_branch_flow_if_skip_processing router
     class handler_process,handler_setup handler
-    class __end__ endpoint
     linkStyle 2 stroke:#2E8B57
     linkStyle 3 stroke:#E07040

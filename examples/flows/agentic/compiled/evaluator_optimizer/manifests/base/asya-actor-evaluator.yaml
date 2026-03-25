@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-evaluator
   image: examples.asya.sh/evaluator:latest
-  handler: evaluator
+  handler: evaluator_optimizer.evaluator
   scaling:
     enabled: true
     minReplicaCount: 0

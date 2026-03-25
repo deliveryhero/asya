@@ -13,8 +13,8 @@ Regenerate by running: asya flow compile resiliency_combined.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-async def start_data_pipeline(payload: dict):
-    """Entrypoint for flow 'data_pipeline'"""
+async def start_resiliency_combined(payload: dict):
+    """Entrypoint for flow 'resiliency_combined'"""
     p = payload
     _next = []
     p['status'] = 'started'
@@ -24,7 +24,7 @@ async def start_data_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_except_valueerror(payload: dict):
+async def router_resiliency_combined_except_valueerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error'] = 'bad_data'

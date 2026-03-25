@@ -7,7 +7,6 @@ resources:
 - asya-actor-write-report.yaml
 - asya-router-research-and-refine-if-iteration-ge-5.yaml
 - asya-router-research-and-refine-if-not-gaps-or-quality-score-ge-85.yaml
-- asya-router-research-and-refine-seq-set-iteration-2.yaml
 - asya-router-research-and-refine-seq-set-iteration.yaml
 - asya-router-research-and-refine-while-loop.yaml
 - asya-start-research-and-refine.yaml

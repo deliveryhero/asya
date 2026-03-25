@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-transformation
   image: examples.asya.sh/transformation:latest
-  handler: transformation
+  handler: sequential_with_class.transformation
   scaling:
     enabled: true
     minReplicaCount: 0

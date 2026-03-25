@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-risk-evaluator
   image: examples.asya.sh/risk-evaluator:latest
-  handler: risk_evaluator
+  handler: sequential_pipeline.risk_evaluator
   scaling:
     enabled: true
     minReplicaCount: 0

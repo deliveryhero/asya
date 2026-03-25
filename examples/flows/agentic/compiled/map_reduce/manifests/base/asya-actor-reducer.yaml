@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-reducer
   image: examples.asya.sh/reducer:latest
-  handler: reducer
+  handler: map_reduce.reducer
   scaling:
     enabled: true
     minReplicaCount: 0

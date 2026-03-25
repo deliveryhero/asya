@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: tool_calling_agent
 
+    __end__((( )))
     calculate[calculate]
     format_response[format_response]
     get_weather[get_weather]
@@ -16,7 +17,6 @@ flowchart TD
     router_tool_calling_agent_while_loop{{router_tool_calling_agent_while_loop}}
     start_tool_calling_agent(["start_tool_calling_agent<br/><br/>p['messages'] = p.get('messages', [])<br/>p['iteration'] = 0"])
     web_search[web_search]
-    __end__((( )))
 
     start_tool_calling_agent --> router_tool_calling_agent_while_loop
     router_tool_calling_agent_if_tool_name_eq_list_gcs_files -->|"p['tool_name'] == 'list_gcs_files'"| list_gcs_files
@@ -36,7 +36,7 @@ flowchart TD
     calculate --> router_tool_calling_agent_seq_set_messages
     list_gcs_files --> router_tool_calling_agent_seq_set_messages
     router_tool_calling_agent_seq_set_messages --> router_tool_calling_agent_while_loop
-    router_tool_calling_agent_if_tool_name_eq_list_gcs_files -->|"else"| router_tool_calling_agent_while_loop
+    router_tool_calling_agent_if_tool_name_eq_list_gcs_files -->|"else"| __end__
     format_response --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -45,9 +45,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_tool_calling_agent start
-    class format_response endnode
+    class __end__,format_response endnode
     class router_tool_calling_agent_if_not_tool_name,router_tool_calling_agent_if_tool_name_eq_calculate,router_tool_calling_agent_if_tool_name_eq_get_weather,router_tool_calling_agent_if_tool_name_eq_list_gcs_files,router_tool_calling_agent_if_tool_name_eq_web_search,router_tool_calling_agent_seq_set_iteration,router_tool_calling_agent_seq_set_messages,router_tool_calling_agent_while_loop router
     class calculate,get_weather,list_gcs_files,llm_reason,web_search handler
-    class __end__ endpoint
     linkStyle 1,2,4,6,10 stroke:#2E8B57
     linkStyle 3,5,8,9,18 stroke:#E07040

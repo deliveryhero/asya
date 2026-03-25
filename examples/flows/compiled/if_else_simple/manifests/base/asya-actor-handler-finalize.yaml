@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-handler-finalize
   image: examples.asya.sh/handler-finalize:latest
-  handler: handler_finalize
+  handler: if_else_simple.handler_finalize
   scaling:
     enabled: true
     minReplicaCount: 0

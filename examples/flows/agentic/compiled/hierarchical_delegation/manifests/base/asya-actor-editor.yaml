@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-editor
   image: examples.asya.sh/editor:latest
-  handler: editor
+  handler: hierarchical_delegation.editor
   scaling:
     enabled: true
     minReplicaCount: 0

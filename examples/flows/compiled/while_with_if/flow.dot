@@ -12,7 +12,6 @@ digraph "if_inside_while_flow" {
     router_if_inside_while_flow_seq_set_i [label="router_if_inside_while_flow_seq_set_i\n\np['i'] = 0", fillcolor=wheat];
     router_if_inside_while_flow_while_i_lt_max_iterations [label="router_if_inside_while_flow_while_i_lt_max_iterations", fillcolor=wheat];
     start_if_inside_while_flow [label="start_if_inside_while_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_inside_while_flow -> handler_init;

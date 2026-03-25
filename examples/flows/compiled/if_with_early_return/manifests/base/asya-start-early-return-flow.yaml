@@ -17,12 +17,21 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_ERROR
-    value: handler_error
+    value: if_with_early_return.handler_error
   - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
-    value: handler_finalize
+    value: if_with_early_return.handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
-    value: handler_process
+    value: if_with_early_return.handler_process
   - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
-    value: handler_validate
+    value: if_with_early_return.handler_validate
   - name: ASYA_HANDLER_ROUTER_EARLY_RETURN_FLOW_IF_NOT_VALID
     value: routers.router_early_return_flow_if_not_valid
+  volumes:
+  - name: routers
+    configMap:
+      name: early-return-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

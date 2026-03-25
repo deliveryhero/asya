@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-post-processor
   image: examples.asya.sh/post-processor:latest
-  handler: post_processor
+  handler: fanout_comprehension.post_processor
   scaling:
     enabled: true
     minReplicaCount: 0

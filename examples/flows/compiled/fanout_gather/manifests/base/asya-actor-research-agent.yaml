@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-research-agent
   image: examples.asya.sh/research-agent:latest
-  handler: research_agent
+  handler: fanout_gather.research_agent
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,9 +8,18 @@ metadata:
 spec:
   actor: actor-format-greeting
   image: examples.asya.sh/format-greeting:latest
-  handler: format_greeting
+  handler: adapter_format_greeting.adapter_format_greeting
   scaling:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 5
   env: []
+  volumes:
+  - name: adapter
+    configMap:
+      name: tool-adapter-format-greeting-adapter
+  volumeMounts:
+  - name: adapter
+    mountPath: /opt/asya/adapter_format_greeting.py
+    subPath: adapter_format_greeting.py
+    readOnly: true

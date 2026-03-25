@@ -1,16 +1,16 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: start-data-pipeline
+  name: start-try-except-multiple-handlers
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: try-except-multiple-handlers
     asya.sh/role: start
     asya.sh/generated: 'true'
 spec:
-  actor: start-data-pipeline
+  actor: start-try-except-multiple-handlers
   image: python:3.13-slim
-  handler: routers.start_data_pipeline
+  handler: routers.start_try_except_multiple_handlers
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -26,3 +26,12 @@ spec:
     value: parse_input
   - name: ASYA_HANDLER_ACTOR_TRANSFORM_DATA
     value: transform_data
+  volumes:
+  - name: routers
+    configMap:
+      name: try-except-multiple-handlers-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

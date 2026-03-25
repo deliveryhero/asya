@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-sink-adapter
   image: examples.asya.sh/sink-adapter:latest
-  handler: sink_adapter
+  handler: typed_dict_pipeline.sink_adapter
   scaling:
     enabled: true
     minReplicaCount: 0

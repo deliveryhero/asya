@@ -12,7 +12,6 @@ digraph "evaluator_optimizer" {
     router_evaluator_optimizer_seq_set_iteration [label="router_evaluator_optimizer_seq_set_iteration\n\np['iteration'] += 1", fillcolor=wheat];
     router_evaluator_optimizer_while_loop [label="router_evaluator_optimizer_while_loop", fillcolor=wheat];
     start_evaluator_optimizer [label="start_evaluator_optimizer\n\np['iteration'] = 0", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_evaluator_optimizer -> router_evaluator_optimizer_while_loop;

@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-format-reply
   image: examples.asya.sh/format-reply:latest
-  handler: format_reply
+  handler: routing_classifier.format_reply
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -10,7 +10,6 @@ digraph "early_return_flow" {
     handler_validate [label="handler_validate", fillcolor=lightblue];
     router_early_return_flow_if_not_valid [label="router_early_return_flow_if_not_valid", fillcolor=wheat];
     start_early_return_flow [label="start_early_return_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_early_return_flow -> handler_validate;

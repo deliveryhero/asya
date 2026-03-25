@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-validator
   image: examples.asya.sh/validator:latest
-  handler: validator
+  handler: decorator_callsite.validator
   scaling:
     enabled: true
     minReplicaCount: 0

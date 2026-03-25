@@ -11,7 +11,6 @@ digraph "actor_override_flow" {
     router_actor_override_flow_if_needs_tool [label="router_actor_override_flow_if_needs_tool", fillcolor=wheat];
     start_actor_override_flow [label="start_actor_override_flow", fillcolor=palegreen];
     tool_executor [label="tool_executor", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_actor_override_flow -> classify;

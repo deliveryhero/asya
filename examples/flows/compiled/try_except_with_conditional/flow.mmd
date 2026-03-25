@@ -34,10 +34,9 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_payment_flow start
-    class send_receipt endnode
+    class send_receipt,__end__ endnode
     class router_payment_flow_except_valueerror,router_payment_flow_if_method_eq_card router
     class audit_log,charge_card,notify_payment_failure,process_bank_transfer,record_transaction,validate_payment handler
-    class __end__ endpoint
     linkStyle 5 stroke:#2E8B57
     linkStyle 7 stroke:#E07040
     linkStyle 9,10,11 stroke:#DC143C

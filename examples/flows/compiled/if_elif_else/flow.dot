@@ -12,7 +12,6 @@ digraph "if_elif_else_flow" {
     router_if_elif_else_flow_if_type_eq_a [label="router_if_elif_else_flow_if_type_eq_a", fillcolor=wheat];
     router_if_elif_else_flow_if_type_eq_b [label="router_if_elif_else_flow_if_type_eq_b", fillcolor=wheat];
     start_if_elif_else_flow [label="start_if_elif_else_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_elif_else_flow -> handler_validate;

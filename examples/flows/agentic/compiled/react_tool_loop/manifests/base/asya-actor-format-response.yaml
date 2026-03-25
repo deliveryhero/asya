@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-format-response
   image: examples.asya.sh/format-response:latest
-  handler: format_response
+  handler: react_tool_loop.format_response
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -28,8 +28,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_multi_stage_flow start
-    class summarizer endnode
+    class summarizer,__end__ endnode
     class router_multi_stage_flow_fanout_research,router_multi_stage_flow_fanout_reviews router
     class fanin_multi_stage_flow_research,fanin_multi_stage_flow_reviews,research_agent,review_agent handler
-    class __end__ endpoint
     linkStyle 1,5 stroke:#7B68EE

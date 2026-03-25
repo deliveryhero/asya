@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-fact-checker
   image: examples.asya.sh/fact-checker:latest
-  handler: fact_checker
+  handler: rag_pipeline.fact_checker
   scaling:
     enabled: true
     minReplicaCount: 0

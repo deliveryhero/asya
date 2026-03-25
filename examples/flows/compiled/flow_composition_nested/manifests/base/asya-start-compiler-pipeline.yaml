@@ -17,12 +17,21 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_ANALYZE_SEMANTICS
-    value: analyze_semantics
+    value: flow_composition_nested.analyze_semantics
   - name: ASYA_HANDLER_ACTOR_EMIT_CODE
-    value: emit_code
+    value: flow_composition_nested.emit_code
   - name: ASYA_HANDLER_ACTOR_OPTIMIZE
-    value: optimize
+    value: flow_composition_nested.optimize
   - name: ASYA_HANDLER_ACTOR_PARSE_SYNTAX
-    value: parse_syntax
+    value: flow_composition_nested.parse_syntax
   - name: ASYA_HANDLER_ACTOR_TOKENIZE
-    value: tokenize
+    value: flow_composition_nested.tokenize
+  volumes:
+  - name: routers
+    configMap:
+      name: compiler-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

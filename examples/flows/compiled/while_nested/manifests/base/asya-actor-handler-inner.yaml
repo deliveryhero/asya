@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-inner
   image: examples.asya.sh/handler-inner:latest
-  handler: handler_inner
+  handler: while_nested.handler_inner
   scaling:
     enabled: true
     minReplicaCount: 0

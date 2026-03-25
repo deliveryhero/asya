@@ -4,7 +4,7 @@ metadata:
   name: actor-reject-input
   namespace: default
   labels:
-    asya.sh/flow: ingestion-pipeline
+    asya.sh/flow: try-except-tuple-types
     asya.sh/role: end
 spec:
   actor: actor-reject-input

@@ -17,14 +17,23 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CALL_ANOTHER_API
-    value: call_another_api
+    value: try_except_retry_loop.call_another_api
   - name: ASYA_HANDLER_ACTOR_CALL_EXTERNAL_API
-    value: call_external_api
+    value: try_except_retry_loop.call_external_api
   - name: ASYA_HANDLER_ACTOR_LOG_RETRY
-    value: log_retry
+    value: try_except_retry_loop.log_retry
   - name: ASYA_HANDLER_ACTOR_PREPARE_REQUEST
-    value: prepare_request
+    value: try_except_retry_loop.prepare_request
   - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_SEQ_SET_ATTEMPT
     value: routers.router_retry_pipeline_seq_set_attempt
   - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_WHILE_ATTEMPT_LT_3
     value: routers.router_retry_pipeline_while_attempt_lt_3
+  volumes:
+  - name: routers
+    configMap:
+      name: retry-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

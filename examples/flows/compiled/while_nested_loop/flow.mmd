@@ -33,9 +33,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_nested_loop_flow start
-    class finalize_loop_i,finalize_loop_j endnode
+    class finalize_loop_i,finalize_loop_j,__end__ endnode
     class router_nested_loop_flow_seq_set_i,router_nested_loop_flow_seq_set_i_2,router_nested_loop_flow_seq_set_j,router_nested_loop_flow_while_i_lt_max_i,router_nested_loop_flow_while_j_lt_max_j router
     class initialize,process_item handler
-    class __end__ endpoint
     linkStyle 3,6 stroke:#2E8B57
     linkStyle 4,7 stroke:#E07040

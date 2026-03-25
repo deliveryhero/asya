@@ -28,9 +28,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_if_inside_while_flow start
-    class handler_finalize endnode
+    class handler_finalize,__end__ endnode
     class router_if_inside_while_flow_if_p_i_2_eq_0,router_if_inside_while_flow_seq_set_i,router_if_inside_while_flow_while_i_lt_max_iterations router
     class handler_even,handler_init,handler_odd handler
-    class __end__ endpoint
     linkStyle 2,4 stroke:#2E8B57
     linkStyle 3,5 stroke:#E07040

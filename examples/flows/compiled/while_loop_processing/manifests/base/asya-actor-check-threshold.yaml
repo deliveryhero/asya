@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-check-threshold
   image: examples.asya.sh/check-threshold:latest
-  handler: check_threshold
+  handler: while_loop_processing.check_threshold
   scaling:
     enabled: true
     minReplicaCount: 0

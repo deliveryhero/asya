@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-researcher
   image: examples.asya.sh/researcher:latest
-  handler: researcher
+  handler: research_and_refine.researcher
   scaling:
     enabled: true
     minReplicaCount: 0

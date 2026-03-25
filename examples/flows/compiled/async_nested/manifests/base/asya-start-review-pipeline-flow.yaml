@@ -18,3 +18,12 @@ spec:
   env:
   - name: ASYA_HANDLER_ROUTER_REVIEW_PIPELINE_FLOW_IF_SCORE_LT_0.5
     value: routers.router_review_pipeline_flow_if_score_lt_0.5
+  volumes:
+  - name: routers
+    configMap:
+      name: review-pipeline-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

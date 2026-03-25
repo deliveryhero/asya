@@ -8,7 +8,6 @@ digraph "main_flow" {
     format_output [label="format_output", fillcolor=lightsalmon];
     start_main_flow [label="start_main_flow", fillcolor=palegreen];
     validate [label="validate", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_main_flow -> validate;

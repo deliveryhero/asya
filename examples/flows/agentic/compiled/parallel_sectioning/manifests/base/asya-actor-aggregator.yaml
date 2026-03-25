@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-aggregator
   image: examples.asya.sh/aggregator:latest
-  handler: aggregator
+  handler: parallel_sectioning.aggregator
   scaling:
     enabled: true
     minReplicaCount: 0

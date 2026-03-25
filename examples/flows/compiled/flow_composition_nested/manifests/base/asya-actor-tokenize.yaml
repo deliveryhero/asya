@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-tokenize
   image: examples.asya.sh/tokenize:latest
-  handler: tokenize
+  handler: flow_composition_nested.tokenize
   scaling:
     enabled: true
     minReplicaCount: 0

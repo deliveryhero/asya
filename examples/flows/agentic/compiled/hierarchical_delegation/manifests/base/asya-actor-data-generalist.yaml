@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-data-generalist
   image: examples.asya.sh/data-generalist:latest
-  handler: data_generalist
+  handler: hierarchical_delegation.data_generalist
   scaling:
     enabled: true
     minReplicaCount: 0

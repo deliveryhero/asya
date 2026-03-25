@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-topic-extractor
   image: examples.asya.sh/topic-extractor:latest
-  handler: topic_extractor
+  handler: fanout_literal.topic_extractor
   scaling:
     enabled: true
     minReplicaCount: 0

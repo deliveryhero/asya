@@ -14,7 +14,6 @@ digraph "nested_loop_flow" {
     router_nested_loop_flow_while_i_lt_max_i [label="router_nested_loop_flow_while_i_lt_max_i", fillcolor=wheat];
     router_nested_loop_flow_while_j_lt_max_j [label="router_nested_loop_flow_while_j_lt_max_j", fillcolor=wheat];
     start_nested_loop_flow [label="start_nested_loop_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_nested_loop_flow -> initialize;

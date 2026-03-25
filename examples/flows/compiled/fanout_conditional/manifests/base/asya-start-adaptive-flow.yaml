@@ -17,18 +17,27 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CLASSIFIER
-    value: classifier
+    value: fanout_conditional.classifier
   - name: ASYA_HANDLER_ACTOR_DEEP_ANALYZER
-    value: deep_analyzer
+    value: fanout_conditional.deep_analyzer
   - name: ASYA_HANDLER_FANIN_ADAPTIVE_FLOW_RESULTS
     value: routers.fanin_adaptive_flow_results
   - name: ASYA_HANDLER_ACTOR_FAST_ANALYZER
-    value: fast_analyzer
+    value: fanout_conditional.fast_analyzer
   - name: ASYA_HANDLER_ACTOR_FORMATTER
-    value: formatter
+    value: fanout_conditional.formatter
   - name: ASYA_HANDLER_ROUTER_ADAPTIVE_FLOW_FANOUT_RESULTS
     value: routers.router_adaptive_flow_fanout_results
   - name: ASYA_HANDLER_ROUTER_ADAPTIVE_FLOW_IF_PARALLEL
     value: routers.router_adaptive_flow_if_parallel
   - name: ASYA_HANDLER_ACTOR_SEQUENTIAL_ANALYZER
-    value: sequential_analyzer
+    value: fanout_conditional.sequential_analyzer
+  volumes:
+  - name: routers
+    configMap:
+      name: adaptive-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

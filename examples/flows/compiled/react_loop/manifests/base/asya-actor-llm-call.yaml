@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-llm-call
   image: examples.asya.sh/llm-call:latest
-  handler: llm_call
+  handler: react_loop.llm_call
   scaling:
     enabled: true
     minReplicaCount: 0

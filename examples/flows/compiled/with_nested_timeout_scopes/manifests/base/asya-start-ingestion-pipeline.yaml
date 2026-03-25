@@ -24,3 +24,12 @@ spec:
     value: data_validator
   - name: ASYA_HANDLER_ACTOR_DATA_WRITER
     value: data_writer
+  volumes:
+  - name: routers
+    configMap:
+      name: ingestion-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

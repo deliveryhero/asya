@@ -27,6 +27,11 @@
     {
       "id": "tokenize",
       "label": "tokenize"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -59,6 +64,12 @@
       "to": "emit_code",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "emit_code",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": [

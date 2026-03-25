@@ -2,6 +2,11 @@
   "flow_name": "orchestrator_workers",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "analysis_worker",
       "label": "analysis_worker"
     },
@@ -170,9 +175,15 @@
     },
     {
       "from": "router_orchestrator_workers_if_next_action_eq_write",
-      "to": "router_orchestrator_workers_while_loop",
+      "to": "__end__",
       "label": "else",
-      "type": "continuation"
+      "type": "set"
+    },
+    {
+      "from": "synthesizer",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

@@ -16,6 +16,15 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
-    value: handler_process
+    value: mutations_with_handler.handler_process
   - name: ASYA_HANDLER_ROUTER_MUTATIONS_WITH_HANDLER_FLOW_SEQ_SET_FINALIZED
     value: routers.router_mutations_with_handler_flow_seq_set_finalized
+  volumes:
+  - name: routers
+    configMap:
+      name: mutations-with-handler-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

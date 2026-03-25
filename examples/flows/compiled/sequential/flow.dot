@@ -8,7 +8,6 @@ digraph "sequential_flow" {
     handler_b [label="handler_b", fillcolor=lightblue];
     handler_c [label="handler_c", fillcolor=lightsalmon];
     start_sequential_flow [label="start_sequential_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_sequential_flow -> handler_a;

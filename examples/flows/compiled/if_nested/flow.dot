@@ -4,6 +4,7 @@ digraph "conditional_nested_flow" {
 
     { rank=source; start_conditional_nested_flow; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     handler_a [label="handler_a", fillcolor=lightblue];
     handler_b [label="handler_b", fillcolor=lightblue];
     handler_c [label="handler_c", fillcolor=lightsalmon];
@@ -23,10 +24,9 @@ digraph "conditional_nested_flow" {
     router_conditional_nested_flow_seq_set_x_8 [label="router_conditional_nested_flow_seq_set_x_8\n\np['x'] += 1", fillcolor=wheat];
     start_conditional_nested_flow [label="start_conditional_nested_flow", fillcolor=palegreen];
 
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
-
     start_conditional_nested_flow -> handler_validate_input;
     handler_validate_input -> router_conditional_nested_flow_if_a_eq_a;
+    router_conditional_nested_flow_seq_set_x -> __end__;
     router_conditional_nested_flow_seq_set_x_2 -> handler_finalize;
     handler_finalize -> router_conditional_nested_flow_seq_set_x;
     router_conditional_nested_flow_seq_set_x_4 -> handler_b;
@@ -46,5 +46,4 @@ digraph "conditional_nested_flow" {
     router_conditional_nested_flow_seq_set_x_3 -> router_conditional_nested_flow_seq_set_x_2;
     router_conditional_nested_flow_seq_set_x_6 -> router_conditional_nested_flow_seq_set_x_2;
     handler_c -> __end__;
-    router_conditional_nested_flow_seq_set_x -> __end__;
 }

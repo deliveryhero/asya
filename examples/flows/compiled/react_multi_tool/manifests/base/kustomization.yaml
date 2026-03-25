@@ -4,7 +4,6 @@ resources:
 - asya-router-research-agent-if-tool-name-eq-calculator.yaml
 - asya-router-research-agent-if-tool-name-eq-code-exec.yaml
 - asya-router-research-agent-if-tool-name-eq-search.yaml
-- asya-router-research-agent-seq-set-messages.yaml
 - asya-router-research-agent-while-loop.yaml
 - asya-start-research-agent.yaml
 - configmap-routers.yaml

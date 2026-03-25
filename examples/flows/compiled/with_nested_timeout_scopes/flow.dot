@@ -9,7 +9,6 @@ digraph "ingestion_pipeline" {
     data_validator [label="data_validator", fillcolor=lightblue];
     data_writer [label="data_writer", fillcolor=lightsalmon];
     start_ingestion_pipeline [label="start_ingestion_pipeline", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_ingestion_pipeline -> data_fetcher;

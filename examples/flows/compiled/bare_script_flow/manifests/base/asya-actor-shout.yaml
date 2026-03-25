@@ -9,9 +9,9 @@ metadata:
 spec:
   actor: actor-shout
   image: examples.asya.sh/shout:latest
-  handler: shout
+  handler: bare_script_flow.shout
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []

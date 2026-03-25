@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-validator
   image: examples.asya.sh/validator:latest
-  handler: validator
+  handler: typed_dict_pipeline.validator
   scaling:
     enabled: true
     minReplicaCount: 0

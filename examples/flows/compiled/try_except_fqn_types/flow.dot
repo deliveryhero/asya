@@ -10,7 +10,6 @@ digraph "llm_pipeline" {
     router_llm_pipeline_except_authenticationerror [label="router_llm_pipeline_except_authenticationerror\n\np['status'] = 'auth_failed'", fillcolor=wheat];
     router_llm_pipeline_except_ratelimiterror [label="router_llm_pipeline_except_ratelimiterror\n\np['fallback'] = True", fillcolor=wheat];
     start_llm_pipeline [label="start_llm_pipeline\n\np['model'] = 'gpt-4'", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_llm_pipeline -> call_llm;

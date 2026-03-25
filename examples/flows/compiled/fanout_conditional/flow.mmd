@@ -32,10 +32,9 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_adaptive_flow start
-    class formatter endnode
+    class formatter,__end__ endnode
     class router_adaptive_flow_fanout_results,router_adaptive_flow_if_parallel router
     class classifier,deep_analyzer,fanin_adaptive_flow_results,fast_analyzer,sequential_analyzer handler
-    class __end__ endpoint
     linkStyle 7 stroke:#2E8B57
     linkStyle 2 stroke:#7B68EE
     linkStyle 9 stroke:#E07040

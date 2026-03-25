@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-default
   image: examples.asya.sh/handler-default:latest
-  handler: handler_default
+  handler: complex_combined.handler_default
   scaling:
     enabled: true
     minReplicaCount: 0

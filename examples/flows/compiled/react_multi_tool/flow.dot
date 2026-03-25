@@ -4,6 +4,7 @@ digraph "research_agent" {
 
     { rank=source; start_research_agent; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     router_research_agent_if_tool_name_eq_calculator [label="router_research_agent_if_tool_name_eq_calculator", fillcolor=wheat];
     router_research_agent_if_tool_name_eq_code_exec [label="router_research_agent_if_tool_name_eq_code_exec", fillcolor=wheat];
     router_research_agent_if_tool_name_eq_search [label="router_research_agent_if_tool_name_eq_search", fillcolor=wheat];
@@ -11,6 +12,7 @@ digraph "research_agent" {
     start_research_agent [label="start_research_agent\n\np['messages'] = p.get('messages', [])", fillcolor=palegreen];
 
     start_research_agent -> router_research_agent_while_loop;
+    router_research_agent_if_tool_name_eq_code_exec -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
     router_research_agent_if_tool_name_eq_calculator -> router_research_agent_if_tool_name_eq_code_exec [label="else", color="#D35400", fontcolor="#D35400"];
     router_research_agent_if_tool_name_eq_search -> router_research_agent_if_tool_name_eq_calculator [label="else", color="#D35400", fontcolor="#D35400"];
     router_research_agent_while_loop -> router_research_agent_if_tool_name_eq_search;

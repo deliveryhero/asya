@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-final-assembler
   image: examples.asya.sh/final-assembler:latest
-  handler: final_assembler
+  handler: hierarchical_delegation.final_assembler
   scaling:
     enabled: true
     minReplicaCount: 0

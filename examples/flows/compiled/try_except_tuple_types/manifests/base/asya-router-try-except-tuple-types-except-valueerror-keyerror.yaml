@@ -1,15 +1,15 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-ingestion-pipeline-except-connectionerror-timeouterror
+  name: router-try-except-tuple-types-except-valueerror-keyerror
   namespace: default
   labels:
-    asya.sh/flow: ingestion-pipeline
+    asya.sh/flow: try-except-tuple-types
     asya.sh/generated: 'true'
 spec:
-  actor: router-ingestion-pipeline-except-connectionerror-timeouterror
+  actor: router-try-except-tuple-types-except-valueerror-keyerror
   image: python:3.13-slim
-  handler: routers.router_ingestion_pipeline_except_connectionerror_timeouterror
+  handler: routers.router_try_except_tuple_types_except_valueerror_keyerror
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -23,3 +23,12 @@ spec:
     value: queue_for_retry
   - name: ASYA_HANDLER_ACTOR_REJECT_INPUT
     value: reject_input
+  volumes:
+  - name: routers
+    configMap:
+      name: try-except-tuple-types-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

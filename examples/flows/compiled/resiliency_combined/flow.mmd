@@ -1,21 +1,21 @@
 flowchart TD
-    %% Flow: data_pipeline
+    %% Flow: resiliency_combined
 
     fetch_data[fetch_data]
     handle_bad_data[handle_bad_data]
     parse_data[parse_data]
-    router_data_pipeline_except_valueerror{{"router_data_pipeline_except_valueerror<br/><br/>p['error'] = 'bad_data'"}}
-    start_data_pipeline(["start_data_pipeline<br/><br/>p['status'] = 'started'"])
+    router_resiliency_combined_except_valueerror{{"router_resiliency_combined_except_valueerror<br/><br/>p['error'] = 'bad_data'"}}
+    start_resiliency_combined(["start_resiliency_combined<br/><br/>p['status'] = 'started'"])
     store_results[store_results]
     __end__((( )))
 
-    start_data_pipeline --> fetch_data
+    start_resiliency_combined --> fetch_data
     fetch_data --> parse_data
     parse_data --> store_results
-    router_data_pipeline_except_valueerror --> handle_bad_data
+    router_resiliency_combined_except_valueerror --> handle_bad_data
     handle_bad_data --> store_results
-    fetch_data -->|"ValueError"| router_data_pipeline_except_valueerror
-    parse_data -->|"ValueError"| router_data_pipeline_except_valueerror
+    fetch_data -->|"ValueError"| router_resiliency_combined_except_valueerror
+    parse_data -->|"ValueError"| router_resiliency_combined_except_valueerror
     store_results --> __end__
     subgraph asyncio_timeout_60_[asyncio.timeout(60)]
         fetch_data
@@ -28,9 +28,8 @@ flowchart TD
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_data_pipeline start
-    class store_results endnode
-    class router_data_pipeline_except_valueerror router
+    class start_resiliency_combined start
+    class store_results,__end__ endnode
+    class router_resiliency_combined_except_valueerror router
     class fetch_data,handle_bad_data,parse_data handler
-    class __end__ endpoint
     linkStyle 5,6 stroke:#DC143C

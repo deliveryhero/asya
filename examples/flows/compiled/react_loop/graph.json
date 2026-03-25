@@ -2,6 +2,11 @@
   "flow_name": "agent_with_tools",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "execute_tool",
       "label": "execute_tool"
     },
@@ -43,6 +48,12 @@
       "type": "prepend"
     },
     {
+      "from": "router_agent_with_tools_if_tool_calls",
+      "to": "__end__",
+      "label": "else",
+      "type": "set"
+    },
+    {
       "from": "router_agent_with_tools_while_loop",
       "to": "llm_call",
       "label": null,
@@ -58,12 +69,6 @@
       "from": "execute_tool",
       "to": "router_agent_with_tools_while_loop",
       "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_agent_with_tools_if_tool_calls",
-      "to": "router_agent_with_tools_while_loop",
-      "label": "else",
       "type": "continuation"
     }
   ],

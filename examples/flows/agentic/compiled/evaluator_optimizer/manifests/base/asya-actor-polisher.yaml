@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-polisher
   image: examples.asya.sh/polisher:latest
-  handler: polisher
+  handler: evaluator_optimizer.polisher
   scaling:
     enabled: true
     minReplicaCount: 0

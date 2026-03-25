@@ -17,11 +17,11 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_EXECUTOR
-    value: executor
+    value: plan_and_execute.executor
   - name: ASYA_HANDLER_ACTOR_PLANNER
-    value: planner
+    value: plan_and_execute.planner
   - name: ASYA_HANDLER_ACTOR_RE_PLANNER
-    value: re_planner
+    value: plan_and_execute.re_planner
   - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_IF_CURRENT_STEP_LT_LEN_P_GET_PLAN
     value: routers.router_plan_and_execute_if_current_step_lt_len_p_get_plan
   - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_SEQ_SET_COMPLETED
@@ -29,4 +29,13 @@ spec:
   - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_WHILE_CURRENT_STEP_LT_LEN_P_GET_PLAN
     value: routers.router_plan_and_execute_while_current_step_lt_len_p_get_plan
   - name: ASYA_HANDLER_ACTOR_SYNTHESIZER
-    value: synthesizer
+    value: plan_and_execute.synthesizer
+  volumes:
+  - name: routers
+    configMap:
+      name: plan-and-execute-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-validate
   image: examples.asya.sh/handler-validate:latest
-  handler: handler_validate
+  handler: complex_with_while.handler_validate
   scaling:
     enabled: true
     minReplicaCount: 0

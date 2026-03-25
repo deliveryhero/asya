@@ -4,11 +4,11 @@ metadata:
   name: actor-handler-setup
   namespace: default
   labels:
-    asya.sh/flow: if-empty-branches-flow
+    asya.sh/flow: if-one-empty-branch-flow
 spec:
   actor: actor-handler-setup
   image: examples.asya.sh/handler-setup:latest
-  handler: handler_setup
+  handler: if_one_empty_branch.handler_setup
   scaling:
     enabled: true
     minReplicaCount: 0

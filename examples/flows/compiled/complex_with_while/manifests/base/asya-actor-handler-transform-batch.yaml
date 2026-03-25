@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-transform-batch
   image: examples.asya.sh/handler-transform-batch:latest
-  handler: handler_transform_batch
+  handler: complex_with_while.handler_transform_batch
   scaling:
     enabled: true
     minReplicaCount: 0

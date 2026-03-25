@@ -13,15 +13,15 @@ Regenerate by running: asya flow compile if_one_empty_branch.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-async def start_if_empty_branches_flow(payload: dict):
-    """Entrypoint for flow 'if_empty_branches_flow'"""
+async def start_if_one_empty_branch_flow(payload: dict):
+    """Entrypoint for flow 'if_one_empty_branch_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
-    _next.append(resolve("router_if_empty_branches_flow_if_skip_processing"))
+    _next.append(resolve("router_if_one_empty_branch_flow_if_skip_processing"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_empty_branches_flow_if_skip_processing(payload: dict):
+async def router_if_one_empty_branch_flow_if_skip_processing(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []

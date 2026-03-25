@@ -22,7 +22,6 @@ digraph "hierarchical_delegation" {
     sql_specialist [label="sql_specialist", fillcolor=lightblue];
     start_hierarchical_delegation [label="start_hierarchical_delegation", fillcolor=palegreen];
     writer [label="writer", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_hierarchical_delegation -> root_agent;

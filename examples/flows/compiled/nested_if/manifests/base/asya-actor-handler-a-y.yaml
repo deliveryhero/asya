@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-a-y
   image: examples.asya.sh/handler-a-y:latest
-  handler: handler_a_y
+  handler: nested_if.handler_a_y
   scaling:
     enabled: true
     minReplicaCount: 0

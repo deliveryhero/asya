@@ -33,6 +33,11 @@
     {
       "id": "tool_executor",
       "label": "tool_executor"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -79,6 +84,18 @@
       "to": "router_actor_override_flow_if_needs_tool",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "escalate",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "format_output",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

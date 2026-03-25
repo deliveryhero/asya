@@ -4,6 +4,7 @@ digraph "orchestrator_workers" {
 
     { rank=source; start_orchestrator_workers; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     analysis_worker [label="analysis_worker", fillcolor=lightblue];
     data_worker [label="data_worker", fillcolor=lightblue];
     orchestrator [label="orchestrator", fillcolor=lightblue];
@@ -17,8 +18,6 @@ digraph "orchestrator_workers" {
     start_orchestrator_workers [label="start_orchestrator_workers\n\np['iteration'] = 0\np['worker_results'] = []", fillcolor=palegreen];
     synthesizer [label="synthesizer", fillcolor=lightsalmon];
     writing_worker [label="writing_worker", fillcolor=lightblue];
-
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_orchestrator_workers -> router_orchestrator_workers_while_loop;
     router_orchestrator_workers_if_iteration_ge_10 -> synthesizer [label="p['iteration'] >= 10", color="#2E8B57", fontcolor="#2E8B57"];
@@ -36,6 +35,6 @@ digraph "orchestrator_workers" {
     analysis_worker -> router_orchestrator_workers_if_iteration_ge_10;
     writing_worker -> router_orchestrator_workers_if_iteration_ge_10;
     router_orchestrator_workers_if_iteration_ge_10 -> router_orchestrator_workers_while_loop [label="else", color="#D35400", fontcolor="#D35400"];
-    router_orchestrator_workers_if_next_action_eq_write -> router_orchestrator_workers_while_loop [label="else", color="#D35400", fontcolor="#D35400"];
+    router_orchestrator_workers_if_next_action_eq_write -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
     synthesizer -> __end__;
 }

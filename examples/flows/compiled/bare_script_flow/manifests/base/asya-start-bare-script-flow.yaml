@@ -17,6 +17,15 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_GREET
-    value: greet
+    value: bare_script_flow.greet
   - name: ASYA_HANDLER_ACTOR_SHOUT
-    value: shout
+    value: bare_script_flow.shout
+  volumes:
+  - name: routers
+    configMap:
+      name: bare-script-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

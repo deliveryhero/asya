@@ -13,7 +13,6 @@ resources:
 - asya-router-tool-calling-agent-if-tool-name-eq-list-gcs-files.yaml
 - asya-router-tool-calling-agent-if-tool-name-eq-web-search.yaml
 - asya-router-tool-calling-agent-seq-set-iteration.yaml
-- asya-router-tool-calling-agent-seq-set-messages-2.yaml
 - asya-router-tool-calling-agent-seq-set-messages.yaml
 - asya-router-tool-calling-agent-while-loop.yaml
 - asya-start-tool-calling-agent.yaml

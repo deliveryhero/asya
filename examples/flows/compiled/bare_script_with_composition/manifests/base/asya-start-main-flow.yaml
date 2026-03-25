@@ -17,8 +17,17 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_ENRICH
-    value: enrich
+    value: bare_script_with_composition.enrich
   - name: ASYA_HANDLER_ACTOR_FORMAT_OUTPUT
-    value: format_output
+    value: bare_script_with_composition.format_output
   - name: ASYA_HANDLER_ACTOR_VALIDATE
-    value: validate
+    value: bare_script_with_composition.validate
+  volumes:
+  - name: routers
+    configMap:
+      name: main-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

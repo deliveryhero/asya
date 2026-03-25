@@ -8,9 +8,9 @@ metadata:
 spec:
   actor: actor-greet
   image: examples.asya.sh/greet:latest
-  handler: greet
+  handler: bare_script_flow.greet
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []

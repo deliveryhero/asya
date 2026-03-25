@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: human_in_the_loop
 
+    __end__((( )))
     approval_gate[approval_gate]
     executor[executor]
     notifier[notifier]
@@ -13,7 +14,6 @@ flowchart TD
     router_human_in_the_loop_seq_set_result{{"router_human_in_the_loop_seq_set_result<br/><br/>p['result'] = 'Max revision attempts reached'"}}
     router_human_in_the_loop_while_loop{{router_human_in_the_loop_while_loop}}
     start_human_in_the_loop(["start_human_in_the_loop<br/><br/>p['attempt'] = 0"])
-    __end__((( )))
 
     start_human_in_the_loop --> router_human_in_the_loop_while_loop
     router_human_in_the_loop_seq_set_result --> notifier
@@ -28,7 +28,7 @@ flowchart TD
     router_human_in_the_loop_while_loop --> router_human_in_the_loop_seq_set_attempt
     revision_agent --> router_human_in_the_loop_if_attempt_ge_3
     router_human_in_the_loop_if_attempt_ge_3 -->|"else"| router_human_in_the_loop_while_loop
-    router_human_in_the_loop_if_approval_eq_rejected -->|"else"| router_human_in_the_loop_while_loop
+    router_human_in_the_loop_if_approval_eq_rejected -->|"else"| __end__
     notifier --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -37,9 +37,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_human_in_the_loop start
-    class notifier endnode
+    class __end__,notifier endnode
     class router_human_in_the_loop_if_approval_eq_rejected,router_human_in_the_loop_if_approval_in_approved_modified,router_human_in_the_loop_if_attempt_ge_3,router_human_in_the_loop_seq_set_attempt,router_human_in_the_loop_seq_set_result,router_human_in_the_loop_while_loop router
     class approval_gate,executor,proposal_generator,revision_agent handler
-    class __end__ endpoint
     linkStyle 2,3,5 stroke:#2E8B57
     linkStyle 4,12,13 stroke:#E07040

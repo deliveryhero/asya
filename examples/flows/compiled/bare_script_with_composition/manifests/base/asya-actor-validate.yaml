@@ -8,9 +8,9 @@ metadata:
 spec:
   actor: actor-validate
   image: examples.asya.sh/validate:latest
-  handler: validate
+  handler: bare_script_with_composition.validate
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []

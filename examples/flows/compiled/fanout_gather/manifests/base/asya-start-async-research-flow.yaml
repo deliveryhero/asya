@@ -19,6 +19,15 @@ spec:
   - name: ASYA_HANDLER_FANIN_ASYNC_RESEARCH_FLOW_RESULTS
     value: routers.fanin_async_research_flow_results
   - name: ASYA_HANDLER_ACTOR_RESEARCH_AGENT
-    value: research_agent
+    value: fanout_gather.research_agent
   - name: ASYA_HANDLER_ROUTER_ASYNC_RESEARCH_FLOW_FANOUT_RESULTS
     value: routers.router_async_research_flow_fanout_results
+  volumes:
+  - name: routers
+    configMap:
+      name: async-research-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

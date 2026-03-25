@@ -39,6 +39,7 @@ data:
         if p.get('tool_name') == 'code_exec':
             pass
         else:
+            yield "SET", ".route.next", []
             yield p
             return
 

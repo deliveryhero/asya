@@ -4,11 +4,11 @@ metadata:
   name: actor-call-llm
   namespace: default
   labels:
-    asya.sh/flow: llm-pipeline
+    asya.sh/flow: resiliency-retry-patterns
 spec:
   actor: actor-call-llm
   image: examples.asya.sh/call-llm:latest
-  handler: call_llm
+  handler: resiliency_retry_patterns.call_llm
   scaling:
     enabled: true
     minReplicaCount: 0

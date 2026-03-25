@@ -33,9 +33,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_routing_classifier start
-    class format_reply endnode
+    class format_reply,__end__ endnode
     class router_routing_classifier_if_category_eq_account,router_routing_classifier_if_category_eq_billing,router_routing_classifier_if_category_eq_technical router
     class account_agent,billing_agent,classifier,general_agent,technical_agent handler
-    class __end__ endpoint
     linkStyle 2,4,6 stroke:#2E8B57
     linkStyle 3,5,8 stroke:#E07040

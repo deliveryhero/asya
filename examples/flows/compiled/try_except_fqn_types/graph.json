@@ -39,6 +39,11 @@
       "mutations": [
         "p['model'] = 'gpt-4'"
       ]
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -71,6 +76,18 @@
       "to": "router_llm_pipeline_except_authenticationerror",
       "label": "openai.AuthenticationError",
       "type": "error"
+    },
+    {
+      "from": "call_fallback_llm",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "notify_admin",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

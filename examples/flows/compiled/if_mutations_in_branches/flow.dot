@@ -12,7 +12,6 @@ digraph "if_mutations_in_branches_flow" {
     router_if_mutations_in_branches_flow_seq_set_branch [label="router_if_mutations_in_branches_flow_seq_set_branch\n\np['branch'] = 'A'\np['value'] = 100", fillcolor=wheat];
     router_if_mutations_in_branches_flow_seq_set_branch_2 [label="router_if_mutations_in_branches_flow_seq_set_branch_2\n\np['branch'] = 'B'\np['value'] = 200", fillcolor=wheat];
     start_if_mutations_in_branches_flow [label="start_if_mutations_in_branches_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_mutations_in_branches_flow -> handler_setup;

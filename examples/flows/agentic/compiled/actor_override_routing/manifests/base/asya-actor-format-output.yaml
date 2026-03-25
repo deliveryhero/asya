@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-format-output
   image: examples.asya.sh/format-output:latest
-  handler: format_output
+  handler: actor_override_routing.format_output
   scaling:
     enabled: true
     minReplicaCount: 0

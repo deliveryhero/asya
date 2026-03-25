@@ -26,8 +26,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_resource_pipeline start
-    class finalize endnode
+    class finalize,__end__ endnode
     class router_resource_pipeline_except_runtimeerror router
     class acquire_resource,handle_failure,process_with_resource,release_resource handler
-    class __end__ endpoint
     linkStyle 6,7 stroke:#DC143C

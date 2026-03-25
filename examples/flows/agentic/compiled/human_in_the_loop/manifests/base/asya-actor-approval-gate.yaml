@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-approval-gate
   image: examples.asya.sh/approval-gate:latest
-  handler: approval_gate
+  handler: human_in_the_loop.approval_gate
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-re-planner
   image: examples.asya.sh/re-planner:latest
-  handler: re_planner
+  handler: plan_and_execute.re_planner
   scaling:
     enabled: true
     minReplicaCount: 0

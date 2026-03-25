@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-emit-code
   image: examples.asya.sh/emit-code:latest
-  handler: emit_code
+  handler: flow_composition_nested.emit_code
   scaling:
     enabled: true
     minReplicaCount: 0

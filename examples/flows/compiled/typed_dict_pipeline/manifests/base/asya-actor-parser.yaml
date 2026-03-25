@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-parser
   image: examples.asya.sh/parser:latest
-  handler: parser
+  handler: typed_dict_pipeline.parser
   scaling:
     enabled: true
     minReplicaCount: 0

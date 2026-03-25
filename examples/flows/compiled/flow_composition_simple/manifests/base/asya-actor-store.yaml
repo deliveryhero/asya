@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-store
   image: examples.asya.sh/store:latest
-  handler: store
+  handler: flow_composition_simple.store
   scaling:
     enabled: true
     minReplicaCount: 0

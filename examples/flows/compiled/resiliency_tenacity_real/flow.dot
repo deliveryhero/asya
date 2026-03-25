@@ -8,7 +8,6 @@ digraph "api_pipeline" {
     process_response [label="process_response", fillcolor=lightblue];
     start_api_pipeline [label="start_api_pipeline\n\np['status'] = 'started'", fillcolor=palegreen];
     store_results [label="store_results", fillcolor=lightsalmon];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_api_pipeline -> fetch_from_api;

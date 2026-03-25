@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: plan_and_execute
 
+    __end__((( )))
     executor[executor]
     planner[planner]
     re_planner[re_planner]
@@ -9,7 +10,6 @@ flowchart TD
     router_plan_and_execute_while_current_step_lt_len_p_get_plan{{router_plan_and_execute_while_current_step_lt_len_p_get_plan}}
     start_plan_and_execute(["start_plan_and_execute<br/><br/>p['current_step'] = 0<br/>p['step_results'] = []"])
     synthesizer[synthesizer]
-    __end__((( )))
 
     start_plan_and_execute --> planner
     planner --> router_plan_and_execute_while_current_step_lt_len_p_get_plan
@@ -19,7 +19,7 @@ flowchart TD
     executor --> router_plan_and_execute_if_current_step_lt_len_p_get_plan
     router_plan_and_execute_while_current_step_lt_len_p_get_plan -->|"else"| router_plan_and_execute_seq_set_completed
     re_planner --> router_plan_and_execute_while_current_step_lt_len_p_get_plan
-    router_plan_and_execute_if_current_step_lt_len_p_get_plan -->|"else"| router_plan_and_execute_while_current_step_lt_len_p_get_plan
+    router_plan_and_execute_if_current_step_lt_len_p_get_plan -->|"else"| __end__
     synthesizer --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -28,9 +28,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_plan_and_execute start
-    class synthesizer endnode
+    class __end__,synthesizer endnode
     class router_plan_and_execute_if_current_step_lt_len_p_get_plan,router_plan_and_execute_seq_set_completed,router_plan_and_execute_while_current_step_lt_len_p_get_plan router
     class executor,planner,re_planner handler
-    class __end__ endpoint
     linkStyle 3,4 stroke:#2E8B57
     linkStyle 6,8 stroke:#E07040

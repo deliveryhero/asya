@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-query-refiner
   image: examples.asya.sh/query-refiner:latest
-  handler: query_refiner
+  handler: rag_pipeline.query_refiner
   scaling:
     enabled: true
     minReplicaCount: 0

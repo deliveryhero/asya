@@ -32,6 +32,11 @@
       "label": "start_voting_ensemble",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -88,6 +93,12 @@
       "to": "fanin_voting_ensemble_candidates",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "judge",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

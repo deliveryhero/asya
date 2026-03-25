@@ -39,9 +39,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_loop_flow start
-    class finalize_loop endnode
+    class finalize_loop,__end__ endnode
     class router_loop_flow_if_skip_threshold_check,router_loop_flow_if_threshold_met,router_loop_flow_seq_set_abort,router_loop_flow_seq_set_abort_2,router_loop_flow_seq_set_iteration,router_loop_flow_seq_set_iteration_2,router_loop_flow_while_iteration_lt_max_iterations router
     class check_threshold,initialize,process_abort,process_item handler
-    class __end__ endpoint
     linkStyle 2,6,11 stroke:#2E8B57
     linkStyle 7,12,14 stroke:#E07040

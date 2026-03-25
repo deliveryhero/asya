@@ -15,7 +15,6 @@ digraph "rag_pipeline" {
     router_rag_pipeline_seq_set_retrieval_attempts [label="router_rag_pipeline_seq_set_retrieval_attempts\n\np['retrieval_attempts'] += 1", fillcolor=wheat];
     router_rag_pipeline_while_loop [label="router_rag_pipeline_while_loop", fillcolor=wheat];
     start_rag_pipeline [label="start_rag_pipeline\n\np['retrieval_attempts'] = 0", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_rag_pipeline -> query_analyzer;

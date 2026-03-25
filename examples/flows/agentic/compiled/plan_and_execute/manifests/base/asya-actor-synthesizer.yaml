@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-synthesizer
   image: examples.asya.sh/synthesizer:latest
-  handler: synthesizer
+  handler: plan_and_execute.synthesizer
   scaling:
     enabled: true
     minReplicaCount: 0

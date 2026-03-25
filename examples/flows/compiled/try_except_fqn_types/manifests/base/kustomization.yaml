@@ -6,6 +6,5 @@ resources:
 - asya-actor-notify-admin.yaml
 - asya-router-llm-pipeline-except-authenticationerror.yaml
 - asya-router-llm-pipeline-except-ratelimiterror.yaml
-- asya-router-llm-pipeline-seq-set-model.yaml
 - asya-start-llm-pipeline.yaml
 - configmap-routers.yaml

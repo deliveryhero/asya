@@ -4,7 +4,6 @@ resources:
 - asya-actor-handler-a.yaml
 - asya-actor-handler-b.yaml
 - asya-router-mutations-before-after-handler-flow-seq-set-step-2.yaml
-- asya-router-mutations-before-after-handler-flow-seq-set-step-3.yaml
 - asya-router-mutations-before-after-handler-flow-seq-set-step.yaml
 - asya-start-mutations-before-after-handler-flow.yaml
 - configmap-routers.yaml

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-initialize
   image: examples.asya.sh/initialize:latest
-  handler: initialize
+  handler: while_loop_processing.initialize
   scaling:
     enabled: true
     minReplicaCount: 0

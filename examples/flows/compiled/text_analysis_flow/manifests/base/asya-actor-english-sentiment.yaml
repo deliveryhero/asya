@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-english-sentiment
   image: examples.asya.sh/english-sentiment:latest
-  handler: english_sentiment
+  handler: text_analysis_flow.english_sentiment
   scaling:
     enabled: true
     minReplicaCount: 0

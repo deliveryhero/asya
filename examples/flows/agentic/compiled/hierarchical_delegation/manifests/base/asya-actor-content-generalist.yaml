@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-content-generalist
   image: examples.asya.sh/content-generalist:latest
-  handler: content_generalist
+  handler: hierarchical_delegation.content_generalist
   scaling:
     enabled: true
     minReplicaCount: 0

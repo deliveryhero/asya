@@ -22,3 +22,12 @@ spec:
     value: call_llm
   - name: ASYA_HANDLER_ACTOR_NOTIFY_ADMIN
     value: notify_admin
+  volumes:
+  - name: routers
+    configMap:
+      name: llm-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

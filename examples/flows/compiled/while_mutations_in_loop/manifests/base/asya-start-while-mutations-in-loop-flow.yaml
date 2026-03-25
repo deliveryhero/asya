@@ -17,11 +17,11 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
-    value: handler_finalize
+    value: while_mutations_in_loop.handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
-    value: handler_init
+    value: while_mutations_in_loop.handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
-    value: handler_process
+    value: while_mutations_in_loop.handler_process
   - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_I
     value: routers.router_while_mutations_in_loop_flow_seq_set_i
   - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_I_2
@@ -30,3 +30,12 @@ spec:
     value: routers.router_while_mutations_in_loop_flow_seq_set_processed
   - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_WHILE_I_LT_MAX_ITERATIONS
     value: routers.router_while_mutations_in_loop_flow_while_i_lt_max_iterations
+  volumes:
+  - name: routers
+    configMap:
+      name: while-mutations-in-loop-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true
