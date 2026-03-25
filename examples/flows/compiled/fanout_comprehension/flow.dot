@@ -10,7 +10,6 @@ digraph "research_flow" {
     research_agent [label="research_agent", fillcolor=lightblue];
     router_research_flow_fanout_results [label="router_research_flow_fanout_results", fillcolor=wheat];
     start_research_flow [label="start_research_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_research_flow -> preprocessor;

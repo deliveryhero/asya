@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: complex_flow
 
+    __end__((( )))
     handler_check_quality[handler_check_quality]
     handler_enrich_data[handler_enrich_data]
     handler_error[handler_error]
@@ -16,7 +17,6 @@ flowchart TD
     router_complex_flow_if_requires_retry{{router_complex_flow_if_requires_retry}}
     router_complex_flow_while_batch_count_lt_max_batches{{router_complex_flow_while_batch_count_lt_max_batches}}
     start_complex_flow([start_complex_flow])
-    __end__((( )))
 
     start_complex_flow --> handler_preprocess
     handler_preprocess --> handler_validate
@@ -36,7 +36,7 @@ flowchart TD
     router_complex_flow_if_not_valid -->|"not p['valid']"| handler_error
     router_complex_flow_if_quality_score_ge_50 -->|"else"| router_complex_flow_while_batch_count_lt_max_batches
     handler_retry_handler --> handler_finalize
-    router_complex_flow_if_requires_retry -->|"else"| handler_finalize
+    router_complex_flow_if_requires_retry -->|"else"| __end__
     handler_error --> __end__
     handler_finalize --> __end__
 
@@ -46,9 +46,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_complex_flow start
-    class handler_error,handler_finalize endnode
+    class __end__,handler_error,handler_finalize endnode
     class router_complex_flow_if_needs_enrichment,router_complex_flow_if_not_valid,router_complex_flow_if_quality_score_ge_50,router_complex_flow_if_quality_score_lt_20,router_complex_flow_if_requires_retry,router_complex_flow_while_batch_count_lt_max_batches router
     class handler_check_quality,handler_enrich_data,handler_preprocess,handler_retry_handler,handler_transform_batch,handler_validate handler
-    class __end__ endpoint
     linkStyle 3,4,6,10,11,15 stroke:#2E8B57
     linkStyle 5,9,13,14,16,18 stroke:#E07040

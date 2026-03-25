@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-execution-planner
   image: examples.asya.sh/execution-planner:latest
-  handler: execution_planner
+  handler: sequential_pipeline.execution_planner
   scaling:
     enabled: true
     minReplicaCount: 0

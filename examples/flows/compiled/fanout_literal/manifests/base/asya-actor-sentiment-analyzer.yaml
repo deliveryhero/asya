@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-sentiment-analyzer
   image: examples.asya.sh/sentiment-analyzer:latest
-  handler: sentiment_analyzer
+  handler: fanout_literal.sentiment_analyzer
   scaling:
     enabled: true
     minReplicaCount: 0

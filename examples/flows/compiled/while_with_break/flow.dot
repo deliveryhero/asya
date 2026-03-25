@@ -12,7 +12,6 @@ digraph "while_with_break_flow" {
     router_while_with_break_flow_seq_set_i_2 [label="router_while_with_break_flow_seq_set_i_2\n\np['i'] = 0", fillcolor=wheat];
     router_while_with_break_flow_while_i_lt_max_iterations [label="router_while_with_break_flow_while_i_lt_max_iterations", fillcolor=wheat];
     start_while_with_break_flow [label="start_while_with_break_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_while_with_break_flow -> handler_init;

@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-finalize-loop
   image: examples.asya.sh/finalize-loop:latest
-  handler: finalize_loop
+  handler: while_loop_processing.finalize_loop
   scaling:
     enabled: true
     minReplicaCount: 0

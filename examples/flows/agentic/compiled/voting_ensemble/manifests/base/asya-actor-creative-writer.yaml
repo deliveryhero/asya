@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-creative-writer
   image: examples.asya.sh/creative-writer:latest
-  handler: creative_writer
+  handler: voting_ensemble.creative_writer
   scaling:
     enabled: true
     minReplicaCount: 0

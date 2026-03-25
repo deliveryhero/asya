@@ -14,7 +14,6 @@ digraph "routing_classifier" {
     router_routing_classifier_if_category_eq_technical [label="router_routing_classifier_if_category_eq_technical", fillcolor=wheat];
     start_routing_classifier [label="start_routing_classifier", fillcolor=palegreen];
     technical_agent [label="technical_agent", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_routing_classifier -> classifier;

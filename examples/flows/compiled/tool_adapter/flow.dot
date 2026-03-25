@@ -9,7 +9,6 @@ digraph "tool_adapter" {
     get_weather [label="get_weather", fillcolor=lightblue];
     start_tool_adapter [label="start_tool_adapter", fillcolor=palegreen];
     validate_input [label="validate_input", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_tool_adapter -> validate_input;

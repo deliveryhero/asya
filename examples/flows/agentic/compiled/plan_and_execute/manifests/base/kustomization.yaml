@@ -7,7 +7,6 @@ resources:
 - asya-actor-synthesizer.yaml
 - asya-router-plan-and-execute-if-current-step-lt-len-p-get-plan.yaml
 - asya-router-plan-and-execute-seq-set-completed.yaml
-- asya-router-plan-and-execute-seq-set-current-step.yaml
 - asya-router-plan-and-execute-while-current-step-lt-len-p-get-plan.yaml
 - asya-start-plan-and-execute.yaml
 - configmap-routers.yaml

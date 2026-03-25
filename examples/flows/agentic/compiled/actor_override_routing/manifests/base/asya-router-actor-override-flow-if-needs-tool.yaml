@@ -16,10 +16,19 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CLASSIFY
-    value: classify
+    value: actor_override_routing.classify
   - name: ASYA_HANDLER_ACTOR_FORMAT_OUTPUT
-    value: format_output
+    value: actor_override_routing.format_output
   - name: ASYA_HANDLER_ROUTER_ACTOR_OVERRIDE_FLOW_IF_NEEDS_TOOL
     value: routers.router_actor_override_flow_if_needs_tool
   - name: ASYA_HANDLER_ACTOR_TOOL_EXECUTOR
-    value: tool_executor
+    value: actor_override_routing.tool_executor
+  volumes:
+  - name: routers
+    configMap:
+      name: actor-override-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

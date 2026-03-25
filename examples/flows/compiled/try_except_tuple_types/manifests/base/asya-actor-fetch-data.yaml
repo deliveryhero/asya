@@ -4,7 +4,7 @@ metadata:
   name: actor-fetch-data
   namespace: default
   labels:
-    asya.sh/flow: ingestion-pipeline
+    asya.sh/flow: try-except-tuple-types
 spec:
   actor: actor-fetch-data
   image: examples.asya.sh/fetch-data:latest
@@ -19,11 +19,11 @@ spec:
       except_connectionerror_timeouterror:
         maxAttempts: 1
         thenRoute:
-        - router-ingestion-pipeline-except-connectionerror-timeouterror
+        - router-try-except-tuple-types-except-connectionerror-timeouterror
       except_valueerror_keyerror:
         maxAttempts: 1
         thenRoute:
-        - router-ingestion-pipeline-except-valueerror-keyerror
+        - router-try-except-tuple-types-except-valueerror-keyerror
     rules:
     - errors:
       - ConnectionError

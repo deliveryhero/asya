@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-data-analyst
   image: examples.asya.sh/data-analyst:latest
-  handler: data_analyst
+  handler: sequential_pipeline.data_analyst
   scaling:
     enabled: true
     minReplicaCount: 0

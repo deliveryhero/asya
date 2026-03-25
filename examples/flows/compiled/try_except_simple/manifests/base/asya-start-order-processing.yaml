@@ -20,3 +20,12 @@ spec:
     value: notify_rejection
   - name: ASYA_HANDLER_ACTOR_VALIDATE_ORDER
     value: validate_order
+  volumes:
+  - name: routers
+    configMap:
+      name: order-processing-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

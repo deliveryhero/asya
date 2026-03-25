@@ -17,10 +17,19 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CLASSIFIER
-    value: classifier
+    value: typed_dataclass_pipeline.classifier
   - name: ASYA_HANDLER_ACTOR_ENRICHER
-    value: enricher
+    value: typed_dataclass_pipeline.enricher
   - name: ASYA_HANDLER_ACTOR_EXTRACTOR
-    value: extractor
+    value: typed_dataclass_pipeline.extractor
   - name: ASYA_HANDLER_ACTOR_FORMATTER
-    value: formatter
+    value: typed_dataclass_pipeline.formatter
+  volumes:
+  - name: routers
+    configMap:
+      name: typed-dataclass-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

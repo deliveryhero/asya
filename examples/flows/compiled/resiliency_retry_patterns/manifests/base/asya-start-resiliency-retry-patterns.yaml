@@ -1,0 +1,35 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-resiliency-retry-patterns
+  namespace: default
+  labels:
+    asya.sh/flow: resiliency-retry-patterns
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-resiliency-retry-patterns
+  image: python:3.13-slim
+  handler: routers.start_resiliency_retry_patterns
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CALL_LLM
+    value: resiliency_retry_patterns.call_llm
+  - name: ASYA_HANDLER_ACTOR_PARSE_RESPONSE
+    value: resiliency_retry_patterns.parse_response
+  - name: ASYA_HANDLER_ACTOR_STORE_RESULT
+    value: resiliency_retry_patterns.store_result
+  - name: ASYA_HANDLER_ACTOR_VALIDATE_INPUT
+    value: resiliency_retry_patterns.validate_input
+  volumes:
+  - name: routers
+    configMap:
+      name: resiliency-retry-patterns-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

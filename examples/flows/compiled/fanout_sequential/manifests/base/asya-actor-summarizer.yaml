@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-summarizer
   image: examples.asya.sh/summarizer:latest
-  handler: summarizer
+  handler: fanout_sequential.summarizer
   scaling:
     enabled: true
     minReplicaCount: 0

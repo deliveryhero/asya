@@ -53,10 +53,9 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_multi_agent_debate start
-    class final_judge endnode
+    class final_judge,__end__ endnode
     class router_multi_agent_debate_fanout_positions,router_multi_agent_debate_fanout_positions_2,router_multi_agent_debate_if_converged,router_multi_agent_debate_if_round_ge_3,router_multi_agent_debate_seq_set_round,router_multi_agent_debate_while_loop router
     class convergence_checker,debater_a,debater_b,debater_c,fanin_multi_agent_debate_positions,fanin_multi_agent_debate_positions_2,revise_a,revise_b,revise_c handler
-    class __end__ endpoint
     linkStyle 9,11 stroke:#2E8B57
     linkStyle 1,15 stroke:#7B68EE
     linkStyle 8,10 stroke:#E07040

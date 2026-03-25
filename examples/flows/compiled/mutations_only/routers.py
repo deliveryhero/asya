@@ -28,6 +28,7 @@ async def router_mutations_only_flow_seq_set_step(payload: dict):
     p['y'] = 20
     p['x'] += p['y']
     p['z'] = p['x'] + 30
+    yield "SET", ".route.next", []
     yield p
 
 

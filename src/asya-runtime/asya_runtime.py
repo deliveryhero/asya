@@ -91,6 +91,7 @@ import socket
 import stat as _stat_module
 import sys
 import tempfile as _tempfile
+import time
 import traceback
 import uuid
 from typing import Any
@@ -1208,25 +1209,34 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
         user_func = self.server.user_func
         is_generator = inspect.isgeneratorfunction(user_func) or inspect.isasyncgenfunction(user_func)
-        logger.info(f"[DIAG] Starting handler execution, envelope_id={envelope.get('id', 'unknown')}")
+        envelope_id = envelope.get("id", "unknown")
+        short_id = envelope_id[:12]
+        handler_name = getattr(user_func, "__qualname__", getattr(user_func, "__name__", "?"))
+        logger.info("[.] %s (id=%s)", handler_name, short_id)
+        _t0 = time.monotonic()
 
         if is_generator:
             self._stream_sse_response(envelope, user_func)
+            logger.info(
+                "[+] %s done (id=%s, %.0fms, generator)", handler_name, short_id, (time.monotonic() - _t0) * 1000
+            )
         else:
             try:
                 frames = _collect_payload_frames(envelope, user_func)
             except Exception as exc:
-                envelope_id = envelope.get("id", "unknown")
-                logger.error("Handler error: %s: %s (envelope_id=%s)", type(exc).__name__, exc, envelope_id)
+                logger.error("[-] %s error: %s: %s (id=%s)", handler_name, type(exc).__name__, exc, short_id)
                 logger.debug("Handler error traceback:", exc_info=True)
                 self._send_json(500, _error_response("processing_error", exc))
                 return
 
+            _elapsed = (time.monotonic() - _t0) * 1000
             if not frames:
                 self.send_response(204)
                 self.end_headers()
+                logger.info("[+] %s done (id=%s, %.0fms, no output)", handler_name, short_id, _elapsed)
             else:
                 self._send_json(200, {"frames": frames})
+                logger.info("[+] %s done (id=%s, %.0fms, %d frame(s))", handler_name, short_id, _elapsed, len(frames))
 
     def do_GET(self):  # noqa: N802
         if self.path == "/healthz":

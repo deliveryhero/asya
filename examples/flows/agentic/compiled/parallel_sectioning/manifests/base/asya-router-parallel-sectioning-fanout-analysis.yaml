@@ -16,16 +16,25 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_AGGREGATOR
-    value: aggregator
+    value: parallel_sectioning.aggregator
   - name: ASYA_HANDLER_ACTOR_ENTITY_RECOGNIZER
-    value: entity_recognizer
+    value: parallel_sectioning.entity_recognizer
   - name: ASYA_HANDLER_FANIN_PARALLEL_SECTIONING_ANALYSIS
     value: routers.fanin_parallel_sectioning_analysis
   - name: ASYA_HANDLER_ACTOR_PREPROCESSOR
-    value: preprocessor
+    value: parallel_sectioning.preprocessor
   - name: ASYA_HANDLER_ROUTER_PARALLEL_SECTIONING_FANOUT_ANALYSIS
     value: routers.router_parallel_sectioning_fanout_analysis
   - name: ASYA_HANDLER_ACTOR_SENTIMENT_ANALYZER
-    value: sentiment_analyzer
+    value: parallel_sectioning.sentiment_analyzer
   - name: ASYA_HANDLER_ACTOR_TOPIC_EXTRACTOR
-    value: topic_extractor
+    value: parallel_sectioning.topic_extractor
+  volumes:
+  - name: routers
+    configMap:
+      name: parallel-sectioning-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

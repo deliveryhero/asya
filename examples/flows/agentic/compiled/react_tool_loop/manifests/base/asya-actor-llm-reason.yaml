@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-llm-reason
   image: examples.asya.sh/llm-reason:latest
-  handler: llm_reason
+  handler: react_tool_loop.llm_reason
   scaling:
     enabled: true
     minReplicaCount: 0

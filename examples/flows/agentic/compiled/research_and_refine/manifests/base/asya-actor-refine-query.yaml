@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-refine-query
   image: examples.asya.sh/refine-query:latest
-  handler: refine_query
+  handler: research_and_refine.refine_query
   scaling:
     enabled: true
     minReplicaCount: 0

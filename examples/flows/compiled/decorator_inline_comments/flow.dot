@@ -9,7 +9,6 @@ digraph "decorator_inline_comments_flow" {
     router_decorator_inline_comments_flow_if_category_eq_priority [label="router_decorator_inline_comments_flow_if_category_eq_priority", fillcolor=wheat];
     standard_handler [label="standard_handler", fillcolor=lightsalmon];
     start_decorator_inline_comments_flow [label="start_decorator_inline_comments_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_decorator_inline_comments_flow -> classifier;

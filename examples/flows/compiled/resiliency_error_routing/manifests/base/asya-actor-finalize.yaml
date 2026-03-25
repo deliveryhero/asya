@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-finalize
   image: examples.asya.sh/finalize:latest
-  handler: finalize
+  handler: resiliency_error_routing.finalize
   scaling:
     enabled: true
     minReplicaCount: 0

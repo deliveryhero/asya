@@ -1,19 +1,19 @@
 flowchart TD
-    %% Flow: resilient_pipeline
+    %% Flow: try_except_catch_all
 
     handle_known_error[handle_known_error]
     handle_unknown_error[handle_unknown_error]
     risky_operation[risky_operation]
-    router_resilient_pipeline_except_all{{"router_resilient_pipeline_except_all<br/><br/>p['error_type'] = 'unknown'"}}
-    router_resilient_pipeline_except_valueerror{{"router_resilient_pipeline_except_valueerror<br/><br/>p['error_type'] = 'known'"}}
-    start_resilient_pipeline([start_resilient_pipeline])
+    router_try_except_catch_all_except_all{{"router_try_except_catch_all_except_all<br/><br/>p['error_type'] = 'unknown'"}}
+    router_try_except_catch_all_except_valueerror{{"router_try_except_catch_all_except_valueerror<br/><br/>p['error_type'] = 'known'"}}
+    start_try_except_catch_all([start_try_except_catch_all])
     __end__((( )))
 
-    start_resilient_pipeline --> risky_operation
-    router_resilient_pipeline_except_valueerror --> handle_known_error
-    router_resilient_pipeline_except_all --> handle_unknown_error
-    risky_operation -->|"ValueError"| router_resilient_pipeline_except_valueerror
-    risky_operation -->|"except *"| router_resilient_pipeline_except_all
+    start_try_except_catch_all --> risky_operation
+    router_try_except_catch_all_except_valueerror --> handle_known_error
+    router_try_except_catch_all_except_all --> handle_unknown_error
+    risky_operation -->|"ValueError"| router_try_except_catch_all_except_valueerror
+    risky_operation -->|"except *"| router_try_except_catch_all_except_all
     handle_known_error --> __end__
     handle_unknown_error --> __end__
 
@@ -22,9 +22,8 @@ flowchart TD
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_resilient_pipeline start
-    class handle_known_error,handle_unknown_error endnode
-    class router_resilient_pipeline_except_all,router_resilient_pipeline_except_valueerror router
+    class start_try_except_catch_all start
+    class handle_known_error,handle_unknown_error,__end__ endnode
+    class router_try_except_catch_all_except_all,router_try_except_catch_all_except_valueerror router
     class risky_operation handler
-    class __end__ endpoint
     linkStyle 3,4 stroke:#DC143C

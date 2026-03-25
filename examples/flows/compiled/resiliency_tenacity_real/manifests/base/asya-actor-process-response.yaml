@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-process-response
   image: examples.asya.sh/process-response:latest
-  handler: process_response
+  handler: resiliency_tenacity_real.process_response
   scaling:
     enabled: true
     minReplicaCount: 0

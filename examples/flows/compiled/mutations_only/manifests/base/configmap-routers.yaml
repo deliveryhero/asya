@@ -38,6 +38,7 @@ data:
         p['y'] = 20
         p['x'] += p['y']
         p['z'] = p['x'] + 30
+        yield "SET", ".route.next", []
         yield p
 
 

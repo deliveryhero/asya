@@ -27,6 +27,7 @@ async def router_react_agent_if_tool_calls(payload: dict):
     if p.get('tool_calls'):
         _next.append(resolve("execute_tool"))
     else:
+        yield "SET", ".route.next", []
         yield p
         return
 

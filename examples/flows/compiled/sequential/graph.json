@@ -19,6 +19,11 @@
       "label": "start_sequential_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -39,6 +44,12 @@
       "to": "handler_c",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "handler_c",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

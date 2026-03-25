@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-call-another-api
   image: examples.asya.sh/call-another-api:latest
-  handler: call_another_api
+  handler: try_except_retry_loop.call_another_api
   scaling:
     enabled: true
     minReplicaCount: 0

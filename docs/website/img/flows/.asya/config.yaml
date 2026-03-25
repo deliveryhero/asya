@@ -1,0 +1,4 @@
+compiler:
+  code: "./compiled/${arg:flow_name}"
+  artifacts: "./compiled/${arg:flow_name}"
+  manifests: "./compiled/${arg:flow_name}/manifests"

@@ -17,13 +17,13 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CALCULATE
-    value: calculate
+    value: tool_calling_agent.calculate
   - name: ASYA_HANDLER_ACTOR_FORMAT_RESPONSE
     value: format_response
   - name: ASYA_HANDLER_ACTOR_GET_WEATHER
-    value: get_weather
+    value: tool_calling_agent.get_weather
   - name: ASYA_HANDLER_ACTOR_LIST_GCS_FILES
-    value: list_gcs_files
+    value: tool_calling_agent.list_gcs_files
   - name: ASYA_HANDLER_ACTOR_LLM_REASON
     value: llm_reason
   - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_IF_NOT_TOOL_NAME
@@ -43,4 +43,13 @@ spec:
   - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_WHILE_LOOP
     value: routers.router_tool_calling_agent_while_loop
   - name: ASYA_HANDLER_ACTOR_WEB_SEARCH
-    value: web_search
+    value: tool_calling_agent.web_search
+  volumes:
+  - name: routers
+    configMap:
+      name: tool-calling-agent-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

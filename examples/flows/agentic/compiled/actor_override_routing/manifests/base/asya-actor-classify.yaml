@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-classify
   image: examples.asya.sh/classify:latest
-  handler: classify
+  handler: actor_override_routing.classify
   scaling:
     enabled: true
     minReplicaCount: 0

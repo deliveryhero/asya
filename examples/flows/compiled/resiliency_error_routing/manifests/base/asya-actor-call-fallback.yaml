@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-call-fallback
   image: examples.asya.sh/call-fallback:latest
-  handler: call_fallback
+  handler: resiliency_error_routing.call_fallback
   scaling:
     enabled: true
     minReplicaCount: 0

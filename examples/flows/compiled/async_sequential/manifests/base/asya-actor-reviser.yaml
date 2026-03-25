@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-reviser
   image: examples.asya.sh/reviser:latest
-  handler: reviser
+  handler: async_sequential.reviser
   scaling:
     enabled: true
     minReplicaCount: 0

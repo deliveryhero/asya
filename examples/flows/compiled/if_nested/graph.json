@@ -2,6 +2,11 @@
   "flow_name": "conditional_nested_flow",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "handler_a",
       "label": "handler_a"
     },
@@ -133,6 +138,12 @@
       "type": "continuation"
     },
     {
+      "from": "router_conditional_nested_flow_seq_set_x",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
       "from": "router_conditional_nested_flow_seq_set_x_2",
       "to": "handler_finalize",
       "label": null,
@@ -239,6 +250,12 @@
       "to": "router_conditional_nested_flow_seq_set_x_2",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "handler_c",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

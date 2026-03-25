@@ -4,6 +4,7 @@ digraph "retry_pipeline" {
 
     { rank=source; start_retry_pipeline; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     call_another_api [label="call_another_api", fillcolor=lightblue];
     call_external_api [label="call_external_api", fillcolor=lightblue];
     log_retry [label="log_retry", fillcolor=lightsalmon];
@@ -14,19 +15,18 @@ digraph "retry_pipeline" {
     router_retry_pipeline_while_attempt_lt_3 [label="router_retry_pipeline_while_attempt_lt_3", fillcolor=wheat];
     start_retry_pipeline [label="start_retry_pipeline\n\np['attempt'] = 0", fillcolor=palegreen];
 
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
-
     start_retry_pipeline -> prepare_request;
     prepare_request -> router_retry_pipeline_while_attempt_lt_3;
     router_retry_pipeline_except_connectionerror -> log_retry;
+    router_retry_pipeline_except_valueerror -> __end__;
     router_retry_pipeline_seq_set_attempt -> call_external_api;
     call_external_api -> call_another_api;
     router_retry_pipeline_while_attempt_lt_3 -> router_retry_pipeline_seq_set_attempt [label="p['attempt'] < 3", color="#2E8B57", fontcolor="#2E8B57"];
+    router_retry_pipeline_while_attempt_lt_3 -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
     call_external_api -> router_retry_pipeline_except_connectionerror [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
     call_external_api -> router_retry_pipeline_except_valueerror [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
     call_another_api -> router_retry_pipeline_except_connectionerror [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
     call_another_api -> router_retry_pipeline_except_valueerror [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
     call_another_api -> router_retry_pipeline_while_attempt_lt_3;
     log_retry -> __end__;
-    router_retry_pipeline_except_valueerror -> __end__;
 }

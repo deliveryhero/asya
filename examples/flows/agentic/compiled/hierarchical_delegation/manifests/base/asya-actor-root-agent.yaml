@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-root-agent
   image: examples.asya.sh/root-agent:latest
-  handler: root_agent
+  handler: hierarchical_delegation.root_agent
   scaling:
     enabled: true
     minReplicaCount: 0

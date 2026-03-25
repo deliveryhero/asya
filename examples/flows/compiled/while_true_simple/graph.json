@@ -29,6 +29,11 @@
       "label": "start_while_true_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -67,6 +72,12 @@
       "to": "router_while_true_flow_while_loop",
       "label": "else",
       "type": "continuation"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

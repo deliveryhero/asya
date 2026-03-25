@@ -25,3 +25,12 @@ spec:
     value: process_with_resource
   - name: ASYA_HANDLER_ACTOR_RELEASE_RESOURCE
     value: release_resource
+  volumes:
+  - name: routers
+    configMap:
+      name: resource-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

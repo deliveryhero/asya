@@ -28,6 +28,11 @@
       "label": "start_research_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -66,6 +71,12 @@
       "to": "fanin_research_flow_results",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "post_processor",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

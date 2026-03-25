@@ -8,7 +8,6 @@ digraph "typed_pydantic_pipeline" {
     responder [label="responder", fillcolor=lightsalmon];
     scorer [label="scorer", fillcolor=lightblue];
     start_typed_pydantic_pipeline [label="start_typed_pydantic_pipeline\n\np['candidates'] = retrieve(p['query'], p.get('top_k', 10))", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_typed_pydantic_pipeline -> scorer;

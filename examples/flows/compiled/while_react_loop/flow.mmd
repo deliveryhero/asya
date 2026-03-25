@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: react_agent
 
+    __end__((( )))
     execute_tool[execute_tool]
     llm_call[llm_call]
     router_react_agent_if_tool_calls{{router_react_agent_if_tool_calls}}
@@ -9,10 +10,10 @@ flowchart TD
 
     start_react_agent --> router_react_agent_while_loop
     router_react_agent_if_tool_calls -->|"p.get('tool_calls')"| execute_tool
+    router_react_agent_if_tool_calls -->|"else"| __end__
     router_react_agent_while_loop --> llm_call
     llm_call --> router_react_agent_if_tool_calls
     execute_tool --> router_react_agent_while_loop
-    router_react_agent_if_tool_calls -->|"else"| router_react_agent_while_loop
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -20,7 +21,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_react_agent start
+    class __end__ endnode
     class router_react_agent_if_tool_calls,router_react_agent_while_loop router
     class execute_tool,llm_call handler
     linkStyle 1 stroke:#2E8B57
-    linkStyle 5 stroke:#E07040
+    linkStyle 2 stroke:#E07040

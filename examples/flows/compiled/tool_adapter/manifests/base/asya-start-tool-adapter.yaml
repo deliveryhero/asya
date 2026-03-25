@@ -24,3 +24,12 @@ spec:
     value: get_weather
   - name: ASYA_HANDLER_ACTOR_VALIDATE_INPUT
     value: validate_input
+  volumes:
+  - name: routers
+    configMap:
+      name: tool-adapter-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

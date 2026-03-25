@@ -17,8 +17,17 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_FETCH_FROM_API
-    value: fetch_from_api
+    value: resiliency_tenacity_real.fetch_from_api
   - name: ASYA_HANDLER_ACTOR_PROCESS_RESPONSE
-    value: process_response
+    value: resiliency_tenacity_real.process_response
   - name: ASYA_HANDLER_ACTOR_STORE_RESULTS
-    value: store_results
+    value: resiliency_tenacity_real.store_results
+  volumes:
+  - name: routers
+    configMap:
+      name: api-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

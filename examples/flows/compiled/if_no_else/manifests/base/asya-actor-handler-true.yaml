@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-handler-true
   image: examples.asya.sh/handler-true:latest
-  handler: handler_true
+  handler: if_no_else.handler_true
   scaling:
     enabled: true
     minReplicaCount: 0

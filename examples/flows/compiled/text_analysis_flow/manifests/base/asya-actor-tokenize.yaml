@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-tokenize
   image: examples.asya.sh/tokenize:latest
-  handler: tokenize
+  handler: text_analysis_flow.tokenize
   scaling:
     enabled: true
     minReplicaCount: 0

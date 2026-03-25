@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-scorer
   image: examples.asya.sh/scorer:latest
-  handler: scorer
+  handler: typed_pydantic_pipeline.scorer
   scaling:
     enabled: true
     minReplicaCount: 0

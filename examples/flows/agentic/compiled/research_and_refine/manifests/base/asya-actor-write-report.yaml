@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-write-report
   image: examples.asya.sh/write-report:latest
-  handler: write_report
+  handler: research_and_refine.write_report
   scaling:
     enabled: true
     minReplicaCount: 0

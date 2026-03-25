@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: llm-pipeline-routers
+  name: resiliency-retry-patterns-routers
   namespace: default
   labels:
-    asya.sh/flow: llm-pipeline
+    asya.sh/flow: resiliency-retry-patterns
     asya.sh/managed-by: asya-compiler
 data:
   routers.py: |
@@ -23,8 +23,8 @@ data:
     # Generated Routers (for kubernetes deployment)
     # ======================================================================
 
-    async def start_llm_pipeline(payload: dict):
-        """Entrypoint for flow 'llm_pipeline'"""
+    async def start_resiliency_retry_patterns(payload: dict):
+        """Entrypoint for flow 'resiliency_retry_patterns'"""
         p = payload
         _next = []
         p['status'] = 'started'

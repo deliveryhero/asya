@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-planner
   image: examples.asya.sh/planner:latest
-  handler: planner
+  handler: plan_and_execute.planner
   scaling:
     enabled: true
     minReplicaCount: 0

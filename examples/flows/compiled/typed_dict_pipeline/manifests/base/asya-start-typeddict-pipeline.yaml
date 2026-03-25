@@ -17,14 +17,23 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_ERROR_HANDLER
-    value: error_handler
+    value: typed_dict_pipeline.error_handler
   - name: ASYA_HANDLER_ACTOR_PARSER
-    value: parser
+    value: typed_dict_pipeline.parser
   - name: ASYA_HANDLER_ROUTER_TYPEDDICT_PIPELINE_IF_NOT_VALID
     value: routers.router_typeddict_pipeline_if_not_valid
   - name: ASYA_HANDLER_ACTOR_SINK_ADAPTER
-    value: sink_adapter
+    value: typed_dict_pipeline.sink_adapter
   - name: ASYA_HANDLER_ACTOR_TRANSFORMER
-    value: transformer
+    value: typed_dict_pipeline.transformer
   - name: ASYA_HANDLER_ACTOR_VALIDATOR
-    value: validator
+    value: typed_dict_pipeline.validator
+  volumes:
+  - name: routers
+    configMap:
+      name: typeddict-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

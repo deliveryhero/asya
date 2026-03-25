@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-critic
   image: examples.asya.sh/critic:latest
-  handler: critic
+  handler: research_and_refine.critic
   scaling:
     enabled: true
     minReplicaCount: 0

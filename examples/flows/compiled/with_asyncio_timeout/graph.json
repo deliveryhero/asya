@@ -2,6 +2,11 @@
   "flow_name": "document_pipeline",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "language_detector",
       "label": "language_detector"
     },
@@ -58,6 +63,12 @@
       "to": "router_document_pipeline_if_language_ne_en",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "router_document_pipeline_seq_set_status",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     },
     {
       "from": "router_document_pipeline_if_language_ne_en",

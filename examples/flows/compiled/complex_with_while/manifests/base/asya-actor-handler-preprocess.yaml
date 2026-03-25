@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-preprocess
   image: examples.asya.sh/handler-preprocess:latest
-  handler: handler_preprocess
+  handler: complex_with_while.handler_preprocess
   scaling:
     enabled: true
     minReplicaCount: 0

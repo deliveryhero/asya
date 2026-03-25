@@ -4,11 +4,11 @@ metadata:
   name: actor-validate-input
   namespace: default
   labels:
-    asya.sh/flow: llm-pipeline
+    asya.sh/flow: resiliency-retry-patterns
 spec:
   actor: actor-validate-input
   image: examples.asya.sh/validate-input:latest
-  handler: validate_input
+  handler: resiliency_retry_patterns.validate_input
   scaling:
     enabled: true
     minReplicaCount: 0

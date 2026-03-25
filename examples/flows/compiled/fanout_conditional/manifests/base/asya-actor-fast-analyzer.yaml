@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-fast-analyzer
   image: examples.asya.sh/fast-analyzer:latest
-  handler: fast_analyzer
+  handler: fanout_conditional.fast_analyzer
   scaling:
     enabled: true
     minReplicaCount: 0

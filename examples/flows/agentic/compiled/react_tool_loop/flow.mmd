@@ -43,9 +43,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_react_tool_loop start
-    class format_response endnode
+    class format_response,__end__ endnode
     class router_react_tool_loop_if_iteration_ge_10,router_react_tool_loop_if_not_tool_calls,router_react_tool_loop_if_tool_name_eq_calculator,router_react_tool_loop_if_tool_name_eq_code_exec,router_react_tool_loop_if_tool_name_eq_web_search,router_react_tool_loop_seq_set_iteration,router_react_tool_loop_seq_set_observation,router_react_tool_loop_while_loop router
     class calculator,code_exec,llm_reason,web_search handler
-    class __end__ endpoint
     linkStyle 1,2,4,6,10 stroke:#2E8B57
     linkStyle 3,5,8,9,17 stroke:#E07040

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-optimize
   image: examples.asya.sh/optimize:latest
-  handler: optimize
+  handler: flow_composition_nested.optimize
   scaling:
     enabled: true
     minReplicaCount: 0

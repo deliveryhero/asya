@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-call-primary
   image: examples.asya.sh/call-primary:latest
-  handler: call_primary
+  handler: resiliency_error_routing.call_primary
   scaling:
     enabled: true
     minReplicaCount: 0

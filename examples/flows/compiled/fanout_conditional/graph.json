@@ -41,6 +41,11 @@
       "label": "start_adaptive_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -115,6 +120,12 @@
       "to": "formatter",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "formatter",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

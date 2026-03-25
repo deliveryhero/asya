@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-chunk-processor
   image: examples.asya.sh/chunk-processor:latest
-  handler: chunk_processor
+  handler: map_reduce.chunk_processor
   scaling:
     enabled: true
     minReplicaCount: 0

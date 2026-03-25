@@ -2,6 +2,11 @@
   "flow_name": "if_no_else_flow",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "handler_setup",
       "label": "handler_setup"
     },
@@ -43,9 +48,15 @@
     },
     {
       "from": "router_if_no_else_flow_if_condition",
-      "to": "handler_true",
+      "to": "__end__",
       "label": "else",
-      "type": "continuation"
+      "type": "set"
+    },
+    {
+      "from": "handler_true",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

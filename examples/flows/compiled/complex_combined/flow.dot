@@ -20,7 +20,6 @@ digraph "complex_combined_flow" {
     router_complex_combined_flow_seq_set_i [label="router_complex_combined_flow_seq_set_i\n\np['i'] = 0", fillcolor=wheat];
     router_complex_combined_flow_while_i_lt_max_iterations [label="router_complex_combined_flow_while_i_lt_max_iterations", fillcolor=wheat];
     start_complex_combined_flow [label="start_complex_combined_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_complex_combined_flow -> handler_init;

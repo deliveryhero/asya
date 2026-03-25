@@ -4,6 +4,7 @@ digraph "human_in_the_loop" {
 
     { rank=source; start_human_in_the_loop; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     approval_gate [label="approval_gate", fillcolor=lightblue];
     executor [label="executor", fillcolor=lightblue];
     notifier [label="notifier", fillcolor=lightsalmon];
@@ -16,8 +17,6 @@ digraph "human_in_the_loop" {
     router_human_in_the_loop_seq_set_result [label="router_human_in_the_loop_seq_set_result\n\np['result'] = 'Max revision attempts reached'", fillcolor=wheat];
     router_human_in_the_loop_while_loop [label="router_human_in_the_loop_while_loop", fillcolor=wheat];
     start_human_in_the_loop [label="start_human_in_the_loop\n\np['attempt'] = 0", fillcolor=palegreen];
-
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_human_in_the_loop -> router_human_in_the_loop_while_loop;
     router_human_in_the_loop_seq_set_result -> notifier;
@@ -32,6 +31,6 @@ digraph "human_in_the_loop" {
     router_human_in_the_loop_while_loop -> router_human_in_the_loop_seq_set_attempt;
     revision_agent -> router_human_in_the_loop_if_attempt_ge_3;
     router_human_in_the_loop_if_attempt_ge_3 -> router_human_in_the_loop_while_loop [label="else", color="#D35400", fontcolor="#D35400"];
-    router_human_in_the_loop_if_approval_eq_rejected -> router_human_in_the_loop_while_loop [label="else", color="#D35400", fontcolor="#D35400"];
+    router_human_in_the_loop_if_approval_eq_rejected -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
     notifier -> __end__;
 }

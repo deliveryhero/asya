@@ -12,7 +12,6 @@ digraph "multi_stage_flow" {
     router_multi_stage_flow_fanout_reviews [label="router_multi_stage_flow_fanout_reviews", fillcolor=wheat];
     start_multi_stage_flow [label="start_multi_stage_flow", fillcolor=palegreen];
     summarizer [label="summarizer", fillcolor=lightsalmon];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_multi_stage_flow -> router_multi_stage_flow_fanout_research;

@@ -29,6 +29,5 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_compiler_pipeline start
-    class emit_code endnode
+    class emit_code,__end__ endnode
     class analyze_semantics,optimize,parse_syntax,tokenize handler
-    class __end__ endpoint

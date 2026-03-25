@@ -1,8 +1,11 @@
-"""asya init: scaffold .asya/ project directory."""
+"""asya init: scaffold .asya/ project directory and scan for build artifacts."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
+
+import yaml
 
 
 _ROOT_CONFIG = """\
@@ -12,13 +15,10 @@ templates:
   max_replicas: 5
 
 compiler:
-  routers: "./compiled"
-  manifests: ".asya/manifests"
+  code: "./compiled/${arg:flow_name}/code"
+  artifacts: "./compiled/${arg:flow_name}/artifacts"
+  manifests: "./compiled/${arg:flow_name}/manifests"
   templates: ".asya/templates"
-
-build:
-  - module: "*"
-    image: "{registry}/*:latest"
 """
 
 _ACTOR_TEMPLATE = """\
@@ -26,7 +26,6 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: "{{ actor_name }}"
-  namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
 
@@ -38,6 +37,9 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: {{ max_replicas }}
+  env:
+  - name: PYTHONUNBUFFERED
+    value: "1"
 """
 
 _ROUTER_TEMPLATE = """\
@@ -45,7 +47,6 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: "{{ actor_name }}"
-  namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
 
@@ -57,6 +58,9 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 2
+  env:
+  - name: PYTHONUNBUFFERED
+    value: "1"
 """
 
 _CONFIGMAP_TEMPLATE = """\
@@ -64,7 +68,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: "{{ flow_name }}-routers"
-  namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
     asya.sh/managed-by: asya-compiler
@@ -157,7 +160,7 @@ _RULES_YAML = """\
 def init_project(
     target_dir: Path,
     *,
-    registry: str,
+    registry: str | None = None,
 ) -> Path:
     """Scaffold .asya/ project directory.
 
@@ -165,7 +168,7 @@ def init_project(
 
     Args:
         target_dir: Directory to create .asya/ in.
-        registry: Container image registry (e.g. ghcr.io/my-org).
+        registry: Container image registry. Only used for initial config generation.
 
     Returns:
         Path to the created .asya/ directory.
@@ -173,35 +176,156 @@ def init_project(
     asya_dir = target_dir / ".asya"
     asya_dir.mkdir(exist_ok=True)
 
-    # config.yaml
     config_file = asya_dir / "config.yaml"
     if not config_file.exists():
-        config_file.write_text(_ROOT_CONFIG.format(registry=registry))
+        content = _ROOT_CONFIG
+        if registry:
+            content = content.replace("router_image:", f'registry: "{registry}"\n  router_image:')
+        config_file.write_text(content)
 
-    # templates/ — templates are NOT part of the config tree,
-    # they are stored as files and referenced by the stamper
     templates_dir = asya_dir / "templates"
     templates_dir.mkdir(parents=True, exist_ok=True)
 
-    actor_template = templates_dir / "actor.yaml"
-    if not actor_template.exists():
-        actor_template.write_text(_ACTOR_TEMPLATE)
-
-    router_template = templates_dir / "router.yaml"
-    if not router_template.exists():
-        router_template.write_text(_ROUTER_TEMPLATE)
-
-    configmap_template = templates_dir / "configmap-routers.yaml"
-    if not configmap_template.exists():
-        configmap_template.write_text(_CONFIGMAP_TEMPLATE)
-
-    kustomization_template = templates_dir / "kustomization.yaml"
-    if not kustomization_template.exists():
-        kustomization_template.write_text(_KUSTOMIZATION_TEMPLATE)
-
-    # config.compiler.rules.yaml (filename-to-key convention)
-    rules_file = asya_dir / "config.compiler.rules.yaml"
-    if not rules_file.exists():
-        rules_file.write_text(_RULES_YAML)
+    _write_if_missing(templates_dir / "actor.yaml", _ACTOR_TEMPLATE)
+    _write_if_missing(templates_dir / "router.yaml", _ROUTER_TEMPLATE)
+    _write_if_missing(templates_dir / "configmap-routers.yaml", _CONFIGMAP_TEMPLATE)
+    _write_if_missing(templates_dir / "kustomization.yaml", _KUSTOMIZATION_TEMPLATE)
+    _write_if_missing(asya_dir / "config.compiler.rules.yaml", _RULES_YAML)
 
     return asya_dir
+
+
+# ---------------------------------------------------------------------------
+# Skaffold scan
+# ---------------------------------------------------------------------------
+
+_SKIP_DIRS = frozenset(
+    {
+        ".git",
+        ".asya",
+        ".venv",
+        "node_modules",
+        "__pycache__",
+        "compiled",
+        "build",
+        "dist",
+        ".tox",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
+)
+
+
+@dataclass
+class ScaffoldedSkaffold:
+    """Result of generating one skaffold.yaml."""
+
+    path: Path
+    image: str
+    context: str
+    created: bool  # False if skaffold.yaml already existed with this artifact
+
+
+def scan_and_generate_skaffold(
+    target_dir: Path,
+    *,
+    prompt_image_name: bool = True,
+) -> list[ScaffoldedSkaffold]:
+    """Scan directory tree for Dockerfiles, create skaffold.yaml per build context.
+
+    Each Dockerfile gets its own skaffold.yaml in the same directory.
+    Existing skaffold.yaml files are not overwritten.
+
+    Args:
+        target_dir: Root directory to scan.
+        prompt_image_name: If True, ask the user for the image name
+            (with the auto-derived name as the default).
+
+    Returns list of results (created or skipped).
+    """
+    import click as _click
+
+    results: list[ScaffoldedSkaffold] = []
+
+    for context_dir in _discover_build_contexts(target_dir):
+        skaffold_file = context_dir / "skaffold.yaml"
+        default_name = _context_to_image_name(context_dir, target_dir)
+        if prompt_image_name and not skaffold_file.exists():
+            rel = context_dir.relative_to(target_dir) if context_dir != target_dir else Path(".")
+            image_name = _click.prompt(
+                f"  Image name for {rel}/Dockerfile",
+                default=default_name,
+            )
+        else:
+            image_name = default_name
+        rel_context = "."
+
+        if skaffold_file.exists():
+            # Idempotent: skip if skaffold.yaml already exists in this directory
+            existing = yaml.safe_load(skaffold_file.read_text()) or {}
+            existing_artifacts = existing.get("build", {}).get("artifacts", [])
+            existing_image = existing_artifacts[0].get("image") if existing_artifacts else image_name
+            results.append(
+                ScaffoldedSkaffold(
+                    path=skaffold_file,
+                    image=existing_image,
+                    context=rel_context,
+                    created=False,
+                )
+            )
+            continue
+
+        artifact = {
+            "image": image_name,
+            "context": rel_context,
+            "docker": {"dockerfile": "Dockerfile"},
+        }
+
+        # Merge with existing or create new
+        if skaffold_file.exists():
+            config = yaml.safe_load(skaffold_file.read_text()) or {}
+            config.setdefault("build", {}).setdefault("artifacts", []).append(artifact)
+        else:
+            config = {
+                "apiVersion": "skaffold/v4beta13",
+                "kind": "Config",
+                "metadata": {"name": context_dir.name},
+                "build": {"artifacts": [artifact]},
+            }
+
+        skaffold_file.write_text(yaml.dump(config, default_flow_style=False, sort_keys=False))
+        results.append(
+            ScaffoldedSkaffold(
+                path=skaffold_file,
+                image=image_name,
+                context=rel_context,
+                created=True,
+            )
+        )
+
+    return results
+
+
+def _discover_build_contexts(target_dir: Path) -> list[Path]:
+    """Walk directory tree, return directories containing a Dockerfile."""
+    results: list[Path] = []
+
+    for path in sorted(target_dir.rglob("Dockerfile")):
+        if any(part in _SKIP_DIRS for part in path.parts):
+            continue
+        results.append(path.parent)
+
+    return results
+
+
+def _context_to_image_name(context: Path, root: Path) -> str:
+    """Derive an image name from the build context path."""
+    rel = context.relative_to(root)
+    if rel == Path("."):
+        return root.name
+    return str(rel).replace("/", "-").replace("_", "-").lower()
+
+
+def _write_if_missing(path: Path, content: str) -> None:
+    if not path.exists():
+        path.write_text(content)

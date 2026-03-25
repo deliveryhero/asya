@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-sql-specialist
   image: examples.asya.sh/sql-specialist:latest
-  handler: sql_specialist
+  handler: hierarchical_delegation.sql_specialist
   scaling:
     enabled: true
     minReplicaCount: 0

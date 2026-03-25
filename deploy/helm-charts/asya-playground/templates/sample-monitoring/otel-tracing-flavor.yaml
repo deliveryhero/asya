@@ -1,0 +1,12 @@
+{{- if .Values.sampleTracing.enabled }}
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: otel-tracing
+  labels:
+    asya.sh/flavor: otel-tracing
+    {{- include "asya-playground.labels" . | nindent 4 }}
+data:
+  tracing:
+    endpoint: "{{ .Release.Name }}-tempo:4317"
+{{- end }}

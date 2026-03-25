@@ -50,6 +50,7 @@ class TestFlowInfo:
             flow_function="my_flow",
             routers_path=Path("routers.py"),
             manifests_dir=Path("manifests"),
+            artifacts_dir=Path("artifacts"),
             graph={"nodes": [], "edges": []},
             dot="digraph {}",
             mermaid="flowchart LR",

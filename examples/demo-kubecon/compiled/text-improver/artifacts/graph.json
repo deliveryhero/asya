@@ -1,0 +1,100 @@
+{
+  "flow_name": "text_improver",
+  "nodes": [
+    {
+      "id": "evaluate",
+      "label": "evaluate"
+    },
+    {
+      "id": "generate",
+      "label": "generate"
+    },
+    {
+      "id": "research",
+      "label": "research"
+    },
+    {
+      "id": "router_text_improver_if_iteration_ge_max_iterations",
+      "label": "router_text_improver_if_iteration_ge_max_iterations",
+      "generated": true
+    },
+    {
+      "id": "router_text_improver_if_score_ge_threshold",
+      "label": "router_text_improver_if_score_ge_threshold",
+      "generated": true
+    },
+    {
+      "id": "router_text_improver_seq_set_iteration",
+      "label": "router_text_improver_seq_set_iteration",
+      "generated": true,
+      "mutations": [
+        "p['iteration'] = p.get('iteration', 0) + 1"
+      ]
+    },
+    {
+      "id": "router_text_improver_while_loop",
+      "label": "router_text_improver_while_loop",
+      "generated": true
+    },
+    {
+      "id": "start_text_improver",
+      "label": "start_text_improver",
+      "role": "start",
+      "generated": true,
+      "mutations": [
+        "p['topic'] = p.get('topic', p.get('query', 'anything'))"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_text_improver",
+      "to": "research",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "research",
+      "to": "router_text_improver_while_loop",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_text_improver_if_score_ge_threshold",
+      "to": "router_text_improver_if_iteration_ge_max_iterations",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_text_improver_seq_set_iteration",
+      "to": "generate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "generate",
+      "to": "evaluate",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "evaluate",
+      "to": "router_text_improver_if_score_ge_threshold",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_text_improver_while_loop",
+      "to": "router_text_improver_seq_set_iteration",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_text_improver_if_iteration_ge_max_iterations",
+      "to": "router_text_improver_while_loop",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

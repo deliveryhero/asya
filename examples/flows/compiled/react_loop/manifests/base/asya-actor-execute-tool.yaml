@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-execute-tool
   image: examples.asya.sh/execute-tool:latest
-  handler: execute_tool
+  handler: react_loop.execute_tool
   scaling:
     enabled: true
     minReplicaCount: 0

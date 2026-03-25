@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-merge-analysis
   image: examples.asya.sh/merge-analysis:latest
-  handler: merge_analysis
+  handler: fanout_literal.merge_analysis
   scaling:
     enabled: true
     minReplicaCount: 0

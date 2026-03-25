@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-odd
   image: examples.asya.sh/handler-odd:latest
-  handler: handler_odd
+  handler: while_with_if.handler_odd
   scaling:
     enabled: true
     minReplicaCount: 0

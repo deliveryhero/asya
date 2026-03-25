@@ -17,23 +17,23 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_API_SPECIALIST
-    value: api_specialist
+    value: hierarchical_delegation.api_specialist
   - name: ASYA_HANDLER_ACTOR_CONTENT_GENERALIST
-    value: content_generalist
+    value: hierarchical_delegation.content_generalist
   - name: ASYA_HANDLER_ACTOR_CONTENT_TEAM_LEAD
-    value: content_team_lead
+    value: hierarchical_delegation.content_team_lead
   - name: ASYA_HANDLER_ACTOR_DATA_GENERALIST
-    value: data_generalist
+    value: hierarchical_delegation.data_generalist
   - name: ASYA_HANDLER_ACTOR_DATA_TEAM_LEAD
-    value: data_team_lead
+    value: hierarchical_delegation.data_team_lead
   - name: ASYA_HANDLER_ACTOR_EDITOR
-    value: editor
+    value: hierarchical_delegation.editor
   - name: ASYA_HANDLER_ACTOR_FINAL_ASSEMBLER
-    value: final_assembler
+    value: hierarchical_delegation.final_assembler
   - name: ASYA_HANDLER_ACTOR_GENERALIST
-    value: generalist
+    value: hierarchical_delegation.generalist
   - name: ASYA_HANDLER_ACTOR_ROOT_AGENT
-    value: root_agent
+    value: hierarchical_delegation.root_agent
   - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_DOMAIN_EQ_CONTENT
     value: routers.router_hierarchical_delegation_if_domain_eq_content
   - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_DOMAIN_EQ_DATA
@@ -47,6 +47,15 @@ spec:
   - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_SUBTASK_EQ_WRITE
     value: routers.router_hierarchical_delegation_if_subtask_eq_write
   - name: ASYA_HANDLER_ACTOR_SQL_SPECIALIST
-    value: sql_specialist
+    value: hierarchical_delegation.sql_specialist
   - name: ASYA_HANDLER_ACTOR_WRITER
-    value: writer
+    value: hierarchical_delegation.writer
+  volumes:
+  - name: routers
+    configMap:
+      name: hierarchical-delegation-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -27,10 +27,9 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_actor_override_flow start
-    class escalate,format_output endnode
+    class escalate,format_output,__end__ endnode
     class router_actor_override_flow_if_needs_tool router
     class audit_logger,classify,tool_executor handler
-    class __end__ endpoint
     linkStyle 1 stroke:#2E8B57
     linkStyle 3 stroke:#E07040
     linkStyle 4,5 stroke:#3CB371

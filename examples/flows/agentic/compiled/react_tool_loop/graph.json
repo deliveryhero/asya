@@ -83,6 +83,11 @@
     {
       "id": "web_search",
       "label": "web_search"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -193,6 +198,12 @@
       "to": "router_react_tool_loop_while_loop",
       "label": "else",
       "type": "continuation"
+    },
+    {
+      "from": "format_response",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

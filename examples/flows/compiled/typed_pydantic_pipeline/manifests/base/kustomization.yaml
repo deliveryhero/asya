@@ -4,6 +4,5 @@ resources:
 - asya-actor-ranker.yaml
 - asya-actor-responder.yaml
 - asya-actor-scorer.yaml
-- asya-router-typed-pydantic-pipeline-seq-set-candidates.yaml
 - asya-start-typed-pydantic-pipeline.yaml
 - configmap-routers.yaml

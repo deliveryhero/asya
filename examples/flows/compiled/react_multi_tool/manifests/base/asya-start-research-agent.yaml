@@ -24,3 +24,12 @@ spec:
     value: routers.router_research_agent_if_tool_name_eq_search
   - name: ASYA_HANDLER_ROUTER_RESEARCH_AGENT_WHILE_LOOP
     value: routers.router_research_agent_while_loop
+  volumes:
+  - name: routers
+    configMap:
+      name: research-agent-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

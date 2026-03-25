@@ -7,7 +7,6 @@ digraph "llm_auditor_flow" {
     critic [label="critic", fillcolor=lightblue];
     reviser [label="reviser", fillcolor=lightsalmon];
     start_llm_auditor_flow [label="start_llm_auditor_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_llm_auditor_flow -> critic;

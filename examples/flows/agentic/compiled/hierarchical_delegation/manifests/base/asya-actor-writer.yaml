@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-writer
   image: examples.asya.sh/writer:latest
-  handler: writer
+  handler: hierarchical_delegation.writer
   scaling:
     enabled: true
     minReplicaCount: 0

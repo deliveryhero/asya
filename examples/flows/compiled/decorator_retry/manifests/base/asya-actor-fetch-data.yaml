@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-fetch-data
   image: examples.asya.sh/fetch-data:latest
-  handler: fetch_data
+  handler: decorator_retry.fetch_data
   scaling:
     enabled: true
     minReplicaCount: 0

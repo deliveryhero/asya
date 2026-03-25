@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-writing-worker
   image: examples.asya.sh/writing-worker:latest
-  handler: writing_worker
+  handler: orchestrator_workers.writing_worker
   scaling:
     enabled: true
     minReplicaCount: 0

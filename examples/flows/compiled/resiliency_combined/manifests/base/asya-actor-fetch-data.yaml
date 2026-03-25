@@ -4,11 +4,11 @@ metadata:
   name: actor-fetch-data
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: resiliency-combined
 spec:
   actor: actor-fetch-data
   image: examples.asya.sh/fetch-data:latest
-  handler: fetch_data
+  handler: resiliency_combined.fetch_data
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -21,7 +21,7 @@ spec:
       except_valueerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-except-valueerror
+        - router-resiliency-combined-except-valueerror
       default:
         maxAttempts: 5
         maxDuration: 30

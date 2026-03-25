@@ -16,13 +16,13 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CALCULATOR
-    value: calculator
+    value: react_tool_loop.calculator
   - name: ASYA_HANDLER_ACTOR_CODE_EXEC
-    value: code_exec
+    value: react_tool_loop.code_exec
   - name: ASYA_HANDLER_ACTOR_FORMAT_RESPONSE
-    value: format_response
+    value: react_tool_loop.format_response
   - name: ASYA_HANDLER_ACTOR_LLM_REASON
-    value: llm_reason
+    value: react_tool_loop.llm_reason
   - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_IF_ITERATION_GE_10
     value: routers.router_react_tool_loop_if_iteration_ge_10
   - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_IF_NOT_TOOL_CALLS
@@ -40,4 +40,13 @@ spec:
   - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_WHILE_LOOP
     value: routers.router_react_tool_loop_while_loop
   - name: ASYA_HANDLER_ACTOR_WEB_SEARCH
-    value: web_search
+    value: react_tool_loop.web_search
+  volumes:
+  - name: routers
+    configMap:
+      name: react-tool-loop-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

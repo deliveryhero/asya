@@ -18,8 +18,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_order_processing start
-    class notify_rejection endnode
+    class notify_rejection,__end__ endnode
     class router_order_processing_except_valueerror router
     class validate_order handler
-    class __end__ endpoint
     linkStyle 2 stroke:#DC143C

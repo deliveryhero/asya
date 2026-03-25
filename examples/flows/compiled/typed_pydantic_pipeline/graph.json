@@ -22,6 +22,11 @@
       "mutations": [
         "p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"
       ]
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -42,6 +47,12 @@
       "to": "responder",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "responder",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": [

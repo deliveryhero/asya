@@ -3,6 +3,5 @@ kind: Kustomization
 resources:
 - asya-actor-handler-process.yaml
 - asya-router-mutations-with-handler-flow-seq-set-finalized.yaml
-- asya-router-mutations-with-handler-flow-seq-set-initialized.yaml
 - asya-start-mutations-with-handler-flow.yaml
 - configmap-routers.yaml

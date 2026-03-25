@@ -16,6 +16,11 @@
       "label": "start_content_pipeline_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -30,6 +35,12 @@
       "to": "router_content_pipeline_flow_if_content_type_eq_image",
       "label": "else",
       "type": "prepend"
+    },
+    {
+      "from": "router_content_pipeline_flow_if_content_type_eq_image",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

@@ -29,8 +29,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_parallel_sectioning start
-    class aggregator endnode
+    class aggregator,__end__ endnode
     class router_parallel_sectioning_fanout_analysis router
     class entity_recognizer,fanin_parallel_sectioning_analysis,preprocessor,sentiment_analyzer,topic_extractor handler
-    class __end__ endpoint
     linkStyle 2 stroke:#7B68EE

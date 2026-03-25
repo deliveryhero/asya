@@ -33,6 +33,11 @@
     {
       "id": "validator",
       "label": "validator"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -70,6 +75,18 @@
       "from": "router_typeddict_pipeline_if_not_valid",
       "to": "error_handler",
       "label": "not p.get('valid', True)",
+      "type": "set"
+    },
+    {
+      "from": "error_handler",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "sink_adapter",
+      "to": "__end__",
+      "label": null,
       "type": "set"
     }
   ],

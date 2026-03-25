@@ -50,6 +50,11 @@
       "id": "write_report",
       "label": "write_report",
       "role": "end"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -112,6 +117,12 @@
       "to": "router_research_and_refine_while_loop",
       "label": "else",
       "type": "continuation"
+    },
+    {
+      "from": "write_report",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

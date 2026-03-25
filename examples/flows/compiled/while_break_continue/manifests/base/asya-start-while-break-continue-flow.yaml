@@ -17,13 +17,13 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_CHECK
-    value: handler_check
+    value: while_break_continue.handler_check
   - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
-    value: handler_finalize
+    value: while_break_continue.handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
-    value: handler_init
+    value: while_break_continue.handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
-    value: handler_process
+    value: while_break_continue.handler_process
   - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_IF_SKIP
     value: routers.router_while_break_continue_flow_if_skip
   - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_IF_STOP
@@ -34,3 +34,12 @@ spec:
     value: routers.router_while_break_continue_flow_seq_set_i_2
   - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_WHILE_I_LT_MAX_ITERATIONS
     value: routers.router_while_break_continue_flow_while_i_lt_max_iterations
+  volumes:
+  - name: routers
+    configMap:
+      name: while-break-continue-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

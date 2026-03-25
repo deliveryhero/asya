@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-calculator
   image: examples.asya.sh/calculator:latest
-  handler: calculator
+  handler: react_tool_loop.calculator
   scaling:
     enabled: true
     minReplicaCount: 0

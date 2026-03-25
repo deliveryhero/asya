@@ -27,3 +27,12 @@ spec:
     value: sentiment_analyzer
   - name: ASYA_HANDLER_ACTOR_TRANSLATOR
     value: translator
+  volumes:
+  - name: routers
+    configMap:
+      name: document-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

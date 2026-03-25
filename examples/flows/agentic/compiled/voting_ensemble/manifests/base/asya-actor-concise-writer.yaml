@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-concise-writer
   image: examples.asya.sh/concise-writer:latest
-  handler: concise_writer
+  handler: voting_ensemble.concise_writer
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -9,7 +9,7 @@ from _asya_utils import flow
 
 
 @flow
-def ingestion_pipeline(p: dict) -> dict:
+def try_except_tuple_types(p: dict) -> dict:
     try:
         p = fetch_data(p)
         p = parse_data(p)

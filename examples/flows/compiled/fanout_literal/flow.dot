@@ -11,7 +11,6 @@ digraph "analysis_flow" {
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];
     topic_extractor [label="topic_extractor", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_analysis_flow -> router_analysis_flow_fanout_analysis;

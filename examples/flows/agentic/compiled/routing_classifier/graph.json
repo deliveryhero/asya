@@ -46,6 +46,11 @@
     {
       "id": "technical_agent",
       "label": "technical_agent"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -120,6 +125,12 @@
       "to": "format_reply",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "format_reply",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

@@ -1,0 +1,3 @@
+skaffold.yaml
+__pycache__
+*.pyc

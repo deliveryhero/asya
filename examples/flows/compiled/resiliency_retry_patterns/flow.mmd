@@ -1,14 +1,14 @@
 flowchart TD
-    %% Flow: llm_pipeline
+    %% Flow: resiliency_retry_patterns
 
     call_llm[call_llm]
     parse_response[parse_response]
-    start_llm_pipeline(["start_llm_pipeline<br/><br/>p['status'] = 'started'"])
+    start_resiliency_retry_patterns(["start_resiliency_retry_patterns<br/><br/>p['status'] = 'started'"])
     store_result[store_result]
     validate_input[validate_input]
     __end__((( )))
 
-    start_llm_pipeline --> validate_input
+    start_resiliency_retry_patterns --> validate_input
     validate_input --> call_llm
     call_llm --> parse_response
     parse_response --> store_result
@@ -23,7 +23,6 @@ flowchart TD
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_llm_pipeline start
-    class store_result endnode
+    class start_resiliency_retry_patterns start
+    class store_result,__end__ endnode
     class call_llm,parse_response,validate_input handler
-    class __end__ endpoint

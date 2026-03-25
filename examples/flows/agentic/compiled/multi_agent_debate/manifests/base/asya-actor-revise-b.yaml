@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-revise-b
   image: examples.asya.sh/revise-b:latest
-  handler: revise_b
+  handler: multi_agent_debate.revise_b
   scaling:
     enabled: true
     minReplicaCount: 0

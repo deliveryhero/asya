@@ -27,9 +27,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_sample_flow start
-    class handler_finalize endnode
+    class handler_finalize,__end__ endnode
     class router_sample_flow_if_type_eq_a,router_sample_flow_seq_set_branch,router_sample_flow_seq_set_branch_2 router
     class handler_setup,handler_type_a,handler_type_b handler
-    class __end__ endpoint
     linkStyle 3 stroke:#2E8B57
     linkStyle 4 stroke:#E07040

@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-handler-error
   image: examples.asya.sh/handler-error:latest
-  handler: handler_error
+  handler: complex_combined.handler_error
   scaling:
     enabled: true
     minReplicaCount: 0

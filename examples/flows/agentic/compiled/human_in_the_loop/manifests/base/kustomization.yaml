@@ -9,7 +9,6 @@ resources:
 - asya-router-human-in-the-loop-if-approval-eq-rejected.yaml
 - asya-router-human-in-the-loop-if-approval-in-approved-modified.yaml
 - asya-router-human-in-the-loop-if-attempt-ge-3.yaml
-- asya-router-human-in-the-loop-seq-set-attempt-2.yaml
 - asya-router-human-in-the-loop-seq-set-attempt.yaml
 - asya-router-human-in-the-loop-seq-set-result.yaml
 - asya-router-human-in-the-loop-while-loop.yaml

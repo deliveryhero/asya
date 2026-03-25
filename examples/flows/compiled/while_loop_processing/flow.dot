@@ -17,7 +17,6 @@ digraph "loop_flow" {
     router_loop_flow_seq_set_iteration_2 [label="router_loop_flow_seq_set_iteration_2\n\np['iteration'] = 0", fillcolor=wheat];
     router_loop_flow_while_iteration_lt_max_iterations [label="router_loop_flow_while_iteration_lt_max_iterations", fillcolor=wheat];
     start_loop_flow [label="start_loop_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_loop_flow -> initialize;

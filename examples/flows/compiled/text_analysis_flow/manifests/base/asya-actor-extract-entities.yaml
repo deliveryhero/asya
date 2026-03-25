@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-extract-entities
   image: examples.asya.sh/extract-entities:latest
-  handler: extract_entities
+  handler: text_analysis_flow.extract_entities
   scaling:
     enabled: true
     minReplicaCount: 0

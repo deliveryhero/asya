@@ -17,13 +17,13 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_FINALIZE_LOOP_I
-    value: finalize_loop_i
+    value: while_nested_loop.finalize_loop_i
   - name: ASYA_HANDLER_ACTOR_FINALIZE_LOOP_J
-    value: finalize_loop_j
+    value: while_nested_loop.finalize_loop_j
   - name: ASYA_HANDLER_ACTOR_INITIALIZE
     value: initialize
   - name: ASYA_HANDLER_ACTOR_PROCESS_ITEM
-    value: process_item
+    value: while_nested_loop.process_item
   - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_SEQ_SET_I
     value: routers.router_nested_loop_flow_seq_set_i
   - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_SEQ_SET_I_2
@@ -34,3 +34,12 @@ spec:
     value: routers.router_nested_loop_flow_while_i_lt_max_i
   - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_WHILE_J_LT_MAX_J
     value: routers.router_nested_loop_flow_while_j_lt_max_j
+  volumes:
+  - name: routers
+    configMap:
+      name: nested-loop-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

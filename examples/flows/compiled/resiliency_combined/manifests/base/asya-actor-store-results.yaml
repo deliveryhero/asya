@@ -4,12 +4,12 @@ metadata:
   name: actor-store-results
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: resiliency-combined
     asya.sh/role: end
 spec:
   actor: actor-store-results
   image: examples.asya.sh/store-results:latest
-  handler: store_results
+  handler: resiliency_combined.store_results
   scaling:
     enabled: true
     minReplicaCount: 0

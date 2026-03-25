@@ -27,8 +27,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_voting_ensemble start
-    class judge endnode
+    class judge,__end__ endnode
     class router_voting_ensemble_fanout_candidates router
     class analytical_writer,concise_writer,creative_writer,fanin_voting_ensemble_candidates handler
-    class __end__ endpoint
     linkStyle 1 stroke:#7B68EE

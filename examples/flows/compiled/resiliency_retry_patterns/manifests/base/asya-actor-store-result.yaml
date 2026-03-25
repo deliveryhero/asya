@@ -4,12 +4,12 @@ metadata:
   name: actor-store-result
   namespace: default
   labels:
-    asya.sh/flow: llm-pipeline
+    asya.sh/flow: resiliency-retry-patterns
     asya.sh/role: end
 spec:
   actor: actor-store-result
   image: examples.asya.sh/store-result:latest
-  handler: store_result
+  handler: resiliency_retry_patterns.store_result
   scaling:
     enabled: true
     minReplicaCount: 0

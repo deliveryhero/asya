@@ -31,3 +31,12 @@ spec:
     value: send_receipt
   - name: ASYA_HANDLER_ACTOR_VALIDATE_PAYMENT
     value: validate_payment
+  volumes:
+  - name: routers
+    configMap:
+      name: payment-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

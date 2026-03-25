@@ -6,7 +6,6 @@ resources:
 - asya-actor-polisher.yaml
 - asya-router-evaluator-optimizer-if-iteration-ge-max-iterations.yaml
 - asya-router-evaluator-optimizer-if-score-ge-score-threshold.yaml
-- asya-router-evaluator-optimizer-seq-set-iteration-2.yaml
 - asya-router-evaluator-optimizer-seq-set-iteration.yaml
 - asya-router-evaluator-optimizer-while-loop.yaml
 - asya-start-evaluator-optimizer.yaml

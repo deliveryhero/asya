@@ -10,7 +10,6 @@ digraph "compiler_pipeline" {
     parse_syntax [label="parse_syntax", fillcolor=lightblue];
     start_compiler_pipeline [label="start_compiler_pipeline", fillcolor=palegreen];
     tokenize [label="tokenize", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_compiler_pipeline -> tokenize;

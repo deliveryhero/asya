@@ -1,0 +1,37 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-try-except-multiple-handlers
+  namespace: default
+  labels:
+    asya.sh/flow: try-except-multiple-handlers
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-try-except-multiple-handlers
+  image: python:3.13-slim
+  handler: routers.start_try_except_multiple_handlers
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLE_RUNTIME_ERROR
+    value: handle_runtime_error
+  - name: ASYA_HANDLER_ACTOR_HANDLE_TYPE_ERROR
+    value: handle_type_error
+  - name: ASYA_HANDLER_ACTOR_HANDLE_VALIDATION_ERROR
+    value: handle_validation_error
+  - name: ASYA_HANDLER_ACTOR_PARSE_INPUT
+    value: parse_input
+  - name: ASYA_HANDLER_ACTOR_TRANSFORM_DATA
+    value: transform_data
+  volumes:
+  - name: routers
+    configMap:
+      name: try-except-multiple-handlers-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

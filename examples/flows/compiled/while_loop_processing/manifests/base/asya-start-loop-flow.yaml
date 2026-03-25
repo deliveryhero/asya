@@ -17,15 +17,15 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CHECK_THRESHOLD
-    value: check_threshold
+    value: while_loop_processing.check_threshold
   - name: ASYA_HANDLER_ACTOR_FINALIZE_LOOP
-    value: finalize_loop
+    value: while_loop_processing.finalize_loop
   - name: ASYA_HANDLER_ACTOR_INITIALIZE
-    value: initialize
+    value: while_loop_processing.initialize
   - name: ASYA_HANDLER_ACTOR_PROCESS_ABORT
-    value: process_abort
+    value: while_loop_processing.process_abort
   - name: ASYA_HANDLER_ACTOR_PROCESS_ITEM
-    value: process_item
+    value: while_loop_processing.process_item
   - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_IF_SKIP_THRESHOLD_CHECK
     value: routers.router_loop_flow_if_skip_threshold_check
   - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_IF_THRESHOLD_MET
@@ -40,3 +40,12 @@ spec:
     value: routers.router_loop_flow_seq_set_iteration_2
   - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_WHILE_ITERATION_LT_MAX_ITERATIONS
     value: routers.router_loop_flow_while_iteration_lt_max_iterations
+  volumes:
+  - name: routers
+    configMap:
+      name: loop-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

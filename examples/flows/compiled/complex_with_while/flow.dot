@@ -4,6 +4,7 @@ digraph "complex_flow" {
 
     { rank=source; start_complex_flow; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     handler_check_quality [label="handler_check_quality", fillcolor=lightblue];
     handler_enrich_data [label="handler_enrich_data", fillcolor=lightblue];
     handler_error [label="handler_error", fillcolor=lightsalmon];
@@ -19,8 +20,6 @@ digraph "complex_flow" {
     router_complex_flow_if_requires_retry [label="router_complex_flow_if_requires_retry", fillcolor=wheat];
     router_complex_flow_while_batch_count_lt_max_batches [label="router_complex_flow_while_batch_count_lt_max_batches", fillcolor=wheat];
     start_complex_flow [label="start_complex_flow", fillcolor=palegreen];
-
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_complex_flow -> handler_preprocess;
     handler_preprocess -> handler_validate;
@@ -40,7 +39,7 @@ digraph "complex_flow" {
     router_complex_flow_if_not_valid -> handler_error [label="not p['valid']", color="#2E8B57", fontcolor="#2E8B57"];
     router_complex_flow_if_quality_score_ge_50 -> router_complex_flow_while_batch_count_lt_max_batches [label="else", color="#D35400", fontcolor="#D35400"];
     handler_retry_handler -> handler_finalize;
-    router_complex_flow_if_requires_retry -> handler_finalize [label="else", color="#D35400", fontcolor="#D35400"];
+    router_complex_flow_if_requires_retry -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
     handler_error -> __end__;
     handler_finalize -> __end__;
 }

@@ -4,11 +4,11 @@ metadata:
   name: actor-risky-operation
   namespace: default
   labels:
-    asya.sh/flow: resilient-pipeline
+    asya.sh/flow: try-except-catch-all
 spec:
   actor: actor-risky-operation
   image: examples.asya.sh/risky-operation:latest
-  handler: risky_operation
+  handler: try_except_catch_all.risky_operation
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -19,11 +19,11 @@ spec:
       except_valueerror:
         maxAttempts: 1
         thenRoute:
-        - router-resilient-pipeline-except-valueerror
+        - router-try-except-catch-all-except-valueerror
       default:
         maxAttempts: 1
         thenRoute:
-        - router-resilient-pipeline-except-all
+        - router-try-except-catch-all-except-all
     rules:
     - errors:
       - ValueError

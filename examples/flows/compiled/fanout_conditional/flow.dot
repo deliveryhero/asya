@@ -13,7 +13,6 @@ digraph "adaptive_flow" {
     router_adaptive_flow_if_parallel [label="router_adaptive_flow_if_parallel", fillcolor=wheat];
     sequential_analyzer [label="sequential_analyzer", fillcolor=lightblue];
     start_adaptive_flow [label="start_adaptive_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_adaptive_flow -> classifier;

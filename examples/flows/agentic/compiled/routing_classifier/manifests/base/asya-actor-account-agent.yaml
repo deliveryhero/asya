@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-account-agent
   image: examples.asya.sh/account-agent:latest
-  handler: account_agent
+  handler: routing_classifier.account_agent
   scaling:
     enabled: true
     minReplicaCount: 0

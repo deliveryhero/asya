@@ -17,6 +17,15 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CRITIC
-    value: critic
+    value: async_sequential.critic
   - name: ASYA_HANDLER_ACTOR_REVISER
-    value: reviser
+    value: async_sequential.reviser
+  volumes:
+  - name: routers
+    configMap:
+      name: llm-auditor-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -107,6 +107,82 @@ class TestInlineCommentDirectives:
             FlowParser(source, "test.py").parse()
 
 
+class TestFlowDirectiveOnDefinition:
+    """# asya: flow on function definition — alternative to @flow decorator."""
+
+    def test_comment_flow_directive_identifies_flow_function(self):
+        source = textwrap.dedent("""
+            def my_flow(p: dict) -> dict:  # asya: flow
+                p = handler(p)  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        assert result.flow_name == "my_flow"
+        assert isinstance(result.operations[0], ActorCall)
+        assert result.operations[0].name == "handler"
+
+    def test_comment_flow_directive_without_decorator_import(self):
+        """Bare scripts don't import a flow decorator — comment is sufficient."""
+        source = textwrap.dedent("""
+            from greeter import greet
+            from shouter import shout
+
+            def greet_flow(p: dict) -> dict:  # asya: flow
+                p = greet(p)  # asya: actor
+                p = shout(p)  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        assert result.flow_name == "greet_flow"
+        actors = [op.name for op in result.operations if isinstance(op, ActorCall)]
+        assert actors == ["greet", "shout"]
+
+    def test_comment_flow_directive_with_async(self):
+        source = textwrap.dedent("""
+            async def my_flow(p: dict) -> dict:  # asya: flow
+                p = await handler(p)  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        assert result.flow_name == "my_flow"
+        assert result.is_async
+
+    def test_decorator_takes_precedence_over_comment(self):
+        """When both @flow and # asya: flow exist, it still works (no conflict)."""
+        source = textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:  # asya: flow
+                p = handler(p)  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        assert result.flow_name == "my_flow"
+
+    def test_last_flow_directive_is_entrypoint(self):
+        """Multiple # asya: flow functions — last one is the entrypoint."""
+        source = textwrap.dedent("""
+            def sub(p: dict) -> dict:  # asya: flow
+                p = inner(p)  # asya: actor
+                return p
+
+            def main(p: dict) -> dict:  # asya: flow
+                p = outer(p)  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        assert result.flow_name == "main"
+
+    def test_no_flow_marker_at_all_raises_error(self):
+        """Neither @flow nor # asya: flow — should fail."""
+        source = textwrap.dedent("""
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+        """)
+        with pytest.raises(FlowCompileError, match="No @flow"):
+            FlowParser(source, "test.py").parse()
+
+
 class TestCallSiteDecoration:
     """actor(handler)(p) and inline(fn)(p) call-site patterns."""
 
@@ -337,3 +413,64 @@ class TestDefinitionSiteDecorators:
         # Inline comment (highest priority) wins over @actor
         ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], Mutation)
+
+    def test_directive_on_decorated_function_with_multiline_decorator(self):
+        """# asya: actor on def line should be found even with decorators above.
+        The unknown decorator should be preserved (not stripped)."""
+        source = textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+
+            @some_decorator(
+                arg1=value1,
+                arg2=value2,
+            )
+            def handler(p: dict) -> dict:  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        ops = result.operations
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"
+        # Unknown decorator must NOT be stripped — it's user business logic
+        assert "some_decorator" not in (result.ignore_decorators or [])
+
+    def test_actor_decorator_with_unknown_decorator_preserves_unknown(self):
+        """@actor + @some_decorator: @actor is recognized, @some_decorator preserved."""
+        source = textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+
+            @some_decorator(arg=1)
+            @actor
+            def handler(p: dict) -> dict:
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        ops = result.operations
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"
+        # @actor is recognized, @some_decorator is unknown and must be preserved
+        assert "some_decorator" not in (result.ignore_decorators or [])
+
+    def test_directive_on_async_decorated_function(self):
+        """# asya: actor works on async def with decorators above."""
+        source = textwrap.dedent("""
+            @flow
+            async def my_flow(p: dict) -> dict:
+                p = await handler(p)
+                return p
+
+            @some_retry(attempts=3)
+            async def handler(p: dict) -> dict:  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        ops = result.operations
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"
+        assert "some_retry" not in (result.ignore_decorators or [])

@@ -17,8 +17,17 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_SETUP
-    value: handler_setup
+    value: if_no_else.handler_setup
   - name: ASYA_HANDLER_ACTOR_HANDLER_TRUE
-    value: handler_true
+    value: if_no_else.handler_true
   - name: ASYA_HANDLER_ROUTER_IF_NO_ELSE_FLOW_IF_CONDITION
     value: routers.router_if_no_else_flow_if_condition
+  volumes:
+  - name: routers
+    configMap:
+      name: if-no-else-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

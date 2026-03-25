@@ -11,7 +11,6 @@ resources:
 - asya-router-orchestrator-workers-if-next-action-eq-analyze.yaml
 - asya-router-orchestrator-workers-if-next-action-eq-research.yaml
 - asya-router-orchestrator-workers-if-next-action-eq-write.yaml
-- asya-router-orchestrator-workers-seq-set-iteration-2.yaml
 - asya-router-orchestrator-workers-seq-set-iteration.yaml
 - asya-router-orchestrator-workers-while-loop.yaml
 - asya-start-orchestrator-workers.yaml

@@ -1,5 +1,5 @@
 {
-  "flow_name": "llm_pipeline",
+  "flow_name": "resiliency_retry_patterns",
   "nodes": [
     {
       "id": "call_llm",
@@ -10,8 +10,8 @@
       "label": "parse_response"
     },
     {
-      "id": "start_llm_pipeline",
-      "label": "start_llm_pipeline",
+      "id": "start_resiliency_retry_patterns",
+      "label": "start_resiliency_retry_patterns",
       "role": "start",
       "generated": true,
       "mutations": [
@@ -26,11 +26,16 @@
     {
       "id": "validate_input",
       "label": "validate_input"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
     {
-      "from": "start_llm_pipeline",
+      "from": "start_resiliency_retry_patterns",
       "to": "validate_input",
       "label": null,
       "type": "prepend"
@@ -52,6 +57,12 @@
       "to": "store_result",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "store_result",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": [

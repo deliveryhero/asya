@@ -5,7 +5,6 @@ resources:
 - asya-actor-handle-bad-data.yaml
 - asya-actor-parse-data.yaml
 - asya-actor-store-results.yaml
-- asya-router-data-pipeline-except-valueerror.yaml
-- asya-router-data-pipeline-seq-set-status.yaml
-- asya-start-data-pipeline.yaml
+- asya-router-resiliency-combined-except-valueerror.yaml
+- asya-start-resiliency-combined.yaml
 - configmap-routers.yaml

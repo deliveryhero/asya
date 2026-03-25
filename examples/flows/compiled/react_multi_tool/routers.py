@@ -29,6 +29,7 @@ async def router_research_agent_if_tool_name_eq_code_exec(payload: dict):
     if p.get('tool_name') == 'code_exec':
         pass
     else:
+        yield "SET", ".route.next", []
         yield p
         return
 

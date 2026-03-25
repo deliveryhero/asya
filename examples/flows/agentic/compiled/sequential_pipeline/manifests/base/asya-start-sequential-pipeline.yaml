@@ -17,10 +17,19 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_DATA_ANALYST
-    value: data_analyst
+    value: sequential_pipeline.data_analyst
   - name: ASYA_HANDLER_ACTOR_EXECUTION_PLANNER
-    value: execution_planner
+    value: sequential_pipeline.execution_planner
   - name: ASYA_HANDLER_ACTOR_RISK_EVALUATOR
-    value: risk_evaluator
+    value: sequential_pipeline.risk_evaluator
   - name: ASYA_HANDLER_ACTOR_TRADING_ANALYST
-    value: trading_analyst
+    value: sequential_pipeline.trading_analyst
+  volumes:
+  - name: routers
+    configMap:
+      name: sequential-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

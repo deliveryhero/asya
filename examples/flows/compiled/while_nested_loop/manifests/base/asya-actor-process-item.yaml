@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-process-item
   image: examples.asya.sh/process-item:latest
-  handler: process_item
+  handler: while_nested_loop.process_item
   scaling:
     enabled: true
     minReplicaCount: 0

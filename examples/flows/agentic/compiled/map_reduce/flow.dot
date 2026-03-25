@@ -10,7 +10,6 @@ digraph "map_reduce" {
     router_map_reduce_fanout_chunk_results [label="router_map_reduce_fanout_chunk_results", fillcolor=wheat];
     splitter [label="splitter", fillcolor=lightblue];
     start_map_reduce [label="start_map_reduce", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_map_reduce -> splitter;

@@ -1,5 +1,5 @@
 {
-  "flow_name": "ingestion_pipeline",
+  "flow_name": "try_except_tuple_types",
   "nodes": [
     {
       "id": "fetch_data",
@@ -20,31 +20,36 @@
       "role": "end"
     },
     {
-      "id": "router_ingestion_pipeline_except_connectionerror_timeouterror",
-      "label": "router_ingestion_pipeline_except_connectionerror_timeouterror",
+      "id": "router_try_except_tuple_types_except_connectionerror_timeouterror",
+      "label": "router_try_except_tuple_types_except_connectionerror_timeouterror",
       "generated": true,
       "mutations": [
         "p['retry_reason'] = 'transient'"
       ]
     },
     {
-      "id": "router_ingestion_pipeline_except_valueerror_keyerror",
-      "label": "router_ingestion_pipeline_except_valueerror_keyerror",
+      "id": "router_try_except_tuple_types_except_valueerror_keyerror",
+      "label": "router_try_except_tuple_types_except_valueerror_keyerror",
       "generated": true,
       "mutations": [
         "p['status'] = 'bad_input'"
       ]
     },
     {
-      "id": "start_ingestion_pipeline",
-      "label": "start_ingestion_pipeline",
+      "id": "start_try_except_tuple_types",
+      "label": "start_try_except_tuple_types",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
     {
-      "from": "start_ingestion_pipeline",
+      "from": "start_try_except_tuple_types",
       "to": "fetch_data",
       "label": null,
       "type": "prepend"
@@ -56,40 +61,52 @@
       "type": "continuation"
     },
     {
-      "from": "router_ingestion_pipeline_except_connectionerror_timeouterror",
+      "from": "router_try_except_tuple_types_except_connectionerror_timeouterror",
       "to": "queue_for_retry",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_ingestion_pipeline_except_valueerror_keyerror",
+      "from": "router_try_except_tuple_types_except_valueerror_keyerror",
       "to": "reject_input",
       "label": null,
       "type": "set"
     },
     {
       "from": "fetch_data",
-      "to": "router_ingestion_pipeline_except_connectionerror_timeouterror",
+      "to": "router_try_except_tuple_types_except_connectionerror_timeouterror",
       "label": "ConnectionError, TimeoutError",
       "type": "error"
     },
     {
       "from": "fetch_data",
-      "to": "router_ingestion_pipeline_except_valueerror_keyerror",
+      "to": "router_try_except_tuple_types_except_valueerror_keyerror",
       "label": "ValueError, KeyError",
       "type": "error"
     },
     {
       "from": "parse_data",
-      "to": "router_ingestion_pipeline_except_connectionerror_timeouterror",
+      "to": "router_try_except_tuple_types_except_connectionerror_timeouterror",
       "label": "ConnectionError, TimeoutError",
       "type": "error"
     },
     {
       "from": "parse_data",
-      "to": "router_ingestion_pipeline_except_valueerror_keyerror",
+      "to": "router_try_except_tuple_types_except_valueerror_keyerror",
       "label": "ValueError, KeyError",
       "type": "error"
+    },
+    {
+      "from": "queue_for_retry",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "reject_input",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

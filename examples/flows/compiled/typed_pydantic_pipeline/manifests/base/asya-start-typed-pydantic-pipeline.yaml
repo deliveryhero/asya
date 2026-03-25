@@ -17,8 +17,17 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_RANKER
-    value: ranker
+    value: typed_pydantic_pipeline.ranker
   - name: ASYA_HANDLER_ACTOR_RESPONDER
-    value: responder
+    value: typed_pydantic_pipeline.responder
   - name: ASYA_HANDLER_ACTOR_SCORER
-    value: scorer
+    value: typed_pydantic_pipeline.scorer
+  volumes:
+  - name: routers
+    configMap:
+      name: typed-pydantic-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

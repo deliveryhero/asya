@@ -100,6 +100,7 @@ class ManifestTemplater:
         configmap_routers_template_path: Path | None = None,
         kustomization_template_path: Path | None = None,
         import_map: dict[str, str] | None = None,
+        handler_source_files: dict[str, Path] | None = None,
         flow_roles: dict[str, str] | None = None,
     ) -> None:
         self.flow_name = flow_name
@@ -112,6 +113,7 @@ class ManifestTemplater:
         self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
         self.import_map: dict[str, str] = import_map or {}
+        self.handler_source_files: dict[str, Path] = handler_source_files or {}
         self.flow_roles: dict[str, str] = flow_roles or {}
 
     def stamp(self, output_dir: Path) -> list[str]:
@@ -128,6 +130,7 @@ class ManifestTemplater:
         self._stamp_readme(output_dir)
         generated.extend(self._stamp_base(base_dir))
         generated.extend(self._stamp_common(common_dir))
+        self._cleanup_stale_patches(common_dir)
         generated.extend(self._stamp_overlays(overlays_dir))
 
         return generated
@@ -190,6 +193,17 @@ class ManifestTemplater:
         template_env = manifest["spec"].get("env") or []
         manifest["spec"]["env"] = template_env + actor.env
 
+        # Mount routers ConfigMap for generated router actors
+        if actor.generated:
+            self._inject_router_configmap_mount(manifest)
+
+        # Mount adapter ConfigMap for adapter actors
+        if not actor.generated and self.codegen_meta.adapter_files:
+            for af in self.codegen_meta.adapter_files:
+                if af.actor_name == actor.name.replace("actor-", "").replace("-", "_"):
+                    self._inject_adapter_configmap_mount(manifest, af)
+                    break
+
         # Inject compiler-generated resiliency config
         if not actor.generated:
             self._inject_retry_rules(manifest, actor)
@@ -227,14 +241,11 @@ class ManifestTemplater:
         if self.configmap_routers_template_path and self.configmap_routers_template_path.exists():
             cm = self._resolve_configmap_template()
         else:
-            context = self.project.build_template_context()
-            namespace = context.get("namespace", "default")
             cm = {
                 "apiVersion": "v1",
                 "kind": "ConfigMap",
                 "metadata": {
                     "name": f"{self.flow_name}-routers",
-                    "namespace": namespace,
                     "labels": {
                         "asya.sh/flow": self.flow_name,
                         "asya.sh/managed-by": "asya-compiler",
@@ -248,15 +259,12 @@ class ManifestTemplater:
 
     def _stamp_adapter_configmap(self, path: Path, af: AdapterFile) -> None:
         """Generate a ConfigMap containing adapter code for a non-standard actor."""
-        context = self.project.build_template_context()
-        namespace = context.get("namespace", "default")
         k8s_name = self._to_k8s_name(af.actor_name)
         cm = {
             "apiVersion": "v1",
             "kind": "ConfigMap",
             "metadata": {
                 "name": f"{self.flow_name}-{k8s_name}-adapter",
-                "namespace": namespace,
                 "labels": {
                     "asya.sh/flow": self.flow_name,
                     "asya.sh/managed-by": "asya-compiler",
@@ -354,14 +362,63 @@ Each overlay builds on top of `common/`.
 
     # -- common/ layer (created once, never overwritten) --------------------
 
+    _KUSTOMIZE_CONFIG = """\
+images:
+- path: spec/image
+  kind: AsyncActor
+"""
+
     def _stamp_common(self, common_dir: Path) -> list[str]:
         kust_path = common_dir / "kustomization.yaml"
         if kust_path.exists():
             return []
 
         common_dir.mkdir(parents=True, exist_ok=True)
-        self._write_kustomization(kust_path, ["../base"])
-        return ["common/kustomization.yaml"]
+
+        config_path = common_dir / "kustomizeconfig.yaml"
+        config_path.write_text(self._KUSTOMIZE_CONFIG)
+
+        # Resolve namespace from default context if configured
+        default_ctx = self.project.cfg.get("default_context")
+        ns = None
+        if default_ctx:
+            ctx_cfg = self.project.cfg.get("contexts", {})
+            if isinstance(ctx_cfg, dict) and default_ctx in ctx_cfg:
+                ns = ctx_cfg[default_ctx].get("namespace")
+
+        kust: dict = {
+            "apiVersion": "kustomize.config.k8s.io/v1beta1",
+            "kind": "Kustomization",
+        }
+        if ns:
+            kust["namespace"] = str(ns)
+        kust["resources"] = ["../base"]
+        kust["configurations"] = ["kustomizeconfig.yaml"]
+        kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
+        return ["common/kustomization.yaml", "common/kustomizeconfig.yaml"]
+
+    def _cleanup_stale_patches(self, common_dir: Path) -> None:
+        """Remove patch entries from common/kustomization.yaml whose files no longer exist."""
+        kust_path = common_dir / "kustomization.yaml"
+        if not kust_path.exists():
+            return
+
+        kust = yaml.safe_load(kust_path.read_text()) or {}
+        patches = kust.get("patches", [])
+        if not patches:
+            return
+
+        cleaned = [p for p in patches if not isinstance(p, dict) or (common_dir / p["path"]).exists()]
+        if len(cleaned) == len(patches):
+            return
+
+        removed = len(patches) - len(cleaned)
+        log.info("Removed %d stale patch reference(s) from common/kustomization.yaml", removed)
+        if cleaned:
+            kust["patches"] = cleaned
+        else:
+            del kust["patches"]
+        kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
 
     # -- overlays/<context>/ layer (created once per context) ---------------
 
@@ -491,6 +548,51 @@ Each overlay builds on top of `common/`.
             d = d.setdefault(key, {})
         d[keys[-1]] = value
 
+    def _inject_router_configmap_mount(self, manifest: dict) -> None:
+        """Mount the routers ConfigMap at /opt/asya/routers.py for generated router actors.
+
+        The runtime starts as `python3 /opt/asya/asya_runtime.py`, so /opt/asya/
+        is on sys.path — mounting routers.py there makes it directly importable.
+        """
+        cm_name = f"{self.flow_name}-routers"
+        spec = manifest.setdefault("spec", {})
+
+        volumes = spec.setdefault("volumes", [])
+        volumes.append({"name": "routers", "configMap": {"name": cm_name}})
+
+        mounts = spec.setdefault("volumeMounts", [])
+        mounts.append(
+            {
+                "name": "routers",
+                "mountPath": "/opt/asya/routers.py",
+                "subPath": "routers.py",
+                "readOnly": True,
+            }
+        )
+
+    def _inject_adapter_configmap_mount(self, manifest: dict, af: AdapterFile) -> None:
+        """Mount an adapter ConfigMap at /opt/asya/<adapter>.py for adapter actors.
+
+        The adapter wraps the original function to conform to dict-in/dict-out protocol.
+        Mounted at /opt/asya/ which is on sys.path (runtime starts from /opt/asya/).
+        """
+        k8s_name = self._to_k8s_name(af.actor_name)
+        cm_name = f"{self.flow_name}-{k8s_name}-adapter"
+        spec = manifest.setdefault("spec", {})
+
+        volumes = spec.setdefault("volumes", [])
+        volumes.append({"name": "adapter", "configMap": {"name": cm_name}})
+
+        mounts = spec.setdefault("volumeMounts", [])
+        mounts.append(
+            {
+                "name": "adapter",
+                "mountPath": f"/opt/asya/{af.filename}",
+                "subPath": af.filename,
+                "readOnly": True,
+            }
+        )
+
     # -- actor collection ---------------------------------------------------
 
     def _collect_actors(self) -> list[ActorInfo]:
@@ -522,9 +624,20 @@ Each overlay builds on top of `common/`.
                 if self._is_router_name(actor_name):
                     continue
                 if actor_name not in handler_actors:
-                    image = self.project.resolve_image(actor_name)
+                    handler_fqn = self.import_map.get(actor_name, actor_name)
+                    handler_source = self.handler_source_files.get(actor_name)
+                    image = self.project.resolve_image(
+                        actor_name, handler_fqn=handler_fqn, handler_source=handler_source
+                    )
                     k8s_name = f"actor-{self._to_k8s_name(actor_name)}"
-                    handler = self.import_map.get(actor_name, actor_name)
+                    handler = handler_fqn
+                    # Use adapter handler if an adapter was generated
+                    if self.codegen_meta.adapter_files:
+                        for af in self.codegen_meta.adapter_files:
+                            if af.actor_name == actor_name:
+                                adapter_fn = f"adapter_{actor_name}"
+                                handler = f"{adapter_fn}.{adapter_fn}"
+                                break
                     # Graph-derived role overrides the default "actor" role
                     role = self.flow_roles.get(actor_name, "actor")
                     handler_actors[actor_name] = ActorInfo(

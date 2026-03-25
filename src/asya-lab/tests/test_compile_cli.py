@@ -9,21 +9,28 @@ from click.testing import CliRunner
 
 
 def test_compile_help():
-    """--help exits 0 and shows usage for all target forms."""
+    """--help exits 0 and shows usage."""
     runner = CliRunner()
     result = runner.invoke(compile_cmd, ["--help"])
     assert result.exit_code == 0
-    assert "TARGET" in result.output
-    assert "flow.py" in result.output
-    assert "--flow" in result.output
-    assert "--output-dir" in result.output
+    assert "FLOW_NAME" in result.output
+    assert "--file" in result.output
     assert "--plot" in result.output
     assert "--verbose" in result.output
     assert "--strict" in result.output
 
 
+def test_compile_rejects_nonexistent_file():
+    """Compiling a nonexistent file should fail."""
+    runner = CliRunner()
+    result = runner.invoke(compile_cmd, ["test-flow", "-f", "nonexistent.py"])
+    assert result.exit_code != 0
+
+
 def test_compile_py_file(tmp_path: Path):
-    """Compile a simple sequential flow .py file and verify manifests are created."""
+    """Compile a simple sequential flow .py file."""
+    import os
+
     flow_source = tmp_path / "my_flow.py"
     flow_source.write_text(
         "@flow\n"
@@ -39,16 +46,24 @@ def test_compile_py_file(tmp_path: Path):
         "    return p\n"
     )
 
-    output_dir = tmp_path / "out"
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text("compiler:\n  code: ./code\n  artifacts: ./artifacts\n  manifests: ./out\n")
+
     runner = CliRunner()
-    result = runner.invoke(compile_cmd, [str(flow_source), "-o", str(output_dir)])
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(tmp_path)
+        result = runner.invoke(compile_cmd, ["my-flow", "-f", str(flow_source)])
+    finally:
+        os.chdir(old_cwd)
 
     assert result.exit_code == 0, (
         f"stdout: {result.output}\nstderr: {result.stderr if hasattr(result, 'stderr') else ''}"
     )
 
-    # When -o is given, compiled code goes to the output dir
-    routers_file = output_dir / "routers.py"
+    code_dir = tmp_path / "code"
+    routers_file = code_dir / "routers.py"
     assert routers_file.exists()
     router_code = routers_file.read_text()
     assert "my_flow" in router_code or "start_" in router_code

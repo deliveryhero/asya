@@ -99,6 +99,9 @@ def sink_handler(payload: dict[str, Any]) -> Generator[tuple | dict[str, Any], A
                 route_prev=route.get("prev", []),
                 route_curr=route.get("curr", ""),
             )
+            prefix = "succeeded" if phase == "succeeded" else ("failed" if phase == "failed" else "checkpoint")
+            path = f"{ASYA_PERSISTENCE_MOUNT}/{prefix}/{checkpoint_id}.json"
+            logger.info(f"[+] Saved {checkpoint_id} to {path} (phase={phase})")
         except Exception as e:
             logger.error(f"Checkpoint failed for message {message_id}: {e}")
 

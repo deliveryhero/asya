@@ -25,9 +25,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_typeddict_pipeline start
-    class error_handler,sink_adapter endnode
+    class error_handler,sink_adapter,__end__ endnode
     class router_typeddict_pipeline_if_not_valid router
     class parser,transformer,validator handler
-    class __end__ endpoint
     linkStyle 5 stroke:#2E8B57
     linkStyle 3 stroke:#E07040

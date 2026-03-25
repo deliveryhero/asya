@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-orchestrator
   image: examples.asya.sh/orchestrator:latest
-  handler: orchestrator
+  handler: orchestrator_workers.orchestrator
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -13,7 +13,6 @@ resources:
 - asya-router-multi-agent-debate-fanout-positions.yaml
 - asya-router-multi-agent-debate-if-converged.yaml
 - asya-router-multi-agent-debate-if-round-ge-3.yaml
-- asya-router-multi-agent-debate-seq-set-round-2.yaml
 - asya-router-multi-agent-debate-seq-set-round.yaml
 - asya-router-multi-agent-debate-while-loop.yaml
 - asya-start-multi-agent-debate.yaml

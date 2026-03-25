@@ -15,6 +15,11 @@
     {
       "id": "validator",
       "label": "validator"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -29,6 +34,12 @@
       "to": "enricher",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "enricher",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

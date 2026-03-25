@@ -1,0 +1,24 @@
+digraph "text_improver" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_text_improver; }
+
+    evaluate [label="evaluate", fillcolor=lightblue];
+    generate [label="generate", fillcolor=lightblue];
+    research [label="research", fillcolor=lightblue];
+    router_text_improver_if_iteration_ge_max_iterations [label="router_text_improver_if_iteration_ge_max_iterations", fillcolor=wheat];
+    router_text_improver_if_score_ge_threshold [label="router_text_improver_if_score_ge_threshold", fillcolor=wheat];
+    router_text_improver_seq_set_iteration [label="router_text_improver_seq_set_iteration\n\np['iteration'] = p.get('iteration', 0) + 1", fillcolor=wheat];
+    router_text_improver_while_loop [label="router_text_improver_while_loop", fillcolor=wheat];
+    start_text_improver [label="start_text_improver\n\np['topic'] = p.get('topic', p.get('query', 'anything'))", fillcolor=palegreen];
+
+    start_text_improver -> research;
+    research -> router_text_improver_while_loop;
+    router_text_improver_if_score_ge_threshold -> router_text_improver_if_iteration_ge_max_iterations [label="else", color="#D35400", fontcolor="#D35400"];
+    router_text_improver_seq_set_iteration -> generate;
+    generate -> evaluate;
+    evaluate -> router_text_improver_if_score_ge_threshold;
+    router_text_improver_while_loop -> router_text_improver_seq_set_iteration;
+    router_text_improver_if_iteration_ge_max_iterations -> router_text_improver_while_loop;
+}

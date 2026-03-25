@@ -28,9 +28,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_while_with_break_flow start
-    class handler_finalize endnode
+    class handler_finalize,__end__ endnode
     class router_while_with_break_flow_if_stop_condition,router_while_with_break_flow_seq_set_i,router_while_with_break_flow_seq_set_i_2,router_while_with_break_flow_while_i_lt_max_iterations router
     class handler_init,handler_process handler
-    class __end__ endpoint
     linkStyle 2,5 stroke:#2E8B57
     linkStyle 6,8 stroke:#E07040

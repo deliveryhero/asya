@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-final-judge
   image: examples.asya.sh/final-judge:latest
-  handler: final_judge
+  handler: multi_agent_debate.final_judge
   scaling:
     enabled: true
     minReplicaCount: 0

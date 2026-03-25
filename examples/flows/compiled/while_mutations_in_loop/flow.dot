@@ -12,7 +12,6 @@ digraph "while_mutations_in_loop_flow" {
     router_while_mutations_in_loop_flow_seq_set_processed [label="router_while_mutations_in_loop_flow_seq_set_processed\n\np['processed'] = True", fillcolor=wheat];
     router_while_mutations_in_loop_flow_while_i_lt_max_iterations [label="router_while_mutations_in_loop_flow_while_i_lt_max_iterations", fillcolor=wheat];
     start_while_mutations_in_loop_flow [label="start_while_mutations_in_loop_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_while_mutations_in_loop_flow -> handler_init;

@@ -7,29 +7,42 @@ from pathlib import Path
 
 import click
 
-from asya_lab.init import init_project
-
-
-def _prompt_registry() -> str:
-    try:
-        return click.prompt("Container image registry (e.g. ghcr.io/my-org)")
-    except (EOFError, KeyboardInterrupt):
-        click.echo("\n[-] Registry is required", err=True)
-        sys.exit(1)
+from asya_lab.init import init_project, scan_and_generate_skaffold
 
 
 @click.command()
-@click.option("--registry", default=None, help="Container image registry (e.g. ghcr.io/my-org)")
 @click.option("--dir", "target_dir", default=".", help="Target directory (default: current directory)")
-def init(registry, target_dir):
-    """Scaffold .asya/ project directory."""
+@click.option(
+    "--scan", is_flag=True, help="Scan for Dockerfiles/pyproject.toml and generate skaffold.yaml per build context"
+)
+def init(target_dir, scan):
+    """Scaffold .asya/ project directory.
+
+    Creates .asya/config.yaml, templates, and compiler rules.
+    With --scan, also discovers build contexts (Dockerfiles, pyproject.toml,
+    requirements.txt) and generates a skaffold.yaml next to each one.
+    """
     target = Path(target_dir).resolve()
     if not target.is_dir():
         click.echo(f"Error: {target} is not a directory", err=True)
         sys.exit(1)
 
-    if registry is None:
-        registry = _prompt_registry()
+    asya_dir = init_project(target)
 
-    asya_dir = init_project(target, registry=registry)
-    click.echo(f"[+] Initialized project at {asya_dir}")
+    def _rel(p: Path) -> str:
+        try:
+            return str(p.relative_to(Path.cwd()))
+        except ValueError:
+            return str(p)
+
+    click.echo(f"[+] Initialized {_rel(asya_dir)}/")
+
+    if scan:
+        results = scan_and_generate_skaffold(target)
+        if not results:
+            click.echo("[.] No Dockerfiles found")
+        for r in results:
+            if r.created:
+                click.echo(f"[+] {_rel(r.path)} -> {r.image}")
+            else:
+                click.echo(f"[.] {_rel(r.path)} -> {r.image} (already defined)")

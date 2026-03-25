@@ -1,194 +1,121 @@
-# KubeCon Demo: Evaluator-Optimizer on Asya
+# KubeCon Demo: Text Improver
 
-Text generation flow: **generator** writes a draft, **evaluator** scores it,
-loop until quality threshold is met, then **polisher** finalizes.
+Evaluator-optimizer content pipeline on Asya Actor Mesh.
 
-This demo runs on GKE with Pub/Sub transport and Vertex AI.
+5 actors, while-loop with quality threshold, mixed function signatures
+(4 adapter-style + 1 standard dict->dict). No LLM calls — deterministic
+stubs with simulated latency.
 
 ## Prerequisites
 
-- Python 3.13+, [uv](https://docs.astral.sh/uv/)
-- GCP project with Vertex AI API and Pub/Sub API enabled
-- GKE cluster with Asya installed (see [docs/setup/start-gcp-gke.md](../../docs/setup/start-gcp-gke.md))
-- Artifact Registry repository for actor images
-
-## Setup
-
-From the `examples/demo-kubecon/` directory:
+- GKE cluster with Asya v0.5.12+ (asya-crossplane, asya-crew, asya-gateway)
+- `skaffold`, `kubectl`, `uv` installed
+- GCP auth and Artifact Registry access
 
 ```bash
-uv sync
-uv pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
-uv run asya --version
+export GCP_PROJECT=<YOUR-GCP-PROJECT>
+export REGION=europe-west1
+export KCTX=gke_${GCP_PROJECT}_${REGION}_asya-demo
+
+cd examples/demo-kubecon
+alias asya="uv run --project ../../src/asya-lab asya"
 ```
 
-## Step 1: Run flow locally
-
-The flow is a pure Python async function. `generator`, `evaluator`, and
-`polisher` are unresolved names — in production, Asya resolves them to actor
-queues. Locally, we bind them to the real handler functions:
+## Step 1: Compile
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS=/tmp/asya-demo-sa.json
-export VERTEXAI_PROJECT=<your-gcp-project>
-export VERTEXAI_LOCATION=us-central1
-
-uv run python -c '
-import asyncio
-from demo_flows.text_improver import text_improver
-state = {"task": "Write a haiku about message queues"}
-asyncio.run(text_improver(state))
-'
+asya compile text-improver -f src/flow_text_improver.py
 ```
 
-The flow runs as a single process — sequential calls, no queues, no actors.
-Same code, same results.
+Generates 5 actor manifests, 7 routers, 4 adapter ConfigMaps.
 
-## Step 2: Compile to actor graph
+## Step 2: Build and push
 
 ```bash
-uv run asya flow compile src/demo_flows/text_improver.py --plot
+asya build text-improver
 ```
 
-Output paths are configured in `.asya/config.yaml`:
-- `src/demo_actors/compiled/text_improver/` — router Python code + `flow.svg`
-- `.asya/manifests/text-improver/base/` — AsyncActor CRDs + router ConfigMap
+Builds Docker image from `src/Dockerfile`, pushes to registry, updates
+kustomize image tags in `compiled/text-improver/manifests/common/`.
 
-Open `src/demo_actors/compiled/text_improver/flow.svg` to see the generated actor
-graph with loop-back edges.
-
-## Step 3: Deploy to GKE
-
-### 3a. Set variables
+## Step 3: Expose via gateway
 
 ```bash
-export GCP_PROJECT=<your-gcp-project>
-export REGION=<gcp-region>          # e.g. europe-west1
-export REPO=<artifact-registry-repo> # e.g. asya-demo
-export REGISTRY=${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO}
+asya patch text-improver --gateway --context dev \
+  -- \
+  expose=true \
+  description="Text improver: evaluator-optimizer content pipeline" \
+  mcp=true a2a=true
 ```
 
-### 3b. Load actor credentials
+## Step 4: Deploy
 
 ```bash
-# Create SA key for Vertex AI (if not already done):
-gcloud iam service-accounts create asya-demo \
-  --display-name="Asya Demo" --project=$GCP_PROJECT
-gcloud projects add-iam-policy-binding $GCP_PROJECT \
-  --member="serviceAccount:asya-demo@${GCP_PROJECT}.iam.gserviceaccount.com" \
-  --role="roles/aiplatform.user"
-gcloud iam service-accounts keys create /tmp/asya-demo-sa.json \
-  --iam-account=asya-demo@${GCP_PROJECT}.iam.gserviceaccount.com
-
-# Store credentials in Kubernetes:
-kubectl create namespace asya-demo --dry-run=client -o yaml | kubectl apply -f -
-kubectl create secret generic asya-actor-creds \
-  --namespace=asya-demo \
-  --from-file=sa-key.json=/tmp/asya-demo-sa.json \
-  --from-literal=project-id=${GCP_PROJECT} \
-  --from-literal=location=us-central1 \
-  --dry-run=client -o yaml | kubectl apply -f -
+asya k apply text-improver --context dev
 ```
 
-### 3c. Apply platform config (flavors)
+Applies actors + ConfigMaps + gateway flow registration.
+
+## Step 5: Port-forward and test
 
 ```bash
-kubectl apply -f .asya/manifests/flavors/ -n asya-demo
+kubectl -n asya-demo port-forward svc/asya-gateway-api 18080:80
+asya k send text-improver "Write a haiku about Kubernetes" --context dev
 ```
 
-This applies the `vertex-ai` flavor (mounts credentials, sets `VERTEXAI_PROJECT`
-and `VERTEXAI_LOCATION` from the `asya-actor-creds` secret) and the `llm-resilient`
-flavor (retry/timeout settings).
+Expected: `[+] Task ...: completed`
 
-### 3d. Build and push actor image
+## Step 6: View logs
 
 ```bash
-# Edit .asya/config.yaml: set image to your Artifact Registry path
-# image: "${REGISTRY}/asya-demo:latest"
-
-docker build -t ${REGISTRY}/asya-demo:latest .
-docker push ${REGISTRY}/asya-demo:latest
+asya k logs text-improver --tail 5 --context dev
+asya k logs text-improver -f --context dev
 ```
 
-### 3e. Deploy actors
+## Step 7: Load test
 
 ```bash
-kubectl apply -k .asya/manifests/text-improver/base/ -n asya-demo
-kubectl -n asya-demo get asyncactors
+kubectl apply -f k8s/load-test-job.yaml
+kubectl -n asya-demo logs -f job/text-improver-load-test
 ```
 
-Crossplane reconciles each `AsyncActor` into a Deployment + Pub/Sub topic +
-subscription. Wait for `SYNCED=True` and `READY=True`:
+Watch KEDA scale-up in Grafana.
+
+## Step 8: Clean up
 
 ```bash
-kubectl -n asya-demo get asyncactors -w
+asya k delete text-improver --context dev
+kubectl delete job text-improver-load-test -n asya-demo
 ```
 
-## Step 4: Invoke via gateway
+## Flow
 
-```bash
-# Get the gateway URL and API key:
-export GATEWAY_URL=http://$(kubectl -n asya-demo get svc asya-gateway-api \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-export API_KEY=$(kubectl -n asya-demo get secret asya-gateway-auth \
-  -o jsonpath='{.data.a2a-api-key}' | base64 -d)
-
-# Verify the gateway is healthy:
-curl ${GATEWAY_URL}/health
+```
+research -> [while: generate -> evaluate -> break if score >= 85] -> polish -> format_output
 ```
 
-### Send a message via A2A
-
-`message/send` blocks until the flow completes (the gateway waits for the
-x-sink actor to POST back the final result). Flows using LLM calls typically
-take 30-120s.
-
-```bash
-curl -s -X POST ${GATEWAY_URL}/a2a/text-improver \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: ${API_KEY}" \
-  -d '{
-    "jsonrpc": "2.0", "method": "message/send", "id": 1,
-    "params": {
-      "message": {
-        "messageId": "demo-1",
-        "role": "user",
-        "parts": [{"kind": "text", "text": "Write a limerick about message queues"}]
-      }
-    }
-  }' | python3 -m json.tool
-```
+| Actor | Signature | Style |
+|-------|-----------|-------|
+| research | `(topic: str) -> str` | Adapter |
+| generate | `(topic: str, context: str, feedback: str) -> str` | Adapter |
+| evaluate | `(payload: dict) -> dict` | Standard |
+| polish | `(draft: str) -> str` | Adapter |
+| format_output | `(draft: str, score: int, iterations: int) -> dict` | Adapter |
 
 ## Project structure
 
 ```
-examples/demo-kubecon/
-├── Dockerfile                              # actor image (Python + demo handlers)
-├── pyproject.toml
-├── uv.lock
-├── .asya/
-│   ├── config.yaml                         # build entry, compiler paths, template vars
-│   ├── compiler/templates/                 # AsyncActor + ConfigMap + kustomization templates
-│   │   ├── actor.yaml
-│   │   ├── router.yaml
-│   │   ├── configmap-routers.yaml
-│   │   └── kustomization.yaml
-│   └── manifests/
-│       ├── flavors/                        # platform config (GCP credentials, LLM retry)
-│       │   ├── vertex-ai.yaml
-│       │   └── llm-resilient.yaml
-│       └── text-improver/                  # generated by asya compile
-│           └── base/                       # fully regenerated on each compile
-└── src/
-    ├── demo_flows/
-    │   └── text_improver.py                # the flow (compiles to actor graph)
-    └── demo_actors/
-        ├── generator.py                    # Vertex AI: generate/revise draft
-        ├── evaluator.py                    # Vertex AI: score + feedback
-        ├── polisher.py                     # Vertex AI: final polish
-        └── compiled/                       # generated by asya compile
-            └── text_improver/
-                ├── routers.py
-                ├── flow.dot
-                └── flow.svg
+src/
+  Dockerfile
+  skaffold.yaml
+  flow_text_improver.py       # flow definition
+  actors/
+    research.py               # str -> str
+    generate.py               # (str,str,str) -> str + FAIL_RATE
+    evaluate.py               # dict -> dict
+    polish.py                 # str -> str
+    format_output.py          # (str,int,int) -> dict
+compiled/text-improver/       # compiler output
+k8s/load-test-job.yaml        # Pub/Sub load test
+.asya/config.yaml
 ```

@@ -4,6 +4,7 @@ digraph "plan_and_execute" {
 
     { rank=source; start_plan_and_execute; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     executor [label="executor", fillcolor=lightblue];
     planner [label="planner", fillcolor=lightblue];
     re_planner [label="re_planner", fillcolor=lightblue];
@@ -13,8 +14,6 @@ digraph "plan_and_execute" {
     start_plan_and_execute [label="start_plan_and_execute\n\np['current_step'] = 0\np['step_results'] = []", fillcolor=palegreen];
     synthesizer [label="synthesizer", fillcolor=lightsalmon];
 
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
-
     start_plan_and_execute -> planner;
     planner -> router_plan_and_execute_while_current_step_lt_len_p_get_plan;
     router_plan_and_execute_seq_set_completed -> synthesizer;
@@ -23,6 +22,6 @@ digraph "plan_and_execute" {
     executor -> router_plan_and_execute_if_current_step_lt_len_p_get_plan;
     router_plan_and_execute_while_current_step_lt_len_p_get_plan -> router_plan_and_execute_seq_set_completed [label="else", color="#D35400", fontcolor="#D35400"];
     re_planner -> router_plan_and_execute_while_current_step_lt_len_p_get_plan;
-    router_plan_and_execute_if_current_step_lt_len_p_get_plan -> router_plan_and_execute_while_current_step_lt_len_p_get_plan [label="else", color="#D35400", fontcolor="#D35400"];
+    router_plan_and_execute_if_current_step_lt_len_p_get_plan -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
     synthesizer -> __end__;
 }

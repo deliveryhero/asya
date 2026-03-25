@@ -13,8 +13,8 @@ Regenerate by running: asya flow compile resiliency_retry_patterns.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-async def start_llm_pipeline(payload: dict):
-    """Entrypoint for flow 'llm_pipeline'"""
+async def start_resiliency_retry_patterns(payload: dict):
+    """Entrypoint for flow 'resiliency_retry_patterns'"""
     p = payload
     _next = []
     p['status'] = 'started'

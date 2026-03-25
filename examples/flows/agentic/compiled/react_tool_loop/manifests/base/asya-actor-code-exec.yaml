@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-code-exec
   image: examples.asya.sh/code-exec:latest
-  handler: code_exec
+  handler: react_tool_loop.code_exec
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: document_pipeline
 
+    __end__((( )))
     language_detector[language_detector]
     ocr_extractor[ocr_extractor]
     router_document_pipeline_if_language_ne_en{{router_document_pipeline_if_language_ne_en}}
@@ -8,16 +9,15 @@ flowchart TD
     sentiment_analyzer[sentiment_analyzer]
     start_document_pipeline(["start_document_pipeline<br/><br/>p['status'] = 'processing'"])
     translator[translator]
-    __end__((( )))
 
     start_document_pipeline --> ocr_extractor
     ocr_extractor --> language_detector
     language_detector --> router_document_pipeline_if_language_ne_en
+    router_document_pipeline_seq_set_status --> __end__
     router_document_pipeline_if_language_ne_en -->|"p.get('language') != 'en'"| translator
     translator --> sentiment_analyzer
     sentiment_analyzer --> router_document_pipeline_seq_set_status
     router_document_pipeline_if_language_ne_en -->|"else"| sentiment_analyzer
-    router_document_pipeline_seq_set_status --> __end__
     subgraph asyncio_timeout_30_[asyncio.timeout(30)]
         ocr_extractor
         language_detector
@@ -29,8 +29,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_document_pipeline start
+    class __end__ endnode
     class router_document_pipeline_if_language_ne_en,router_document_pipeline_seq_set_status router
     class language_detector,ocr_extractor,sentiment_analyzer,translator handler
-    class __end__ endpoint
-    linkStyle 3 stroke:#2E8B57
-    linkStyle 6 stroke:#E07040
+    linkStyle 4 stroke:#2E8B57
+    linkStyle 7 stroke:#E07040

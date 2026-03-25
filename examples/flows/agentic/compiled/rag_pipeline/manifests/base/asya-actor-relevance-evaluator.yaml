@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-relevance-evaluator
   image: examples.asya.sh/relevance-evaluator:latest
-  handler: relevance_evaluator
+  handler: rag_pipeline.relevance_evaluator
   scaling:
     enabled: true
     minReplicaCount: 0

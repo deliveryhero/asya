@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-validate-order
   image: examples.asya.sh/validate-order:latest
-  handler: validate_order
+  handler: inline_comment_overrides.validate_order
   scaling:
     enabled: true
     minReplicaCount: 0

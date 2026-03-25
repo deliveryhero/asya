@@ -2,6 +2,11 @@
   "flow_name": "plan_and_execute",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "executor",
       "label": "executor"
     },
@@ -101,9 +106,15 @@
     },
     {
       "from": "router_plan_and_execute_if_current_step_lt_len_p_get_plan",
-      "to": "router_plan_and_execute_while_current_step_lt_len_p_get_plan",
+      "to": "__end__",
       "label": "else",
-      "type": "continuation"
+      "type": "set"
+    },
+    {
+      "from": "synthesizer",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

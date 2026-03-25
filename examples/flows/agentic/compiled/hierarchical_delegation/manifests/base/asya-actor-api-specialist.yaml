@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-api-specialist
   image: examples.asya.sh/api-specialist:latest
-  handler: api_specialist
+  handler: hierarchical_delegation.api_specialist
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-ranker
   image: examples.asya.sh/ranker:latest
-  handler: ranker
+  handler: typed_pydantic_pipeline.ranker
   scaling:
     enabled: true
     minReplicaCount: 0

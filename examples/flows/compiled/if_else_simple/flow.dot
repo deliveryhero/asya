@@ -10,7 +10,6 @@ digraph "if_else_simple_flow" {
     handler_type_b [label="handler_type_b", fillcolor=lightblue];
     router_if_else_simple_flow_if_type_eq_a [label="router_if_else_simple_flow_if_type_eq_a", fillcolor=wheat];
     start_if_else_simple_flow [label="start_if_else_simple_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_else_simple_flow -> handler_setup;

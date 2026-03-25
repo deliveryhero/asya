@@ -39,6 +39,7 @@ data:
         """Router for control flow and payload mutations"""
         p = payload
         p['finalized'] = True
+        yield "SET", ".route.next", []
         yield p
 
 

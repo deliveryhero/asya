@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-proposal-generator
   image: examples.asya.sh/proposal-generator:latest
-  handler: proposal_generator
+  handler: human_in_the_loop.proposal_generator
   scaling:
     enabled: true
     minReplicaCount: 0

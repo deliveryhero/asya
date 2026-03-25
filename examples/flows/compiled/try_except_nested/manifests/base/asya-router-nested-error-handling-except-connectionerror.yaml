@@ -31,3 +31,12 @@ spec:
     value: transform_data
   - name: ASYA_HANDLER_ACTOR_VALIDATE_DATA
     value: validate_data
+  volumes:
+  - name: routers
+    configMap:
+      name: nested-error-handling-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

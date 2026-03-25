@@ -16,11 +16,11 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_ANALYSIS_WORKER
-    value: analysis_worker
+    value: orchestrator_workers.analysis_worker
   - name: ASYA_HANDLER_ACTOR_DATA_WORKER
-    value: data_worker
+    value: orchestrator_workers.data_worker
   - name: ASYA_HANDLER_ACTOR_ORCHESTRATOR
-    value: orchestrator
+    value: orchestrator_workers.orchestrator
   - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_IS_COMPLETE
     value: routers.router_orchestrator_workers_if_is_complete
   - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_ITERATION_GE_10
@@ -36,6 +36,15 @@ spec:
   - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_WHILE_LOOP
     value: routers.router_orchestrator_workers_while_loop
   - name: ASYA_HANDLER_ACTOR_SYNTHESIZER
-    value: synthesizer
+    value: orchestrator_workers.synthesizer
   - name: ASYA_HANDLER_ACTOR_WRITING_WORKER
-    value: writing_worker
+    value: orchestrator_workers.writing_worker
+  volumes:
+  - name: routers
+    configMap:
+      name: orchestrator-workers-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

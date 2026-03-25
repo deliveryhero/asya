@@ -4,11 +4,11 @@ metadata:
   name: actor-parse-data
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: resiliency-combined
 spec:
   actor: actor-parse-data
   image: examples.asya.sh/parse-data:latest
-  handler: parse_data
+  handler: resiliency_combined.parse_data
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -21,7 +21,7 @@ spec:
       except_valueerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-except-valueerror
+        - router-resiliency-combined-except-valueerror
     rules:
     - errors:
       - ValueError

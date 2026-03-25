@@ -1,5 +1,5 @@
 {
-  "flow_name": "data_pipeline",
+  "flow_name": "resiliency_combined",
   "nodes": [
     {
       "id": "fetch_data",
@@ -14,16 +14,16 @@
       "label": "parse_data"
     },
     {
-      "id": "router_data_pipeline_except_valueerror",
-      "label": "router_data_pipeline_except_valueerror",
+      "id": "router_resiliency_combined_except_valueerror",
+      "label": "router_resiliency_combined_except_valueerror",
       "generated": true,
       "mutations": [
         "p['error'] = 'bad_data'"
       ]
     },
     {
-      "id": "start_data_pipeline",
-      "label": "start_data_pipeline",
+      "id": "start_resiliency_combined",
+      "label": "start_resiliency_combined",
       "role": "start",
       "generated": true,
       "mutations": [
@@ -34,11 +34,16 @@
       "id": "store_results",
       "label": "store_results",
       "role": "end"
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
     {
-      "from": "start_data_pipeline",
+      "from": "start_resiliency_combined",
       "to": "fetch_data",
       "label": null,
       "type": "prepend"
@@ -56,7 +61,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_data_pipeline_except_valueerror",
+      "from": "router_resiliency_combined_except_valueerror",
       "to": "handle_bad_data",
       "label": null,
       "type": "set"
@@ -69,15 +74,21 @@
     },
     {
       "from": "fetch_data",
-      "to": "router_data_pipeline_except_valueerror",
+      "to": "router_resiliency_combined_except_valueerror",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "parse_data",
-      "to": "router_data_pipeline_except_valueerror",
+      "to": "router_resiliency_combined_except_valueerror",
       "label": "ValueError",
       "type": "error"
+    },
+    {
+      "from": "store_results",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": [

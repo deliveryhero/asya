@@ -74,6 +74,11 @@
       "label": "start_loop_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -166,6 +171,12 @@
       "to": "router_loop_flow_while_iteration_lt_max_iterations",
       "label": "else",
       "type": "continuation"
+    },
+    {
+      "from": "finalize_loop",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

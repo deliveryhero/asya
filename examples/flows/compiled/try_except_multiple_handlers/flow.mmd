@@ -1,28 +1,28 @@
 flowchart TD
-    %% Flow: data_pipeline
+    %% Flow: try_except_multiple_handlers
 
     handle_runtime_error[handle_runtime_error]
     handle_type_error[handle_type_error]
     handle_validation_error[handle_validation_error]
     parse_input[parse_input]
-    router_data_pipeline_except_runtimeerror{{"router_data_pipeline_except_runtimeerror<br/><br/>p['error_type'] = 'runtime'"}}
-    router_data_pipeline_except_typeerror{{"router_data_pipeline_except_typeerror<br/><br/>p['error_type'] = 'type_mismatch'"}}
-    router_data_pipeline_except_valueerror{{"router_data_pipeline_except_valueerror<br/><br/>p['error_type'] = 'validation'"}}
-    start_data_pipeline([start_data_pipeline])
+    router_try_except_multiple_handlers_except_runtimeerror{{"router_try_except_multiple_handlers_except_runtimeerror<br/><br/>p['error_type'] = 'runtime'"}}
+    router_try_except_multiple_handlers_except_typeerror{{"router_try_except_multiple_handlers_except_typeerror<br/><br/>p['error_type'] = 'type_mismatch'"}}
+    router_try_except_multiple_handlers_except_valueerror{{"router_try_except_multiple_handlers_except_valueerror<br/><br/>p['error_type'] = 'validation'"}}
+    start_try_except_multiple_handlers([start_try_except_multiple_handlers])
     transform_data[transform_data]
     __end__((( )))
 
-    start_data_pipeline --> parse_input
+    start_try_except_multiple_handlers --> parse_input
     parse_input --> transform_data
-    router_data_pipeline_except_valueerror --> handle_validation_error
-    router_data_pipeline_except_typeerror --> handle_type_error
-    router_data_pipeline_except_runtimeerror --> handle_runtime_error
-    parse_input -->|"ValueError"| router_data_pipeline_except_valueerror
-    parse_input -->|"TypeError"| router_data_pipeline_except_typeerror
-    parse_input -->|"RuntimeError"| router_data_pipeline_except_runtimeerror
-    transform_data -->|"ValueError"| router_data_pipeline_except_valueerror
-    transform_data -->|"TypeError"| router_data_pipeline_except_typeerror
-    transform_data -->|"RuntimeError"| router_data_pipeline_except_runtimeerror
+    router_try_except_multiple_handlers_except_valueerror --> handle_validation_error
+    router_try_except_multiple_handlers_except_typeerror --> handle_type_error
+    router_try_except_multiple_handlers_except_runtimeerror --> handle_runtime_error
+    parse_input -->|"ValueError"| router_try_except_multiple_handlers_except_valueerror
+    parse_input -->|"TypeError"| router_try_except_multiple_handlers_except_typeerror
+    parse_input -->|"RuntimeError"| router_try_except_multiple_handlers_except_runtimeerror
+    transform_data -->|"ValueError"| router_try_except_multiple_handlers_except_valueerror
+    transform_data -->|"TypeError"| router_try_except_multiple_handlers_except_typeerror
+    transform_data -->|"RuntimeError"| router_try_except_multiple_handlers_except_runtimeerror
     handle_runtime_error --> __end__
     handle_type_error --> __end__
     handle_validation_error --> __end__
@@ -32,9 +32,8 @@ flowchart TD
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_data_pipeline start
-    class handle_runtime_error,handle_type_error,handle_validation_error endnode
-    class router_data_pipeline_except_runtimeerror,router_data_pipeline_except_typeerror,router_data_pipeline_except_valueerror router
+    class start_try_except_multiple_handlers start
+    class handle_runtime_error,handle_type_error,handle_validation_error,__end__ endnode
+    class router_try_except_multiple_handlers_except_runtimeerror,router_try_except_multiple_handlers_except_typeerror,router_try_except_multiple_handlers_except_valueerror router
     class parse_input,transform_data handler
-    class __end__ endpoint
     linkStyle 5,6,7,8,9,10 stroke:#DC143C

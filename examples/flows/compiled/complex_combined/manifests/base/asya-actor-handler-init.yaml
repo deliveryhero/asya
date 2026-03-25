@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-init
   image: examples.asya.sh/handler-init:latest
-  handler: handler_init
+  handler: complex_combined.handler_init
   scaling:
     enabled: true
     minReplicaCount: 0

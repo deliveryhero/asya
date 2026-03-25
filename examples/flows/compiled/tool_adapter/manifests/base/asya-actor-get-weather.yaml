@@ -8,9 +8,18 @@ metadata:
 spec:
   actor: actor-get-weather
   image: examples.asya.sh/get-weather:latest
-  handler: get_weather
+  handler: adapter_get_weather.adapter_get_weather
   scaling:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 5
   env: []
+  volumes:
+  - name: adapter
+    configMap:
+      name: tool-adapter-get-weather-adapter
+  volumeMounts:
+  - name: adapter
+    mountPath: /opt/asya/adapter_get_weather.py
+    subPath: adapter_get_weather.py
+    readOnly: true

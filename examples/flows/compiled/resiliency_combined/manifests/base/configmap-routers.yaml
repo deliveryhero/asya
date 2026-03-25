@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: data-pipeline-routers
+  name: resiliency-combined-routers
   namespace: default
   labels:
-    asya.sh/flow: data-pipeline
+    asya.sh/flow: resiliency-combined
     asya.sh/managed-by: asya-compiler
 data:
   routers.py: |
@@ -23,8 +23,8 @@ data:
     # Generated Routers (for kubernetes deployment)
     # ======================================================================
 
-    async def start_data_pipeline(payload: dict):
-        """Entrypoint for flow 'data_pipeline'"""
+    async def start_resiliency_combined(payload: dict):
+        """Entrypoint for flow 'resiliency_combined'"""
         p = payload
         _next = []
         p['status'] = 'started'
@@ -34,7 +34,7 @@ data:
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_data_pipeline_except_valueerror(payload: dict):
+    async def router_resiliency_combined_except_valueerror(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['error'] = 'bad_data'

@@ -2,6 +2,11 @@
   "flow_name": "tool_calling_agent",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "calculate",
       "label": "calculate"
     },
@@ -194,9 +199,15 @@
     },
     {
       "from": "router_tool_calling_agent_if_tool_name_eq_list_gcs_files",
-      "to": "router_tool_calling_agent_while_loop",
+      "to": "__end__",
       "label": "else",
-      "type": "continuation"
+      "type": "set"
+    },
+    {
+      "from": "format_response",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

@@ -8,6 +8,7 @@ from __future__ import annotations
 import ast
 import contextlib
 import os
+import types
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -61,59 +62,96 @@ class FlowCompiler:
         self.class_methods: set[str] = set()
         self.is_async: bool = False
         self.import_map: dict[str, str] = {}
+        self.handler_source_files: dict[str, Path] = {}  # actor_name -> source file
+        self._definition_site_actors: set[str] = set()  # functions with # asya: actor on def line
         self.module_constants: list[str] = []
         self._parse_result: ParseResult | None = None
         self._generated_code: str | None = None
         self._graph_data: GraphData | None = None
         self._codegen_meta: CodegenMeta | None = None
 
-    def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> FlowInfo:
+    def compile_file(
+        self,
+        source_file: str,
+        output_dir: str,
+        overwrite: bool = False,
+        flow_name: str | None = None,
+        *,
+        routers_dir: Path | None = None,
+        artifacts_dir: Path | None = None,
+        manifests_dir: Path | None = None,
+        templates_dir: Path | None = None,
+    ) -> FlowInfo:
+        _ = overwrite  # reserved for future use
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
 
-        output_path = Path(output_dir)
-        if output_path.exists():
-            if not output_path.is_dir():
-                raise ValueError(f"Output path exists and is not a directory: {output_dir}")
-            if not overwrite and any(output_path.iterdir()):
-                raise ValueError(f"Output directory is not empty: {output_dir}")
-
-        output_path.mkdir(parents=True, exist_ok=True)
+        routers_path = routers_dir or Path(output_dir)
+        artifacts_path = artifacts_dir or Path(output_dir)
+        for d in (routers_path, artifacts_path):
+            if d.exists() and not d.is_dir():
+                raise ValueError(f"Output path exists and is not a directory: {d}")
+            d.mkdir(parents=True, exist_ok=True)
 
         source_code = source_path.read_text()
-        compiled_file = output_path / "routers.py"
+
+        # Add skaffold context dirs to sys.path before parsing so the parser
+        # can resolve imported function definitions for # asya: actor directives
+        added_paths = self._add_skaffold_dirs_to_path()
+
+        compiled_file = routers_path / "routers.py"
         compiled_code = self.compile(source_code, str(source_path), str(compiled_file))
         compiled_file.write_text(compiled_code)
 
-        # Write adapter files alongside routers.py
+        # Resolve handler FQNs and source files by importing the flow module
+        self._resolve_handler_sources(source_path)
+
+        # Patch adapter import lines with resolved FQNs
+        # (e.g. "from actors import research" -> "from actors.research import research")
+        # Must happen before _stamp_manifests since ConfigMaps embed adapter code.
         if self._codegen_meta and self._codegen_meta.adapter_files:
             for af in self._codegen_meta.adapter_files:
-                (output_path / af.filename).write_text(af.code)
+                af.code = self._patch_adapter_import(af.actor_name, af.code)
+                (routers_path / af.filename).write_text(af.code)
 
-        manifests_dir = self._stamp_manifests(output_path)
-        dot, mermaid_content, json_content = self._generate_outputs(output_path)
+        _manifests_dir = self._stamp_manifests(manifests_dir, templates_dir)
+        dot, mermaid_content, json_content = self._generate_outputs(artifacts_path)
 
-        flow_function = self.flow_name or source_path.stem
-        flow_name = flow_function.replace("_", "-")
+        if flow_name is None:
+            flow_function = self.flow_name or source_path.stem
+            flow_name = flow_function.replace("_", "-")
+        flow_function = flow_name.replace("-", "_")
         actors = self._build_actor_infos()
+
+        from asya_lab.flow.parser import ActorCall, Mutation
+
+        ops = self._parse_result.operations if self._parse_result else []
+        num_actor_calls = sum(1 for op in ops if isinstance(op, ActorCall))
+        num_inline_mutations = sum(1 for op in ops if isinstance(op, Mutation))
+
+        self._cleanup_sys_path(added_paths)
 
         return FlowInfo(
             flow_name=flow_name,
             flow_function=flow_function,
             routers_path=compiled_file,
-            manifests_dir=manifests_dir or output_path,
+            artifacts_dir=artifacts_path,
+            manifests_dir=_manifests_dir or routers_path,
             graph=to_json(self._graph_data, flow_function) if self._graph_data else {},
             dot=dot,
             mermaid=mermaid_content,
             actors=actors,
             warnings=list(self.warnings),
+            num_actor_calls=num_actor_calls,
+            num_inline_mutations=num_inline_mutations,
         )
 
     def compile(self, source_code: str, filename: str, output_file: str | None = None) -> str:
         # Step 1: Parse
         result = self._parse(source_code, filename)
         self._parse_result = result
+        self.warnings.extend(result.warnings)
 
         # Step 2: CodeGen
         codegen = CodeGenerator(result, filename, output_file)
@@ -232,8 +270,8 @@ class FlowCompiler:
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
-    def _stamp_manifests(self, compiled_dir: Path) -> Path | None:
-        if self._project is None or self._codegen_meta is None:
+    def _stamp_manifests(self, manifests_dir: Path | None, templates_dir: Path | None = None) -> Path | None:
+        if manifests_dir is None or self._codegen_meta is None:
             return None
         if self._codegen_meta.single_actor is not None:
             return None
@@ -246,13 +284,10 @@ class FlowCompiler:
 
         flow_name = flow_function.replace("_", "-")
 
-        try:
-            self._project.resolve_path("compiler.manifests")  # check config exists
-            templates_dir = self._project.resolve_path("compiler.templates")
-        except KeyError:
+        if templates_dir is None:
             return None
 
-        manifests_dir = compiled_dir / "manifests"
+        manifests_dir.mkdir(parents=True, exist_ok=True)
 
         router_code = self._generated_code or ""
         actor_template = templates_dir / "actor.yaml"
@@ -262,6 +297,9 @@ class FlowCompiler:
         def _opt(name: str) -> Path | None:
             p = templates_dir / name
             return p if p.exists() else None
+
+        if self._project is None:
+            return None
 
         templater = ManifestTemplater(
             flow_name=flow_name,
@@ -274,6 +312,7 @@ class FlowCompiler:
             configmap_routers_template_path=_opt("configmap-routers.yaml"),
             kustomization_template_path=_opt("kustomization.yaml"),
             import_map=self.import_map,
+            handler_source_files=self.handler_source_files,
             flow_roles=self._detect_flow_roles(),
         )
         templater.stamp(manifests_dir)
@@ -323,6 +362,169 @@ class FlowCompiler:
             if role:
                 roles[node_id] = role
         return roles
+
+    def _add_skaffold_dirs_to_path(self) -> list[str]:
+        """Add skaffold artifact context dirs to sys.path for compile-time imports.
+
+        Bare-script handlers (no __init__.py, no pip install) live in skaffold
+        build context dirs. Adding these to sys.path lets the compiler import
+        them at compile time to resolve handler FQNs and source files.
+
+        Returns the list of added paths so callers can clean up.
+        """
+        import sys as _sys
+
+        if self._project is None:
+            return []
+
+        added: list[str] = []
+        for context_dir, _image in self._project._collect_skaffold_artifacts():
+            ctx_str = str(context_dir)
+            if ctx_str not in _sys.path:
+                _sys.path.insert(0, ctx_str)
+                added.append(ctx_str)
+        return added
+
+    def _resolve_handler_sources(self, flow_source: Path) -> None:
+        """Import the flow module and resolve each handler's FQN and source file.
+
+        Uses the running Python interpreter — the same environment the user
+        tested their flow in locally. Skaffold artifact context dirs are
+        temporarily added to sys.path so bare-script handlers are importable.
+        """
+        import importlib
+        import importlib.util
+        import inspect
+
+        if not self._parse_result:
+            return
+
+        actor_names = self._parse_result.actors
+        if not actor_names:
+            return
+
+        # Add skaffold build context dirs to sys.path for bare-script imports
+        added_paths = self._add_skaffold_dirs_to_path()
+
+        # Import the flow file as a proper module
+        # Try to find its package by looking for __init__.py
+        flow_dir = flow_source.parent
+        module_name = flow_source.stem
+
+        # Walk up to find the package root (directory with __init__.py whose parent has none)
+        package_parts: list[str] = [module_name]
+        current = flow_dir
+        while (current / "__init__.py").exists():
+            package_parts.insert(0, current.name)
+            current = current.parent
+
+        fqn_module = ".".join(package_parts)
+
+        mod = None
+        import_error_detail = ""
+        # Try 1: import as a Python module (requires package on sys.path)
+        try:
+            mod = importlib.import_module(fqn_module)  # nosemgrep
+        except ImportError:
+            # Try 2: import from file directly (exec the .py file)
+            try:
+                spec = importlib.util.spec_from_file_location(module_name, flow_source)
+                if spec and spec.loader:
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+            except ImportError as e2:
+                import_error_detail = f"missing dependency: {e2.name or e2}" if hasattr(e2, "name") else str(e2)
+            except Exception as e2:
+                import_error_detail = str(e2)
+
+        if mod is None:
+            consequence = "handler source files won't be resolved for skaffold image mapping"
+            if import_error_detail:
+                self.warnings.append(
+                    f"Cannot import '{fqn_module}' ({import_error_detail}). "
+                    f"Effect: {consequence}. "
+                    f"Fix: install the dependency in your CLI venv, or ignore if using a single image."
+                )
+            else:
+                self.warnings.append(f"Cannot import '{fqn_module}'. Effect: {consequence}.")
+            self._cleanup_sys_path(added_paths)
+            return
+
+        # Scan all imported names (not just actors) for source files and directives
+        import_names = list(self._parse_result.import_map.keys()) if self._parse_result else []
+        all_names = set(actor_names) | set(import_names)
+
+        for name in all_names:
+            func = getattr(mod, name, None)
+            # If the name resolved to a module (e.g. `from pkg import submodule`
+            # where __init__.py doesn't re-export the function), look inside
+            # the module for a same-named callable.
+            if func is not None and isinstance(func, types.ModuleType):
+                func = getattr(func, name, None)
+            if func is None or not callable(func):
+                continue
+
+            handler_fqn = f"{func.__module__}.{func.__qualname__}"
+            self.import_map[name] = handler_fqn
+
+            try:
+                # Resolve source file. If getfile returns a path outside the project
+                # (e.g. a decorator wrapper module like tenacity), unwrap to find the
+                # original function's source file.
+                source_file = Path(inspect.getfile(func)).resolve()
+                if hasattr(func, "__wrapped__") and not str(source_file).startswith(str(Path.cwd())):
+                    source_file = Path(inspect.getfile(inspect.unwrap(func))).resolve()
+                self.handler_source_files[name] = source_file
+                if self.verbose and name in actor_names:
+                    import click
+
+                    click.echo(f"    [.] {name} -> {handler_fqn} ({source_file})")
+
+                # Check if the function definition has # asya: actor directive
+                source_lines, start_line = inspect.getsourcelines(func)
+                if source_lines:
+                    def_line = source_lines[0]
+                    if "# asya: actor" in def_line and name not in actor_names:
+                        self._definition_site_actors.add(name)
+            except (TypeError, OSError):
+                pass
+
+        self._cleanup_sys_path(added_paths)
+
+    def _patch_adapter_import(self, actor_name: str, code: str) -> str:
+        """Patch adapter import line with the resolved FQN from _resolve_handler_sources.
+
+        The codegen generates import lines from the parser's import_map (e.g.
+        "from actors import research") which may import a module instead of a
+        function when __init__.py doesn't re-export. The compiler resolves the
+        actual FQN (e.g. "actors.research.research") — use it to fix the import.
+        """
+        resolved_fqn = self.import_map.get(actor_name)
+        if not resolved_fqn or "." not in resolved_fqn:
+            return code
+
+        module_path, func_name = resolved_fqn.rsplit(".", 1)
+        if func_name != actor_name:
+            new_import = f"from {module_path} import {func_name} as {actor_name}"
+        else:
+            new_import = f"from {module_path} import {actor_name}"
+
+        # Replace the first "from ... import ..." line
+        lines = code.split("\n")
+        for i, line in enumerate(lines):
+            if line.startswith("from ") and f"import {actor_name}" in line:
+                lines[i] = new_import
+                break
+        return "\n".join(lines)
+
+    @staticmethod
+    def _cleanup_sys_path(added_paths: list[str]) -> None:
+        import contextlib
+        import sys as _sys
+
+        for p in added_paths:
+            with contextlib.suppress(ValueError):
+                _sys.path.remove(p)
 
     @staticmethod
     def _extract_handler_sources(source_code: str, actor_names: list[str]) -> dict[str, str]:

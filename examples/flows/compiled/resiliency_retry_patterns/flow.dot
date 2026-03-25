@@ -1,18 +1,17 @@
-digraph "llm_pipeline" {
+digraph "resiliency_retry_patterns" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    { rank=source; start_llm_pipeline; }
+    { rank=source; start_resiliency_retry_patterns; }
 
     call_llm [label="call_llm", fillcolor=lightblue];
     parse_response [label="parse_response", fillcolor=lightblue];
-    start_llm_pipeline [label="start_llm_pipeline\n\np['status'] = 'started'", fillcolor=palegreen];
+    start_resiliency_retry_patterns [label="start_resiliency_retry_patterns\n\np['status'] = 'started'", fillcolor=palegreen];
     store_result [label="store_result", fillcolor=lightsalmon];
     validate_input [label="validate_input", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_llm_pipeline -> validate_input;
+    start_resiliency_retry_patterns -> validate_input;
     validate_input -> call_llm;
     call_llm -> parse_response;
     parse_response -> store_result;

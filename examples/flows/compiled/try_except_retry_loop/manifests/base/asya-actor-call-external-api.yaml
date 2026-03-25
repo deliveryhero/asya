@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-call-external-api
   image: examples.asya.sh/call-external-api:latest
-  handler: call_external_api
+  handler: try_except_retry_loop.call_external_api
   scaling:
     enabled: true
     minReplicaCount: 0

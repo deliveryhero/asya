@@ -2,6 +2,11 @@
   "flow_name": "complex_flow",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "handler_check_quality",
       "label": "handler_check_quality"
     },
@@ -183,9 +188,21 @@
     },
     {
       "from": "router_complex_flow_if_requires_retry",
-      "to": "handler_finalize",
+      "to": "__end__",
       "label": "else",
-      "type": "continuation"
+      "type": "set"
+    },
+    {
+      "from": "handler_error",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

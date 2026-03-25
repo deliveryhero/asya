@@ -4,6 +4,7 @@ digraph "tool_calling_agent" {
 
     { rank=source; start_tool_calling_agent; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     calculate [label="calculate", fillcolor=lightblue];
     format_response [label="format_response", fillcolor=lightsalmon];
     get_weather [label="get_weather", fillcolor=lightblue];
@@ -19,8 +20,6 @@ digraph "tool_calling_agent" {
     router_tool_calling_agent_while_loop [label="router_tool_calling_agent_while_loop", fillcolor=wheat];
     start_tool_calling_agent [label="start_tool_calling_agent\n\np['messages'] = p.get('messages', [])\np['iteration'] = 0", fillcolor=palegreen];
     web_search [label="web_search", fillcolor=lightblue];
-
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_tool_calling_agent -> router_tool_calling_agent_while_loop;
     router_tool_calling_agent_if_tool_name_eq_list_gcs_files -> list_gcs_files [label="p['tool_name'] == 'list_gcs_files'", color="#2E8B57", fontcolor="#2E8B57"];
@@ -40,6 +39,6 @@ digraph "tool_calling_agent" {
     calculate -> router_tool_calling_agent_seq_set_messages;
     list_gcs_files -> router_tool_calling_agent_seq_set_messages;
     router_tool_calling_agent_seq_set_messages -> router_tool_calling_agent_while_loop;
-    router_tool_calling_agent_if_tool_name_eq_list_gcs_files -> router_tool_calling_agent_while_loop [label="else", color="#D35400", fontcolor="#D35400"];
+    router_tool_calling_agent_if_tool_name_eq_list_gcs_files -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
     format_response -> __end__;
 }

@@ -18,7 +18,6 @@ digraph "nested_if_flow" {
     router_nested_if_flow_seq_set_l2_3 [label="router_nested_if_flow_seq_set_l2_3\n\np['l2'] = 'X'", fillcolor=wheat];
     router_nested_if_flow_seq_set_l2_4 [label="router_nested_if_flow_seq_set_l2_4\n\np['l2'] = 'Y'", fillcolor=wheat];
     start_nested_if_flow [label="start_nested_if_flow", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_nested_if_flow -> handler_validate;

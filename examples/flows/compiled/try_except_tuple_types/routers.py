@@ -13,22 +13,22 @@ Regenerate by running: asya flow compile try_except_tuple_types.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-async def start_ingestion_pipeline(payload: dict):
-    """Entrypoint for flow 'ingestion_pipeline'"""
+async def start_try_except_tuple_types(payload: dict):
+    """Entrypoint for flow 'try_except_tuple_types'"""
     _next = []
     _next.append(resolve("fetch_data"))
     _next.append(resolve("parse_data"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_ingestion_pipeline_except_connectionerror_timeouterror(payload: dict):
+async def router_try_except_tuple_types_except_connectionerror_timeouterror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['retry_reason'] = 'transient'
     yield "SET", ".route.next", [resolve('queue_for_retry')]
     yield payload
 
-async def router_ingestion_pipeline_except_valueerror_keyerror(payload: dict):
+async def router_try_except_tuple_types_except_valueerror_keyerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['status'] = 'bad_input'

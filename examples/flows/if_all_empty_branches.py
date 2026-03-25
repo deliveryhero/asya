@@ -8,7 +8,7 @@ from _asya_utils import actor, flow
 
 
 @flow
-def if_empty_branches_flow(p: dict) -> dict:
+def if_all_empty_branches_flow(p: dict) -> dict:
     p = handler_setup(p)
     if p["skip_processing"]:
         pass

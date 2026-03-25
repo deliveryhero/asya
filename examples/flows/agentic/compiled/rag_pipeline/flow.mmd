@@ -34,9 +34,8 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_rag_pipeline start
-    class fact_checker endnode
+    class fact_checker,__end__ endnode
     class router_rag_pipeline_if_is_sufficient,router_rag_pipeline_if_retrieval_attempts_ge_3,router_rag_pipeline_seq_set_retrieval_attempts,router_rag_pipeline_while_loop router
     class generator,query_analyzer,query_refiner,relevance_evaluator,retriever handler
-    class __end__ endpoint
     linkStyle 3,6 stroke:#2E8B57
     linkStyle 2,5 stroke:#E07040

@@ -17,14 +17,23 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_ENTITY_RECOGNIZER
-    value: entity_recognizer
+    value: fanout_literal.entity_recognizer
   - name: ASYA_HANDLER_FANIN_ANALYSIS_FLOW_ANALYSIS
     value: routers.fanin_analysis_flow_analysis
   - name: ASYA_HANDLER_ACTOR_MERGE_ANALYSIS
-    value: merge_analysis
+    value: fanout_literal.merge_analysis
   - name: ASYA_HANDLER_ROUTER_ANALYSIS_FLOW_FANOUT_ANALYSIS
     value: routers.router_analysis_flow_fanout_analysis
   - name: ASYA_HANDLER_ACTOR_SENTIMENT_ANALYZER
-    value: sentiment_analyzer
+    value: fanout_literal.sentiment_analyzer
   - name: ASYA_HANDLER_ACTOR_TOPIC_EXTRACTOR
-    value: topic_extractor
+    value: fanout_literal.topic_extractor
+  volumes:
+  - name: routers
+    configMap:
+      name: analysis-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

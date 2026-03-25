@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-convergence-checker
   image: examples.asya.sh/convergence-checker:latest
-  handler: convergence_checker
+  handler: multi_agent_debate.convergence_checker
   scaling:
     enabled: true
     minReplicaCount: 0

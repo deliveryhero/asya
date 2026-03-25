@@ -38,6 +38,11 @@
       "mutations": [
         "p['status'] = 'started'"
       ]
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -88,6 +93,12 @@
       "to": "router_resource_pipeline_except_runtimeerror",
       "label": "RuntimeError",
       "type": "error"
+    },
+    {
+      "from": "finalize",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

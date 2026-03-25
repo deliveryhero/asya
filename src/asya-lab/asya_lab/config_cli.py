@@ -17,14 +17,14 @@ def config():
 
 
 @config.command()
-@click.argument("key")
+@click.argument("key", default=None, required=False)
 @click.option("--dir", "start_dir", default=".", help="Start directory for config discovery (default: cwd)")
 @click.option("--arg", "args", multiple=True, help="Set arg resolver value (key=value), repeatable")
 @click.option(
     "-o", "--output", "output_format", type=click.Choice(["yaml", "json"]), default="yaml", help="Output format"
 )
 def get(key, start_dir, args, output_format):
-    """Get a config value by dot-separated key."""
+    """Get a config value by dot-separated key, or print the full config tree."""
     from asya_lab.config.project import AsyaProject
 
     arg_values = {}
@@ -41,6 +41,14 @@ def get(key, start_dir, args, output_format):
     except FileNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+    if key is None:
+        container = OmegaConf.to_container(project.cfg, resolve=False)
+        if output_format == "json":
+            click.echo(json.dumps(container, indent=2))
+        else:
+            click.echo(OmegaConf.to_yaml(project.cfg), nl=False)
+        return
 
     try:
         value = OmegaConf.select(project.cfg, key)

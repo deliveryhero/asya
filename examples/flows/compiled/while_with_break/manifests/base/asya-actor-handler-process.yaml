@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-process
   image: examples.asya.sh/handler-process:latest
-  handler: handler_process
+  handler: while_with_break.handler_process
   scaling:
     enabled: true
     minReplicaCount: 0

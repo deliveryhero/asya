@@ -2,7 +2,6 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: "{{ actor_name }}"
-  namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
 
@@ -10,17 +9,10 @@ spec:
   actor: "{{ actor_name }}"
   image: "{{ router_image }}"
   handler: "{{ handler }}"
-  env:
-  - name: PYTHONPATH
-    value: /app
-  volumes:
-  - name: handler
-    configMap:
-      name: "{{ flow_name }}-routers"
-  volumeMounts:
-  - name: handler
-    mountPath: /app
   scaling:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 2
+  env:
+  - name: PYTHONUNBUFFERED
+    value: "1"

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-even
   image: examples.asya.sh/handler-even:latest
-  handler: handler_even
+  handler: while_with_if.handler_even
   scaling:
     enabled: true
     minReplicaCount: 0

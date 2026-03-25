@@ -1,0 +1,26 @@
+flowchart TD
+    %% Flow: main_flow
+
+    enrich[enrich]
+    format_output[format_output]
+    start_main_flow([start_main_flow])
+    validate[validate]
+    __end__((( )))
+
+    start_main_flow --> validate
+    validate --> enrich
+    enrich --> format_output
+    format_output --> __end__
+    subgraph sub_flow[sub_flow]
+        validate
+        enrich
+    end
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_main_flow start
+    class format_output,__end__ endnode
+    class enrich,validate handler

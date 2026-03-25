@@ -17,10 +17,19 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_ENRICH
-    value: enrich
+    value: flow_composition_simple.enrich
   - name: ASYA_HANDLER_ACTOR_PREPROCESS
-    value: preprocess
+    value: flow_composition_simple.preprocess
   - name: ASYA_HANDLER_ACTOR_STORE
-    value: store
+    value: flow_composition_simple.store
   - name: ASYA_HANDLER_ACTOR_VALIDATE
-    value: validate
+    value: flow_composition_simple.validate
+  volumes:
+  - name: routers
+    configMap:
+      name: outer-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

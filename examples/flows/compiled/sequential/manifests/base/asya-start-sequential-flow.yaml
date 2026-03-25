@@ -17,8 +17,17 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_HANDLER_A
-    value: handler_a
+    value: sequential.handler_a
   - name: ASYA_HANDLER_ACTOR_HANDLER_B
-    value: handler_b
+    value: sequential.handler_b
   - name: ASYA_HANDLER_ACTOR_HANDLER_C
-    value: handler_c
+    value: sequential.handler_c
+  volumes:
+  - name: routers
+    configMap:
+      name: sequential-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

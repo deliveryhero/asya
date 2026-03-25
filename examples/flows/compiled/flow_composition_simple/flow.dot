@@ -9,7 +9,6 @@ digraph "outer_pipeline" {
     start_outer_pipeline [label="start_outer_pipeline", fillcolor=palegreen];
     store [label="store", fillcolor=lightsalmon];
     validate [label="validate", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_outer_pipeline -> preprocess;

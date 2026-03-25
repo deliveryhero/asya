@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-formatter
   image: examples.asya.sh/formatter:latest
-  handler: formatter
+  handler: fanout_conditional.formatter
   scaling:
     enabled: true
     minReplicaCount: 0

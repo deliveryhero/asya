@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-billing-agent
   image: examples.asya.sh/billing-agent:latest
-  handler: billing_agent
+  handler: routing_classifier.billing_agent
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-technical-agent
   image: examples.asya.sh/technical-agent:latest
-  handler: technical_agent
+  handler: routing_classifier.technical_agent
   scaling:
     enabled: true
     minReplicaCount: 0

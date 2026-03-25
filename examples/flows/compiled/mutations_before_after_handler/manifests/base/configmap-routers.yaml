@@ -37,6 +37,7 @@ data:
         """Router for control flow and payload mutations"""
         p = payload
         p['step'] = 3
+        yield "SET", ".route.next", []
         yield p
 
     async def router_mutations_before_after_handler_flow_seq_set_step_2(payload: dict):

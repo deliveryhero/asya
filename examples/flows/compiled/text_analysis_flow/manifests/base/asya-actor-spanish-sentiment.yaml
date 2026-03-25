@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-spanish-sentiment
   image: examples.asya.sh/spanish-sentiment:latest
-  handler: spanish_sentiment
+  handler: text_analysis_flow.spanish_sentiment
   scaling:
     enabled: true
     minReplicaCount: 0

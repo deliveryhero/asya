@@ -176,6 +176,12 @@ sampleTracing:
   # When enabled, deploys Tempo with OTLP receivers for trace ingestion
   enabled: false
 
+sampleLogging:
+  # Loki + Promtail log aggregation (demo/development only)
+  # For production: Set enabled: false and use your existing logging infrastructure
+  # When enabled, deploys Loki single-binary + Promtail DaemonSet
+  enabled: false
+
 sampleGatewayDb:
   # PostgreSQL for gateway (sample deployment)
   # For production: Set enabled: false and configure asya-gateway.externalDatabase below
@@ -247,7 +253,7 @@ asya-crossplane:
 asya-crew:
   # Tracing configuration
   # When sampleTracing.enabled: true, set this to point to Tempo's OTLP gRPC endpoint
-  # Format: {release-name}-tempo:4317
+  # Format: {release-name}-tempo:4317 (no http:// — gRPC uses bare host:port)
   # Example: If release name is 'asya', use 'asya-tempo:4317'
   tracing:
     endpoint: "" # Set to "{release-name}-tempo:4317" when sampleTracing.enabled: true
@@ -321,7 +327,7 @@ asya-crew:
 asya-gateway:
   # Tracing configuration
   # When sampleTracing.enabled: true, set this to point to Tempo's OTLP gRPC endpoint
-  # Format: {release-name}-tempo:4317
+  # Format: {release-name}-tempo:4317 (no http:// — gRPC uses bare host:port)
   # Example: If release name is 'asya', use 'asya-tempo:4317'
   tracing:
     endpoint: "" # Set to "{release-name}-tempo:4317" when sampleTracing.enabled: true
@@ -443,6 +449,8 @@ kube-prometheus-stack:
   # Prometheus configuration
   prometheus:
     prometheusSpec:
+      # Accept remote writes from Tempo metrics generator (service graph)
+      enableRemoteWriteReceiver: true
       # Scrape all ServiceMonitors in all namespaces
       serviceMonitorSelectorNilUsesHelmValues: false
       podMonitorSelectorNilUsesHelmValues: false
@@ -462,37 +470,21 @@ kube-prometheus-stack:
   grafana:
     # Admin credentials for local development
     adminPassword: asya-admin
-    # Additional datasources for Grafana
-    # Note: The Tempo datasource URL uses the release name pattern: {release-name}-tempo
-    # For a release named 'asya', the service will be 'asya-tempo'
-    additionalDataSources:
-    - name: Tempo
-      type: tempo
-      # URL pattern: http://{release-name}-tempo:3100
-      # Default assumes release name matches the namespace or is 'asya'
-      # Override this in your values if using a different release name
-      url: http://{{ .Release.Name }}-tempo:3200
-      access: proxy
-      isDefault: false
-      jsonData:
-        tracesToMetricsEnabled: true
-        tracesToMetrics:
-          datasourceUid: prometheus
-        serviceMap:
-          datasourceUid: prometheus
-        nodeGraph:
-          enabled: true
-    # Enable sidecar for dashboard auto-discovery
+    # Sidecar for auto-discovering dashboards and datasources from ConfigMaps
     sidecar:
       dashboards:
         enabled: true
         searchNamespace: ALL
-        # Look for ConfigMaps with this label
         label: grafana_dashboard
         labelValue: "1"
         folderAnnotation: grafana_folder
         provider:
           foldersFromFilesStructure: true
+      datasources:
+        enabled: true
+        label: grafana_datasource
+        labelValue: "1"
+        searchNamespace: ALL
     # Reduce resource usage
     resources:
       requests:
@@ -523,6 +515,49 @@ kube-prometheus-stack:
     enabled: false
   kubeProxy:
     enabled: false
+
+# Loki configuration (passed to loki chart)
+# Only used when sampleLogging.enabled: true
+loki:
+  deploymentMode: SingleBinary
+  loki:
+    auth_enabled: false
+    useTestSchema: true
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+  singleBinary:
+    replicas: 1
+    persistence:
+      size: 5Gi
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+  monitoring:
+    selfMonitoring:
+      enabled: false
+    lokiCanary:
+      enabled: false
+  test:
+    enabled: false
+  gateway:
+    enabled: false
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+
+# Promtail configuration (passed to promtail chart)
+# Only used when sampleLogging.enabled: true
+# NOTE: Update promtail.config.clients[0].url if using a non-default release name
+promtail:
+  config:
+    clients:
+    - url: http://asya-loki:3100/loki/api/v1/push
 
 # Testing actors with chaos/failure modes
 # These actors simulate various production scenarios for testing autoscaling and resilience

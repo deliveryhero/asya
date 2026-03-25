@@ -21,7 +21,7 @@ from tenacity import retry, stop_after_attempt, stop_after_delay, wait_exponenti
 
 
 @flow
-async def llm_pipeline(p: dict) -> dict:
+async def resiliency_retry_patterns(p: dict) -> dict:
     """Multi-step LLM pipeline with different retry strategies per actor."""
     p["status"] = "started"
 

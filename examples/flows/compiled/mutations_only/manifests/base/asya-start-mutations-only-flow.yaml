@@ -18,3 +18,12 @@ spec:
   env:
   - name: ASYA_HANDLER_ROUTER_MUTATIONS_ONLY_FLOW_SEQ_SET_STEP
     value: routers.router_mutations_only_flow_seq_set_step
+  volumes:
+  - name: routers
+    configMap:
+      name: mutations-only-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

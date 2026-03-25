@@ -4,7 +4,7 @@ resources:
 - asya-actor-handle-known-error.yaml
 - asya-actor-handle-unknown-error.yaml
 - asya-actor-risky-operation.yaml
-- asya-router-resilient-pipeline-except-all.yaml
-- asya-router-resilient-pipeline-except-valueerror.yaml
-- asya-start-resilient-pipeline.yaml
+- asya-router-try-except-catch-all-except-all.yaml
+- asya-router-try-except-catch-all-except-valueerror.yaml
+- asya-start-try-except-catch-all.yaml
 - configmap-routers.yaml

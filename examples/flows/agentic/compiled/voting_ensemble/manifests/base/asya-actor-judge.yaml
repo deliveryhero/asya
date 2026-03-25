@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-judge
   image: examples.asya.sh/judge:latest
-  handler: judge
+  handler: voting_ensemble.judge
   scaling:
     enabled: true
     minReplicaCount: 0

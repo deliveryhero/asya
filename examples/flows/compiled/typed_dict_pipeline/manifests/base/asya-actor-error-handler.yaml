@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-error-handler
   image: examples.asya.sh/error-handler:latest
-  handler: error_handler
+  handler: typed_dict_pipeline.error_handler
   scaling:
     enabled: true
     minReplicaCount: 0

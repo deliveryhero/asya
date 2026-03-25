@@ -21,7 +21,6 @@ digraph "multi_agent_debate" {
     router_multi_agent_debate_seq_set_round [label="router_multi_agent_debate_seq_set_round\n\np['round'] += 1", fillcolor=wheat];
     router_multi_agent_debate_while_loop [label="router_multi_agent_debate_while_loop", fillcolor=wheat];
     start_multi_agent_debate [label="start_multi_agent_debate\n\np['round'] = 0", fillcolor=palegreen];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_multi_agent_debate -> router_multi_agent_debate_fanout_positions_2;

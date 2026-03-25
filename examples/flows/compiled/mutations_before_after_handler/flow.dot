@@ -4,17 +4,16 @@ digraph "mutations_before_after_handler_flow" {
 
     { rank=source; start_mutations_before_after_handler_flow; }
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
     handler_a [label="handler_a", fillcolor=lightblue];
     handler_b [label="handler_b", fillcolor=lightblue];
     router_mutations_before_after_handler_flow_seq_set_step [label="router_mutations_before_after_handler_flow_seq_set_step\n\np['step'] = 3", fillcolor=wheat];
     router_mutations_before_after_handler_flow_seq_set_step_2 [label="router_mutations_before_after_handler_flow_seq_set_step_2\n\np['step'] = 2", fillcolor=wheat];
     start_mutations_before_after_handler_flow [label="start_mutations_before_after_handler_flow\n\np['step'] = 1", fillcolor=palegreen];
 
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
-
     start_mutations_before_after_handler_flow -> handler_a;
     handler_a -> router_mutations_before_after_handler_flow_seq_set_step_2;
+    router_mutations_before_after_handler_flow_seq_set_step -> __end__;
     router_mutations_before_after_handler_flow_seq_set_step_2 -> handler_b;
     handler_b -> router_mutations_before_after_handler_flow_seq_set_step;
-    router_mutations_before_after_handler_flow_seq_set_step -> __end__;
 }

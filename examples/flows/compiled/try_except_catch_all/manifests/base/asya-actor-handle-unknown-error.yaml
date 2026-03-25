@@ -4,12 +4,12 @@ metadata:
   name: actor-handle-unknown-error
   namespace: default
   labels:
-    asya.sh/flow: resilient-pipeline
+    asya.sh/flow: try-except-catch-all
     asya.sh/role: end
 spec:
   actor: actor-handle-unknown-error
   image: examples.asya.sh/handle-unknown-error:latest
-  handler: handle_unknown_error
+  handler: try_except_catch_all.handle_unknown_error
   scaling:
     enabled: true
     minReplicaCount: 0

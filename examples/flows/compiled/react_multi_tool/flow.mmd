@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: research_agent
 
+    __end__((( )))
     router_research_agent_if_tool_name_eq_calculator{{router_research_agent_if_tool_name_eq_calculator}}
     router_research_agent_if_tool_name_eq_code_exec{{router_research_agent_if_tool_name_eq_code_exec}}
     router_research_agent_if_tool_name_eq_search{{router_research_agent_if_tool_name_eq_search}}
@@ -8,6 +9,7 @@ flowchart TD
     start_research_agent(["start_research_agent<br/><br/>p['messages'] = p.get('messages', [])"])
 
     start_research_agent --> router_research_agent_while_loop
+    router_research_agent_if_tool_name_eq_code_exec -->|"else"| __end__
     router_research_agent_if_tool_name_eq_calculator -->|"else"| router_research_agent_if_tool_name_eq_code_exec
     router_research_agent_if_tool_name_eq_search -->|"else"| router_research_agent_if_tool_name_eq_calculator
     router_research_agent_while_loop --> router_research_agent_if_tool_name_eq_search
@@ -19,5 +21,6 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_research_agent start
+    class __end__ endnode
     class router_research_agent_if_tool_name_eq_calculator,router_research_agent_if_tool_name_eq_code_exec,router_research_agent_if_tool_name_eq_search,router_research_agent_while_loop router
-    linkStyle 1,2 stroke:#E07040
+    linkStyle 1,2,3 stroke:#E07040

@@ -1,0 +1,30 @@
+flowchart TD
+    %% Flow: text_improver
+
+    evaluate[evaluate]
+    generate[generate]
+    research[research]
+    router_text_improver_if_iteration_ge_max_iterations{{router_text_improver_if_iteration_ge_max_iterations}}
+    router_text_improver_if_score_ge_threshold{{router_text_improver_if_score_ge_threshold}}
+    router_text_improver_seq_set_iteration{{"router_text_improver_seq_set_iteration<br/><br/>p['iteration'] = p.get('iteration', 0) + 1"}}
+    router_text_improver_while_loop{{router_text_improver_while_loop}}
+    start_text_improver(["start_text_improver<br/><br/>p['topic'] = p.get('topic', p.get('query', 'anything'))"])
+
+    start_text_improver --> research
+    research --> router_text_improver_while_loop
+    router_text_improver_if_score_ge_threshold -->|"else"| router_text_improver_if_iteration_ge_max_iterations
+    router_text_improver_seq_set_iteration --> generate
+    generate --> evaluate
+    evaluate --> router_text_improver_if_score_ge_threshold
+    router_text_improver_while_loop --> router_text_improver_seq_set_iteration
+    router_text_improver_if_iteration_ge_max_iterations --> router_text_improver_while_loop
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_text_improver start
+    class router_text_improver_if_iteration_ge_max_iterations,router_text_improver_if_score_ge_threshold,router_text_improver_seq_set_iteration,router_text_improver_while_loop router
+    class evaluate,generate,research handler
+    linkStyle 2 stroke:#E07040

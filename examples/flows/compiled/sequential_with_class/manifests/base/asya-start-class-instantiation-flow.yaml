@@ -21,4 +21,13 @@ spec:
   - name: ASYA_HANDLER_ACTOR_SEQUENTIAL_WITH_CLASS.MLMODEL.PREDICT
     value: sequential_with_class.MLModel.predict
   - name: ASYA_HANDLER_ACTOR_TRANSFORMATION
-    value: transformation
+    value: sequential_with_class.transformation
+  volumes:
+  - name: routers
+    configMap:
+      name: class-instantiation-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -18,7 +18,6 @@ digraph "react_tool_loop" {
     router_react_tool_loop_while_loop [label="router_react_tool_loop_while_loop", fillcolor=wheat];
     start_react_tool_loop [label="start_react_tool_loop\n\np['messages'] = p.get('messages', [])\np['iteration'] = 0", fillcolor=palegreen];
     web_search [label="web_search", fillcolor=lightblue];
-
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_react_tool_loop -> router_react_tool_loop_while_loop;

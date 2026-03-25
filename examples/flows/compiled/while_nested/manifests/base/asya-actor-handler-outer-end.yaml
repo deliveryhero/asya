@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-handler-outer-end
   image: examples.asya.sh/handler-outer-end:latest
-  handler: handler_outer_end
+  handler: while_nested.handler_outer_end
   scaling:
     enabled: true
     minReplicaCount: 0

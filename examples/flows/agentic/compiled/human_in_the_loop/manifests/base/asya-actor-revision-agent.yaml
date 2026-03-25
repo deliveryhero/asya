@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-revision-agent
   image: examples.asya.sh/revision-agent:latest
-  handler: revision_agent
+  handler: human_in_the_loop.revision_agent
   scaling:
     enabled: true
     minReplicaCount: 0

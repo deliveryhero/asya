@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-preprocess
   image: examples.asya.sh/preprocess:latest
-  handler: preprocess
+  handler: flow_composition_simple.preprocess
   scaling:
     enabled: true
     minReplicaCount: 0

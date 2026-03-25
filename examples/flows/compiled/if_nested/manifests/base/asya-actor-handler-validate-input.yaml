@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-handler-validate-input
   image: examples.asya.sh/handler-validate-input:latest
-  handler: handler_validate_input
+  handler: if_nested.handler_validate_input
   scaling:
     enabled: true
     minReplicaCount: 0

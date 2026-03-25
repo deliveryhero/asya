@@ -84,17 +84,21 @@ class TestCompileFile:
             compiler.compile_file(str(source_file), str(output_file))
 
     def test_compile_file_output_directory_not_empty(self, tmp_path: Path):
+        """Compiling into a non-empty output dir succeeds (overwrite)."""
         source_file = tmp_path / "flow.py"
-        source_file.write_text("def flow(p: dict) -> dict:\n    return p")
+        source_file.write_text(textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                return p
+        """))
 
         output_dir = tmp_path / "output"
         output_dir.mkdir()
         (output_dir / "existing.txt").write_text("something")
 
         compiler = FlowCompiler()
-
-        with pytest.raises(ValueError, match="not empty"):
-            compiler.compile_file(str(source_file), str(output_dir))
+        result = compiler.compile_file(str(source_file), str(output_dir), overwrite=True)
+        assert isinstance(result, FlowInfo)
 
     def test_compile_file_creates_output_directory(self, tmp_path: Path):
         source_file = tmp_path / "flow.py"

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-data-team-lead
   image: examples.asya.sh/data-team-lead:latest
-  handler: data_team_lead
+  handler: hierarchical_delegation.data_team_lead
   scaling:
     enabled: true
     minReplicaCount: 0

@@ -4,11 +4,11 @@ metadata:
   name: actor-parse-response
   namespace: default
   labels:
-    asya.sh/flow: llm-pipeline
+    asya.sh/flow: resiliency-retry-patterns
 spec:
   actor: actor-parse-response
   image: examples.asya.sh/parse-response:latest
-  handler: parse_response
+  handler: resiliency_retry_patterns.parse_response
   scaling:
     enabled: true
     minReplicaCount: 0

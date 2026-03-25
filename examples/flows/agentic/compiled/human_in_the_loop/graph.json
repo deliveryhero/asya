@@ -2,6 +2,11 @@
   "flow_name": "human_in_the_loop",
   "nodes": [
     {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
+    },
+    {
       "id": "approval_gate",
       "label": "approval_gate"
     },
@@ -149,9 +154,15 @@
     },
     {
       "from": "router_human_in_the_loop_if_approval_eq_rejected",
-      "to": "router_human_in_the_loop_while_loop",
+      "to": "__end__",
       "label": "else",
-      "type": "continuation"
+      "type": "set"
+    },
+    {
+      "from": "notifier",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []

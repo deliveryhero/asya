@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-fetch-from-api
   image: examples.asya.sh/fetch-from-api:latest
-  handler: fetch_from_api
+  handler: resiliency_tenacity_real.fetch_from_api
   scaling:
     enabled: true
     minReplicaCount: 0

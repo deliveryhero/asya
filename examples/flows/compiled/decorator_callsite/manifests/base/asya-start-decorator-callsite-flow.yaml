@@ -17,6 +17,15 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_ENRICHER
-    value: enricher
+    value: decorator_callsite.enricher
   - name: ASYA_HANDLER_ACTOR_VALIDATOR
-    value: validator
+    value: decorator_callsite.validator
+  volumes:
+  - name: routers
+    configMap:
+      name: decorator-callsite-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

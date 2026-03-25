@@ -83,6 +83,11 @@
       "mutations": [
         "p['round'] = 0"
       ]
+    },
+    {
+      "id": "__end__",
+      "label": "__end__",
+      "role": "end"
     }
   ],
   "edges": [
@@ -235,6 +240,12 @@
       "to": "router_multi_agent_debate_while_loop",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "final_judge",
+      "to": "__end__",
+      "label": null,
+      "type": "set"
     }
   ],
   "groups": []
