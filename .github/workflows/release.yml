@@ -2,7 +2,7 @@ name: Release
 
 on:
   release:
-    types: [created, published]
+    types: [published]
 
 concurrency:
   group: release-management
@@ -13,7 +13,6 @@ jobs:
     name: Build and publish Docker images
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event.action == 'published'
     permissions:
       contents: read
       packages: write
@@ -121,7 +120,6 @@ jobs:
     name: Publish asya-lab to PyPI
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event.action == 'published'
     environment: pypi
     permissions:
       contents: read
@@ -166,7 +164,6 @@ jobs:
   reserve-image-names:
     name: Reserve placeholder image names
     runs-on: ubuntu-latest
-    if: github.event.action == 'published'
     permissions:
       packages: write
     strategy:
@@ -200,7 +197,6 @@ jobs:
     name: Publish Helm charts
     runs-on: ubuntu-latest
     needs: build-and-publish
-    if: github.event.action == 'published'
     permissions:
       contents: write
 
@@ -304,13 +300,12 @@ jobs:
         helm repo update
 
         echo "[.] Building asya-playground dependencies..."
-        helm dependency build deploy/helm-charts/asya-playground
+        helm dependency update deploy/helm-charts/asya-playground
 
         kill $SERVER_PID 2>/dev/null || true
 
         # Restore production repo URLs in Chart.yaml (version was already bumped by earlier step)
         sed -i 's|http://localhost:8879|https://asya.sh/charts|g' deploy/helm-charts/asya-playground/Chart.yaml
-        rm -f deploy/helm-charts/asya-playground/Chart.lock
 
         echo "[.] Packaging asya-playground..."
         helm package deploy/helm-charts/asya-playground -d .deploy/charts

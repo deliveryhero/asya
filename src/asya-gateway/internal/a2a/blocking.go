@@ -18,6 +18,9 @@ import (
 // flyArtifactID is the deterministic artifact ID used for FLY streaming chunks.
 const flyArtifactID = "fly-stream"
 
+// resultArtifactID is the artifact ID used for the final result payload.
+const resultArtifactID = "result"
+
 // convertFLYToArtifactUpdate converts a FLY event (PartialPayload) to an A2A
 // TaskArtifactUpdateEvent. The first event creates the artifact (Append=false),
 // subsequent events append to it (Append=true).
@@ -50,9 +53,10 @@ func terminalOrInterrupted(status types.EnvelopeStatus) bool {
 	}
 }
 
-// dbPollInterval is how often waitAndRelayEvents polls the DB to detect
-// cross-process status updates (e.g., mesh gateway writing task final status).
-const dbPollInterval = 500 * time.Millisecond
+// dbPollInterval is how often waitAndRelayEvents polls the DB as a backup
+// to detect cross-process status updates. PG NOTIFY is the primary delivery
+// mechanism; DB poll catches oversized events that exceed the 8KB PG NOTIFY limit.
+const dbPollInterval = 2 * time.Second
 
 // waitAndRelayEvents subscribes to task store updates and relays them as
 // a2a events to the event queue. It blocks until the task reaches a terminal
@@ -77,6 +81,7 @@ func waitAndRelayEvents(
 		return fmt.Errorf("get task for blocking wait: %w", err)
 	}
 	if terminalOrInterrupted(task.Status) {
+		writeResultArtifact(ctx, reqCtx, eq, task.Status, task.Result)
 		return writeTerminalEvent(ctx, reqCtx, eq, task.Status)
 	}
 
@@ -145,6 +150,7 @@ func waitAndRelayEvents(
 
 			if terminalOrInterrupted(update.Status) {
 				closeArtifactStream()
+				writeResultArtifact(ctx, reqCtx, eq, update.Status, update.Result)
 				slog.Debug("Blocking wait: terminal event relayed via subscription",
 					"task_id", taskID, "status", update.Status)
 				return writeTerminalEvent(ctx, reqCtx, eq, update.Status)
@@ -159,6 +165,7 @@ func waitAndRelayEvents(
 			}
 			if terminalOrInterrupted(current.Status) {
 				closeArtifactStream()
+				writeResultArtifact(ctx, reqCtx, eq, current.Status, current.Result)
 				slog.Debug("Blocking wait: terminal status detected via DB poll",
 					"task_id", taskID, "status", current.Status)
 				return writeTerminalEvent(ctx, reqCtx, eq, current.Status)
@@ -180,6 +187,35 @@ func waitAndRelayEvents(
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+	}
+}
+
+// writeResultArtifact writes the final result payload as an A2A artifact event.
+// Called before the terminal status event so clients receive the output.
+// Only writes for succeeded tasks with non-empty results.
+func writeResultArtifact(
+	ctx context.Context,
+	reqCtx *a2asrv.RequestContext,
+	eq eventqueue.Queue,
+	status types.EnvelopeStatus,
+	result any,
+) {
+	if status != types.EnvelopeStatusSucceeded {
+		return
+	}
+	artifact := resultToArtifact(result)
+	if artifact == nil {
+		return
+	}
+	evt := &a2alib.TaskArtifactUpdateEvent{
+		TaskID:    reqCtx.TaskID,
+		ContextID: reqCtx.ContextID,
+		Append:    false,
+		LastChunk: true,
+		Artifact:  artifact,
+	}
+	if err := eq.Write(ctx, evt); err != nil {
+		slog.Warn("Failed to write result artifact event", "error", err)
 	}
 }
 

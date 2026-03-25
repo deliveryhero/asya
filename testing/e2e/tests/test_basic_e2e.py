@@ -46,6 +46,32 @@ def test_echo_tool_basic(gateway_helper):
 
 
 @pytest.mark.fast
+def test_completed_task_includes_result_payload(gateway_helper):
+    """
+    Completed task includes the final payload in the result field.
+
+    After the actor pipeline finishes, GET /mesh/{id} must return the envelope
+    with a non-empty 'result' field containing the actor's output payload.
+    """
+    result = gateway_helper.call_mcp_tool(
+        tool_name="test_echo",
+        arguments={"message": "result-payload-test"},
+    )
+    task_id = result["result"]["task_id"]
+    assert task_id, "Should have task ID"
+
+    task = gateway_helper.wait_for_task_completion(task_id, timeout=60)
+    assert task["status"] == "succeeded", f"task must succeed, got: {task['status']}"
+    assert task.get("result") is not None, (
+        f"succeeded task must include 'result' with the final payload, got keys: {list(task.keys())}"
+    )
+    assert isinstance(task["result"], dict), (
+        f"result must be a dict (the actor's output), got: {type(task['result'])}"
+    )
+    logger.info(f"[+] Completed task includes result payload: {list(task['result'].keys())}")
+
+
+@pytest.mark.fast
 def test_doubler_pipeline(gateway_helper):
     """Test multi-actor pipeline (doubler -> incrementer -> x-sink)."""
     logger.info("Testing pipeline processing with doubler")
