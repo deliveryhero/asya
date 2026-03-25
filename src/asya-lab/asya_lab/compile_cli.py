@@ -9,6 +9,7 @@ Flow registry: .asya/flows/<flow-name>.yaml
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from pathlib import Path
 
@@ -47,10 +48,8 @@ def _resolve_compiler_dirs(project: AsyaProject) -> dict[str, Path]:
     """Resolve compiler directories (code, artifacts, manifests, templates) from project config."""
     dirs = {}
     for key in ("compiler.code", "compiler.artifacts", "compiler.manifests", "compiler.templates"):
-        try:
+        with contextlib.suppress(KeyError):
             dirs[key.split(".")[-1]] = project.resolve_path(key)
-        except KeyError:
-            pass
     return dirs
 
 
@@ -79,7 +78,9 @@ def _rel(p: Path) -> str:
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
-def compile_cmd(flow_name: str, source_file: str | None, plot: bool, plot_format: str, verbose: bool, strict: bool) -> None:
+def compile_cmd(
+    flow_name: str, source_file: str | None, plot: bool, plot_format: str, verbose: bool, strict: bool
+) -> None:
     """Compile a flow into Kubernetes manifests.
 
     FLOW_NAME is the flow name (e.g. text-improver). On first compile,
@@ -104,7 +105,9 @@ def compile_cmd(flow_name: str, source_file: str | None, plot: bool, plot_format
             source_file = reg["source"]
             click.echo(f"[.] Using saved source: {source_file}", err=True)
         else:
-            click.echo(f"[-] No source file for '{flow_name}'. Usage: asya compile {flow_name} -f path/to/flow.py", err=True)
+            click.echo(
+                f"[-] No source file for '{flow_name}'. Usage: asya compile {flow_name} -f path/to/flow.py", err=True
+            )
             sys.exit(1)
 
     source_path = Path(source_file).resolve()

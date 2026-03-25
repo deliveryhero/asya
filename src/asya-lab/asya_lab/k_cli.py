@@ -291,7 +291,9 @@ def apply(target: AsyaRef | None, ctx: str, verbose: bool) -> None:
     gateway deployment is automatically patched to mount it.
     """
     if target is None:
-        raise click.MissingParameter(param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument")
+        raise click.MissingParameter(
+            param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument"
+        )
     runner = KubeRunner(ctx, arg_values={"flow_name": target.name})
     runner.check_readonly("apply")
 
@@ -328,7 +330,9 @@ def delete(target: AsyaRef | None, ctx: str) -> None:
     TARGET is the flow name. Deletes all resources with label asya.sh/flow=<name>.
     """
     if target is None:
-        raise click.MissingParameter(param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument")
+        raise click.MissingParameter(
+            param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument"
+        )
     runner = KubeRunner(ctx)
     runner.check_readonly("delete")
 
@@ -419,9 +423,13 @@ def _list_available_flows(ctx: str | None) -> str:
     """Print available flow names from deployed AsyncActors."""
     runner = KubeRunner(ctx)
     result = runner.kubectl(
-        "get", "asyncactor",
-        "-o", "jsonpath={.items[*].metadata.labels.asya\\.sh/flow}",
-        quiet=True, capture_output=True, text=True,
+        "get",
+        "asyncactor",
+        "-o",
+        "jsonpath={.items[*].metadata.labels.asya\\.sh/flow}",
+        quiet=True,
+        capture_output=True,
+        text=True,
     )
     flows = sorted(set(result.stdout.split())) if result.returncode == 0 and result.stdout.strip() else []
     return repr(flows)
@@ -547,7 +555,9 @@ def _stream_colored_logs(
     help="Container(s) to show (default: asya-runtime). Use -c asya-sidecar to add sidecar logs.",
 )
 @click.option("--width", "-w", type=int, default=20, help="Min actor name column width for padding (default: 20)")
-def logs(target: AsyaRef | None, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...], width: int) -> None:
+def logs(
+    target: AsyaRef | None, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...], width: int
+) -> None:
     """Stream logs for a deployed flow with colored actor-name prefixes.
 
     TARGET is the flow name. Shows logs from all pods matching asya.sh/flow label.
@@ -560,7 +570,9 @@ def logs(target: AsyaRef | None, ctx: str, follow: bool, tail: int | None, conta
       asya k logs text-flow -c asya-runtime -c asya-sidecar  # both containers
     """
     if target is None:
-        raise click.MissingParameter(param_hint=f"'TARGET' (detected flows: {_list_available_flows(ctx)})", param_type="argument")
+        raise click.MissingParameter(
+            param_hint=f"'TARGET' (detected flows: {_list_available_flows(ctx)})", param_type="argument"
+        )
 
     if not containers:
         containers = ("asya-runtime",)
@@ -775,7 +787,9 @@ def _find_svc(label: str, namespaces: list[str]) -> tuple[str, str] | None:
     for ns in namespaces:
         result = subprocess.run(  # nosec B603, B607  # nosemgrep
             ["kubectl", "-n", ns, "get", "svc", "-l", label, "-o", "jsonpath={.items[0].metadata.name}"],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if result.returncode == 0 and result.stdout.strip():
             return (ns, result.stdout.strip())
@@ -808,7 +822,10 @@ def _print_port_forward_hint(url: str, ctx_config: dict | None) -> None:
         found = _find_svc(label, search_ns)
         if found:
             svc_port = 80 if "grafana" in label else default_port
-            click.echo(f"    kubectl port-forward -n {found[0]} svc/{found[1]} {local_port}:{svc_port}  # optional, {comment}", err=True)
+            click.echo(
+                f"    kubectl port-forward -n {found[0]} svc/{found[1]} {local_port}:{svc_port}  # optional, {comment}",
+                err=True,
+            )
         else:
             click.echo(f"    # {comment}: service with label '{label}' not found in {search_ns}", err=True)
 
@@ -838,13 +855,13 @@ def _colorize_json(obj: object, indent: int = 2) -> str:
     import json as _json
 
     raw = _json.dumps(obj, indent=indent, ensure_ascii=False)
-    C, R = "\033[36m", "\033[0m"
+    cyan, reset = "\033[36m", "\033[0m"
     lines = []
     for line in raw.split("\n"):
         stripped = line.lstrip()
         if stripped.startswith('"') and '":' in stripped:
             colon_pos = line.index('":')
-            lines.append(f"{C}{line[: colon_pos + 1]}{R}{line[colon_pos + 1 :]}")
+            lines.append(f"{cyan}{line[: colon_pos + 1]}{reset}{line[colon_pos + 1 :]}")
         else:
             lines.append(line)
     return "\n".join(lines)
@@ -920,7 +937,7 @@ def _send_a2a(
         headers["X-API-Key"] = api_key
 
     if verbose:
-        click.echo(f"  method: message/send", err=True)
+        click.echo("  method: message/send", err=True)
         click.echo(f"  task_id: {task_id}", err=True)
 
     # message/send blocks until the task completes and returns the full result.
@@ -946,8 +963,8 @@ def _send_a2a(
     t.start()
 
     if stream:
-        import time as _time
         import itertools
+        import time as _time
 
         spinner = itertools.cycle("|/-\\")
         while t.is_alive():
@@ -1228,7 +1245,7 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
         except Exception as e:
             click.echo(f"[!] Tempo query failed: {e}", err=True)
             if attempt >= 5:
-                click.echo(f"[!] Giving up. Try manually:", err=True)
+                click.echo("[!] Giving up. Try manually:", err=True)
                 click.echo(f"    curl '{search_url}'", err=True)
                 return
 
@@ -1285,7 +1302,10 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
 
         click.echo(f"\n  Trace: {trace_id}", err=True)
         if grafana_url:
-            click.echo(f"  Grafana: {grafana_url}/explore?left=%5B%22now-1h%22,%22now%22,%22Tempo%22,%7B%22query%22:%22{trace_id}%22%7D%5D", err=True)
+            click.echo(
+                f"  Grafana: {grafana_url}/explore?left=%5B%22now-1h%22,%22now%22,%22Tempo%22,%7B%22query%22:%22{trace_id}%22%7D%5D",
+                err=True,
+            )
         click.echo(f"  Total: {total_ns / 1e6:.0f}ms", err=True)
         click.echo(f"  {'Actor':<{max_actor_len}} {'Duration':>8}  Timeline", err=True)
         click.echo(f"  {'─' * max_actor_len} {'─' * 8}  {'─' * 40}", err=True)
@@ -1345,7 +1365,9 @@ def send(
       asya k send text-flow '{"key":"val"}' --mcp
     """
     if target is None:
-        raise click.MissingParameter(param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument")
+        raise click.MissingParameter(
+            param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument"
+        )
     if message is None:
         raise click.MissingParameter(param_hint="'MESSAGE'", param_type="argument")
 
