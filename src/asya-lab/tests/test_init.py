@@ -75,7 +75,7 @@ class TestScanSkaffold:
         (tmp_path / "actors" / "nlp").mkdir(parents=True)
         (tmp_path / "actors" / "nlp" / "Dockerfile").write_text("FROM python:3.13\n")
 
-        results = scan_and_generate_skaffold(tmp_path)
+        results = scan_and_generate_skaffold(tmp_path, prompt_image_name=False)
         created = [r for r in results if r.created]
         assert len(created) == 1
         assert created[0].image == "actors-nlp"
@@ -89,17 +89,17 @@ class TestScanSkaffold:
         (tmp_path / "libs" / "common").mkdir(parents=True)
         (tmp_path / "libs" / "common" / "pyproject.toml").write_text("[project]\nname='common'\n")
 
-        results = scan_and_generate_skaffold(tmp_path)
+        results = scan_and_generate_skaffold(tmp_path, prompt_image_name=False)
         assert len(results) == 0
 
     def test_idempotent_no_duplicates(self, tmp_path: Path) -> None:
         (tmp_path / "svc").mkdir()
         (tmp_path / "svc" / "Dockerfile").write_text("FROM python:3.13\n")
 
-        first = scan_and_generate_skaffold(tmp_path)
+        first = scan_and_generate_skaffold(tmp_path, prompt_image_name=False)
         assert len([r for r in first if r.created]) == 1
 
-        second = scan_and_generate_skaffold(tmp_path)
+        second = scan_and_generate_skaffold(tmp_path, prompt_image_name=False)
         assert len([r for r in second if r.created]) == 0
 
         skaffold = yaml.safe_load((tmp_path / "svc" / "skaffold.yaml").read_text())
@@ -111,7 +111,7 @@ class TestScanSkaffold:
         (tmp_path / "team-b" / "api").mkdir(parents=True)
         (tmp_path / "team-b" / "api" / "Dockerfile").write_text("FROM python:3.13\n")
 
-        results = scan_and_generate_skaffold(tmp_path)
+        results = scan_and_generate_skaffold(tmp_path, prompt_image_name=False)
         created = [r for r in results if r.created]
         assert len(created) == 2
 
@@ -124,7 +124,7 @@ class TestScanSkaffold:
         (tmp_path / ".git" / "hooks").mkdir(parents=True)
         (tmp_path / ".git" / "hooks" / "Dockerfile").write_text("FROM x\n")
 
-        results = scan_and_generate_skaffold(tmp_path)
+        results = scan_and_generate_skaffold(tmp_path, prompt_image_name=False)
         assert len(results) == 0
 
 

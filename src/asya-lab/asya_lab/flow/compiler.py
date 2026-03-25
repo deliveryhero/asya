@@ -8,6 +8,7 @@ from __future__ import annotations
 import ast
 import contextlib
 import os
+import types
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -106,9 +107,12 @@ class FlowCompiler:
         # Resolve handler FQNs and source files by importing the flow module
         self._resolve_handler_sources(source_path)
 
-        # Write adapter files alongside routers.py
+        # Patch adapter import lines with resolved FQNs
+        # (e.g. "from actors import research" -> "from actors.research import research")
+        # Must happen before _stamp_manifests since ConfigMaps embed adapter code.
         if self._codegen_meta and self._codegen_meta.adapter_files:
             for af in self._codegen_meta.adapter_files:
+                af.code = self._patch_adapter_import(af.actor_name, af.code)
                 (routers_path / af.filename).write_text(af.code)
 
         _manifests_dir = self._stamp_manifests(manifests_dir, templates_dir)
@@ -294,6 +298,9 @@ class FlowCompiler:
             p = templates_dir / name
             return p if p.exists() else None
 
+        if self._project is None:
+            return None
+
         templater = ManifestTemplater(
             flow_name=flow_name,
             flow_function=flow_function,
@@ -418,7 +425,7 @@ class FlowCompiler:
         # Try 1: import as a Python module (requires package on sys.path)
         try:
             mod = importlib.import_module(fqn_module)  # nosemgrep
-        except ImportError as e1:
+        except ImportError:
             # Try 2: import from file directly (exec the .py file)
             try:
                 spec = importlib.util.spec_from_file_location(module_name, flow_source)
@@ -439,9 +446,7 @@ class FlowCompiler:
                     f"Fix: install the dependency in your CLI venv, or ignore if using a single image."
                 )
             else:
-                self.warnings.append(
-                    f"Cannot import '{fqn_module}'. Effect: {consequence}."
-                )
+                self.warnings.append(f"Cannot import '{fqn_module}'. Effect: {consequence}.")
             self._cleanup_sys_path(added_paths)
             return
 
@@ -451,6 +456,11 @@ class FlowCompiler:
 
         for name in all_names:
             func = getattr(mod, name, None)
+            # If the name resolved to a module (e.g. `from pkg import submodule`
+            # where __init__.py doesn't re-export the function), look inside
+            # the module for a same-named callable.
+            if func is not None and isinstance(func, types.ModuleType):
+                func = getattr(func, name, None)
             if func is None or not callable(func):
                 continue
 
@@ -480,6 +490,32 @@ class FlowCompiler:
                 pass
 
         self._cleanup_sys_path(added_paths)
+
+    def _patch_adapter_import(self, actor_name: str, code: str) -> str:
+        """Patch adapter import line with the resolved FQN from _resolve_handler_sources.
+
+        The codegen generates import lines from the parser's import_map (e.g.
+        "from actors import research") which may import a module instead of a
+        function when __init__.py doesn't re-export. The compiler resolves the
+        actual FQN (e.g. "actors.research.research") — use it to fix the import.
+        """
+        resolved_fqn = self.import_map.get(actor_name)
+        if not resolved_fqn or "." not in resolved_fqn:
+            return code
+
+        module_path, func_name = resolved_fqn.rsplit(".", 1)
+        if func_name != actor_name:
+            new_import = f"from {module_path} import {func_name} as {actor_name}"
+        else:
+            new_import = f"from {module_path} import {actor_name}"
+
+        # Replace the first "from ... import ..." line
+        lines = code.split("\n")
+        for i, line in enumerate(lines):
+            if line.startswith("from ") and f"import {actor_name}" in line:
+                lines[i] = new_import
+                break
+        return "\n".join(lines)
 
     @staticmethod
     def _cleanup_sys_path(added_paths: list[str]) -> None:

@@ -383,6 +383,7 @@ def _rel(p: Path) -> str:
 @click.argument("flow_name", type=ASYA_REF)
 @click.argument("key_values", nargs=-1)
 @click.option("--actor", "-a", "actor_ref", default=None, help="Target a specific actor")
+@click.option("--all-actors", "all_actors", is_flag=True, help="Apply patch to all actors in the flow")
 @click.option("--gateway", is_flag=True, help="Target gateway flow registration")
 @click.option("--context", "ctx", default=None, help="Write to overlay (default: common/)")
 @click.option("-p", "raw_patch", default=None, help="Raw JSON patch (escape hatch, actors only)")
@@ -391,6 +392,7 @@ def patch(
     flow_name: AsyaRef,
     key_values: tuple[str, ...],
     actor_ref: str | None,
+    all_actors: bool,
     gateway: bool,
     ctx: str | None,
     raw_patch: str | None,
@@ -426,10 +428,10 @@ def patch(
       scaling.max=20    maxReplicaCount
     """
     # Validate scope
-    if not actor_ref and not gateway:
-        raise click.UsageError("Specify a scope: --actor <name> or --gateway")
-    if actor_ref and gateway:
-        raise click.UsageError("Specify only one scope: --actor or --gateway")
+    if not actor_ref and not all_actors and not gateway:
+        raise click.UsageError("Specify a scope: --actor <name>, --all-actors, or --gateway")
+    if sum(bool(x) for x in [actor_ref, all_actors, gateway]) > 1:
+        raise click.UsageError("Specify only one scope: --actor, --all-actors, or --gateway")
 
     if not key_values and not raw_patch and not remove_keys:
         raise click.UsageError("Provide key=value pairs, --remove keys, or -p '{json}'")
@@ -484,8 +486,11 @@ def patch(
         return
 
     # -- Actor scope ---------------------------------------------------------
-    assert actor_ref is not None  # guaranteed by scope validation above
-    actor_names = [_resolve_actor_name(actor_ref, base_dir)]
+    if all_actors:
+        actor_names = _resolve_actors(base_dir)
+    else:
+        assert actor_ref is not None  # guaranteed by scope validation above
+        actor_names = [_resolve_actor_name(actor_ref, base_dir)]
 
     env_remove = [k[4:] for k in remove_keys if k.startswith("env.")]
 

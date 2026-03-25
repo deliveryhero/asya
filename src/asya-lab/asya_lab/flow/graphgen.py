@@ -17,12 +17,6 @@ def to_dot(data: GraphData, flow_name: str) -> str:
     lines.append('    node [shape=box, style=filled, fontname="Helvetica"];')
     lines.append("")
 
-    # Derive exit nodes from topology: nodes with no outgoing edges
-    sources = {e["from"] for e in data.edges}
-    targets = {e["to"] for e in data.edges}
-    node_ids = {n["id"] for n in data.nodes}
-    exitpoints = [_sanitize_id(nid) for nid in sorted(node_ids - sources) if nid in targets]
-
     # Pin start_ to top
     start_ids = [_sanitize_id(n["id"]) for n in data.nodes if n.get("role") == "start"]
     if start_ids:
@@ -31,6 +25,10 @@ def to_dot(data: GraphData, flow_name: str) -> str:
 
     for node in data.nodes:
         nid = _sanitize_id(node["id"])
+        if nid == "__end__":
+            # Terminal node: small black doublecircle
+            lines.append('    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];')
+            continue
         label = _dot_node_label(node)
         if node.get("role") == "start":
             lines.append(f'    {nid} [label="{label}", fillcolor=palegreen];')
@@ -40,11 +38,6 @@ def to_dot(data: GraphData, flow_name: str) -> str:
             lines.append(f'    {nid} [label="{label}", fillcolor=wheat];')
         else:
             lines.append(f'    {nid} [label="{label}", fillcolor=lightblue];')
-
-    # Add ephemeral __end__ node for layout clarity
-    if exitpoints:
-        lines.append("")
-        lines.append('    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];')
 
     lines.append("")
 
@@ -80,10 +73,6 @@ def to_dot(data: GraphData, flow_name: str) -> str:
         attr_str = f" [{', '.join(attrs)}]" if attrs else ""
         lines.append(f"    {src} -> {dst}{attr_str};")
 
-    # Exitpoint edges to __end__
-    for nid in exitpoints:
-        lines.append(f"    {nid} -> __end__;")
-
     # Groups as subgraphs (nested when one group's nodes are a subset of another's)
     _render_dot_groups(data.groups, lines, indent="    ")
 
@@ -97,12 +86,6 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     lines.append(f"    %% Flow: {flow_name}")
     lines.append("")
 
-    # Derive exit nodes from topology
-    sources = {e["from"] for e in data.edges}
-    targets = {e["to"] for e in data.edges}
-    node_ids = {n["id"] for n in data.nodes}
-    exitpoints = [_sanitize_id(nid) for nid in sorted(node_ids - sources) if nid in targets]
-
     start_nodes: list[str] = []
     end_nodes: list[str] = []
     routers: list[str] = []
@@ -110,6 +93,10 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
 
     for node in data.nodes:
         nid = _sanitize_id(node["id"])
+        if nid == "__end__":
+            lines.append("    __end__((( )))")
+            end_nodes.append(nid)
+            continue
         label = _mermaid_node_label(node)
         if node.get("role") == "start":
             lines.append(f"    {nid}([{label}])")
@@ -124,21 +111,16 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
             lines.append(f"    {nid}[{label}]")
             handlers.append(nid)
 
-    # Ephemeral __end__ node
-    if exitpoints:
-        lines.append("    __end__((( )))")
-
     lines.append("")
 
     # Edges — track indices for linkStyle coloring
-    edge_index = 0
     conditional_indices: list[int] = []
     else_indices: list[int] = []
     fanout_indices: list[int] = []
     override_indices: list[int] = []
     error_indices: list[int] = []
 
-    for edge in data.edges:
+    for edge_index, edge in enumerate(data.edges):
         src = _sanitize_id(edge["from"])
         dst = _sanitize_id(edge["to"])
         label = edge.get("label") or ""
@@ -159,12 +141,6 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
             fanout_indices.append(edge_index)
         elif label:
             conditional_indices.append(edge_index)
-        edge_index += 1
-
-    # Exitpoint edges to __end__
-    for nid in exitpoints:
-        lines.append(f"    {nid} --> __end__")
-        edge_index += 1
 
     # Groups as subgraphs (nested when one group's nodes are a subset of another's)
     _render_mermaid_groups(data.groups, lines, indent="    ")
@@ -184,8 +160,6 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         lines.append(f"    class {','.join(routers)} router")
     if handlers:
         lines.append(f"    class {','.join(handlers)} handler")
-    if exitpoints:
-        lines.append("    class __end__ endpoint")
     if conditional_indices:
         lines.append(f"    linkStyle {','.join(str(i) for i in conditional_indices)} stroke:#2E8B57")
     if fanout_indices:

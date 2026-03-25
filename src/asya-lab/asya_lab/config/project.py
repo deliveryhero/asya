@@ -134,45 +134,53 @@ class AsyaProject:
 
         raise KeyError(
             f"Cannot resolve image for handler '{handler_name}': "
-            f"no skaffold artifact or build entry matches. "
-            f"Run 'asya init --scan' to generate skaffold.yaml, "
-            f"or add a build entry to .asya/config.yaml"
+            f"no skaffold artifact matches. "
+            f"Ensure a skaffold.yaml exists with the handler's source "
+            f"inside an artifact context directory."
         )
 
     def _resolve_image_from_skaffold(self, handler_name: str, source_path: Path | None = None) -> str | None:
         """Resolve handler -> image via skaffold.yaml.
 
-        If source_path is provided (from compiler's runtime import),
-        matches it directly against artifact context dirs.
+        If source_path is provided, matches it against artifact context dirs
+        (longest prefix wins). If source_path is None but there is exactly
+        one skaffold artifact, uses it as the default.
         """
-        if source_path is None:
-            log.debug(f"[skaffold] no source path for '{handler_name}', skipping")
-            return None
-
-        source_path = source_path.resolve()
         artifacts = self._collect_skaffold_artifacts()
         if not artifacts:
             log.debug("[skaffold] no skaffold.yaml artifacts found")
             return None
 
-        best_match: tuple[int, str] | None = None
-        for context_dir, image_name in artifacts:
-            try:
-                source_path.relative_to(context_dir)
-                prefix_len = len(str(context_dir))
-                if best_match is None or prefix_len > best_match[0]:
-                    best_match = (prefix_len, image_name)
-            except ValueError:
-                continue
+        if source_path is not None:
+            source_path = source_path.resolve()
+            best_match: tuple[int, str] | None = None
+            for context_dir, image_name in artifacts:
+                try:
+                    source_path.relative_to(context_dir)
+                    prefix_len = len(str(context_dir))
+                    if best_match is None or prefix_len > best_match[0]:
+                        best_match = (prefix_len, image_name)
+                except ValueError:
+                    continue
 
-        if best_match:
-            log.debug(f"[skaffold] {handler_name} -> {best_match[1]} (via {source_path})")
-        else:
+            if best_match:
+                log.debug(f"[skaffold] {handler_name} -> {best_match[1]} (via {source_path})")
+                return best_match[1]
             log.debug(f"[skaffold] no artifact context matches {source_path}")
-        return best_match[1] if best_match else None
+
+        # Fallback: if there is exactly one skaffold artifact, use it
+        unique_images = {img for _, img in artifacts}
+        if len(unique_images) == 1:
+            image = next(iter(unique_images))
+            log.debug(f"[skaffold] {handler_name} -> {image} (single artifact fallback)")
+            return image
+
+        return None
 
     def _collect_skaffold_artifacts(self) -> list[tuple[Path, str]]:
         """Find all skaffold.yaml files under project root and collect artifacts."""
+        if not self._store.asya_dirs:
+            return []
         project_root = self._store.asya_dirs[-1].parent
         skip = {".git", ".asya", ".venv", "node_modules", "__pycache__", "compiled"}
         artifacts: list[tuple[Path, str]] = []

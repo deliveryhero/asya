@@ -130,6 +130,7 @@ class ManifestTemplater:
         self._stamp_readme(output_dir)
         generated.extend(self._stamp_base(base_dir))
         generated.extend(self._stamp_common(common_dir))
+        self._cleanup_stale_patches(common_dir)
         generated.extend(self._stamp_overlays(overlays_dir))
 
         return generated
@@ -395,6 +396,29 @@ images:
         kust["configurations"] = ["kustomizeconfig.yaml"]
         kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
         return ["common/kustomization.yaml", "common/kustomizeconfig.yaml"]
+
+    def _cleanup_stale_patches(self, common_dir: Path) -> None:
+        """Remove patch entries from common/kustomization.yaml whose files no longer exist."""
+        kust_path = common_dir / "kustomization.yaml"
+        if not kust_path.exists():
+            return
+
+        kust = yaml.safe_load(kust_path.read_text()) or {}
+        patches = kust.get("patches", [])
+        if not patches:
+            return
+
+        cleaned = [p for p in patches if not isinstance(p, dict) or (common_dir / p["path"]).exists()]
+        if len(cleaned) == len(patches):
+            return
+
+        removed = len(patches) - len(cleaned)
+        log.info("Removed %d stale patch reference(s) from common/kustomization.yaml", removed)
+        if cleaned:
+            kust["patches"] = cleaned
+        else:
+            del kust["patches"]
+        kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
 
     # -- overlays/<context>/ layer (created once per context) ---------------
 

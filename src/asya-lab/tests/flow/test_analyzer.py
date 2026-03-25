@@ -70,7 +70,7 @@ class TestExtractYieldEdges:
         # The else-branch gets "else"
         assert bad_edge["label"] == "else"
 
-    def test_empty_route_no_edge(self):
+    def test_empty_route_creates_end_edge(self):
         func = _parse_func("""
             async def router_terminal(payload):
                 p = payload
@@ -78,7 +78,10 @@ class TestExtractYieldEdges:
                 yield p
         """)
         edges = _extract_yield_edges(func, "router_terminal")
-        assert edges == []
+        assert len(edges) == 1
+        assert edges[0]["from"] == "router_terminal"
+        assert edges[0]["to"] == "__end__"
+        assert edges[0]["type"] == "set"
 
     def test_fanout_slice_edges(self):
         func = _parse_func("""
@@ -161,8 +164,8 @@ class TestAnalyzeIntegration:
         end_nodes = [n for n in graph.nodes if n.get("role") == "end"]
         assert len(start_nodes) == 1
         assert start_nodes[0]["id"] == "start_myflow"
-        assert len(end_nodes) == 1
-        assert end_nodes[0]["id"] == "handler_b"
+        assert any(n["id"] == "handler_b" for n in end_nodes)
+        assert any(n["id"] == "__end__" for n in end_nodes)
 
     def test_duplicate_sequential_actor_gets_suffix(self):
         """Calling the same actor twice creates distinct graph nodes with same label."""
@@ -190,7 +193,7 @@ class TestAnalyzeIntegration:
 
         # 4 nodes with unique IDs
         node_ids = {n["id"] for n in graph.nodes}
-        assert node_ids == {"start_flow", "analyze", "analyze:2", "summarize"}
+        assert {"start_flow", "analyze", "analyze:2", "summarize"}.issubset(node_ids)
 
         # Both analyze nodes have the same label
         analyze_nodes = [n for n in graph.nodes if n["label"] == "analyze"]

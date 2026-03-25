@@ -226,19 +226,38 @@ class ScaffoldedSkaffold:
     created: bool  # False if skaffold.yaml already existed with this artifact
 
 
-def scan_and_generate_skaffold(target_dir: Path) -> list[ScaffoldedSkaffold]:
+def scan_and_generate_skaffold(
+    target_dir: Path,
+    *,
+    prompt_image_name: bool = True,
+) -> list[ScaffoldedSkaffold]:
     """Scan directory tree for Dockerfiles, create skaffold.yaml per build context.
 
     Each Dockerfile gets its own skaffold.yaml in the same directory.
     Existing skaffold.yaml files are not overwritten.
 
+    Args:
+        target_dir: Root directory to scan.
+        prompt_image_name: If True, ask the user for the image name
+            (with the auto-derived name as the default).
+
     Returns list of results (created or skipped).
     """
+    import click as _click
+
     results: list[ScaffoldedSkaffold] = []
 
     for context_dir in _discover_build_contexts(target_dir):
         skaffold_file = context_dir / "skaffold.yaml"
-        image_name = _context_to_image_name(context_dir, target_dir)
+        default_name = _context_to_image_name(context_dir, target_dir)
+        if prompt_image_name and not skaffold_file.exists():
+            rel = context_dir.relative_to(target_dir) if context_dir != target_dir else Path(".")
+            image_name = _click.prompt(
+                f"  Image name for {rel}/Dockerfile",
+                default=default_name,
+            )
+        else:
+            image_name = default_name
         rel_context = "."
 
         if skaffold_file.exists():

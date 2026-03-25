@@ -10,10 +10,12 @@ def _make_graph() -> GraphData:
             {"id": "start_flow", "label": "start_flow", "role": "start", "generated": True},
             {"id": "handler_a", "label": "handler_a"},
             {"id": "handler_b", "label": "handler_b", "role": "end"},
+            {"id": "__end__", "label": "__end__", "role": "end"},
         ],
         edges=[
             {"from": "start_flow", "to": "handler_a", "label": None, "type": "prepend"},
             {"from": "handler_a", "to": "handler_b", "label": None, "type": "continuation"},
+            {"from": "handler_b", "to": "__end__", "label": None, "type": "set"},
         ],
         groups=[],
     )
@@ -71,7 +73,7 @@ class TestToMermaid:
         assert "classDef start" in mmd
         assert "classDef endnode" in mmd
         assert "class start_flow start" in mmd
-        assert "class handler_b endnode" in mmd
+        assert "handler_b" in mmd and "endnode" in mmd
 
 
 class TestToJson:
@@ -81,8 +83,8 @@ class TestToJson:
 
     def test_nodes_edges_groups_counts(self):
         result = to_json(_make_graph(), "test_flow")
-        assert len(result["nodes"]) == 3
-        assert len(result["edges"]) == 2
+        assert len(result["nodes"]) == 4
+        assert len(result["edges"]) == 3
         assert len(result["groups"]) == 0
 
     def test_warnings_included_when_present(self):

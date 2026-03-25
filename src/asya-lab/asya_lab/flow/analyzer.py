@@ -232,7 +232,10 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
                     condition = chain[0][1]
                     edges.extend(_chain_to_edges(handler_name, names, condition, edge_type))
         elif isinstance(targets_node, ast.List) and not targets_node.elts:
-            pass  # Empty route list = leaf node, no edge needed
+            # Empty route list = terminal (e.g. break/return). Create explicit
+            # edge to __end__ so the graph shows the exit path.
+            condition = _find_enclosing_condition(parent_map, node)
+            edges.append({"from": handler_name, "to": "__end__", "label": condition, "type": edge_type})
 
     # Fanout slice edges: router → each slice actor → aggregator
     if slice_targets:
@@ -460,15 +463,26 @@ def _ensure_else_edges(edges: list[dict]) -> list[str]:
                 ue["label"] = "else"
             continue
 
-        # Case 2: no else edge at all → find merge point via chain end
+        # Case 2: no else edge at all → find merge point via chain end.
+        # When the true branch prepends [A, B] and there's a parent continuation C,
+        # the runtime route is [..., A, B, C, ...]. The else path skips the prepend
+        # and goes directly to C. If there's no continuation (last step before return),
+        # the else path terminates → __end__.
         found = False
         for cond_edge in conditional:
             if cond_edge["type"] == "prepend":
                 chain_end = _find_chain_end(cond_edge["to"], edges)
-                if chain_end != router:
-                    edges.append({"from": router, "to": chain_end, "label": "else", "type": "continuation"})
-                    found = True
-                    break
+                # Check if chain_end has a continuation to follow (merge point)
+                chain_end_continuations = [e for e in edges if e["from"] == chain_end and e["type"] == "continuation"]
+                if chain_end_continuations:
+                    # Else merges at the continuation target (skipping the prepended chain)
+                    merge_target = chain_end_continuations[0]["to"]
+                    edges.append({"from": router, "to": merge_target, "label": "else", "type": "continuation"})
+                else:
+                    # No continuation = terminal (last if before return)
+                    edges.append({"from": router, "to": "__end__", "label": "else", "type": "set"})
+                found = True
+                break
 
         if not found:
             warnings.append(f"if router '{router}' has no else edge and merge point could not be determined")
@@ -605,6 +619,17 @@ def analyze(
         if base_name in router_mutations:
             node_dict["mutations"] = router_mutations[base_name]
         nodes.append(node_dict)
+
+    # Step 6: Add __end__ edges for leaf actors (incoming edges but no outgoing).
+    # These are terminal actors that return without explicit routing.
+    sources = {e["from"] for e in all_edges}
+    targets = {e["to"] for e in all_edges}
+    for name in sorted(all_names - sources):
+        if name in targets and name != "__end__":
+            all_edges.append({"from": name, "to": "__end__", "label": None, "type": "set"})
+    # Ensure __end__ is in node list if any terminal edges exist
+    if any(e["to"] == "__end__" for e in all_edges) and "__end__" not in all_names:
+        nodes.append({"id": "__end__", "label": "__end__", "role": "end"})
 
     graph = GraphData(nodes=nodes, edges=all_edges)
     all_warnings.extend(_validate_graph(graph))
@@ -796,6 +821,8 @@ def _determine_flow_role(name: str, router_names: set[str], edges: list[dict]) -
     - router: generated routers (conditionals, loops, fanout, fanin)
     - actor: regular user handler with downstream routing
     """
+    if name == "__end__":
+        return "end"
     if name.startswith("start_"):
         return "start"
     if name.startswith("fanin_"):

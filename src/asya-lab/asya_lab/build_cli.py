@@ -43,7 +43,7 @@ def _find_flow_images(manifests_base: Path) -> dict[str, str]:
 
 def _find_skaffold_for_image(project_root: Path, image_name: str) -> Path | None:
     """Find the skaffold.yaml directory that builds a given image."""
-    skip = {".git", ".asya", ".venv", "node_modules", "__pycache__", "compiled"}
+    skip = {".git", ".asya", ".venv", "node_modules", "__pycache__", "flows"}
     for skaffold_file in sorted(project_root.rglob("skaffold.yaml")):
         if any(part in skip for part in skaffold_file.relative_to(project_root).parts[:-1]):
             continue
