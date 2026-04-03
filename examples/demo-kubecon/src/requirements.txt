@@ -1,2 +1,2 @@
-litellm[google]==1.82.6
+litellm[google]==1.83.0
 tenacity
