@@ -1,0 +1,34 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-agent-with-tools-while-loop
+  namespace: default
+  labels:
+    asya.sh/flow: agent-with-tools
+    asya.sh/generated: 'true'
+spec:
+  actor: router-agent-with-tools-while-loop
+  image: python:3.13-slim
+  handler: routers.router_agent_with_tools_while_loop
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_EXECUTE_TOOL
+    value: 12_react_loop.execute_tool
+  - name: ASYA_HANDLER_ACTOR_LLM_CALL
+    value: 12_react_loop.llm_call
+  - name: ASYA_HANDLER_ROUTER_AGENT_WITH_TOOLS_IF_TOOL_CALLS
+    value: routers.router_agent_with_tools_if_tool_calls
+  - name: ASYA_HANDLER_ROUTER_AGENT_WITH_TOOLS_WHILE_LOOP
+    value: routers.router_agent_with_tools_while_loop
+  volumes:
+  - name: routers
+    configMap:
+      name: agent-with-tools-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

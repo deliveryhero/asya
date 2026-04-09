@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-decorator-definitions-flow
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-definitions-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-decorator-definitions-flow
+  image: python:3.13-slim
+  handler: routers.start_decorator_definitions_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ENRICH
+    value: 08_decorators.enrich
+  - name: ASYA_HANDLER_ACTOR_VALIDATE
+    value: 08_decorators.validate
+  volumes:
+  - name: routers
+    configMap:
+      name: decorator-definitions-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

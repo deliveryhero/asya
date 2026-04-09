@@ -1,0 +1,30 @@
+flowchart TD
+    %% Flow: if_else_simple_flow
+
+    handler_finalize[handler_finalize]
+    handler_setup[handler_setup]
+    handler_type_a[handler_type_a]
+    handler_type_b[handler_type_b]
+    router_if_else_simple_flow_if_type_eq_a{{router_if_else_simple_flow_if_type_eq_a}}
+    start_if_else_simple_flow([start_if_else_simple_flow])
+    __end__((( )))
+
+    start_if_else_simple_flow --> handler_setup
+    handler_setup --> router_if_else_simple_flow_if_type_eq_a
+    router_if_else_simple_flow_if_type_eq_a -->|"p['type'] == 'A'"| handler_type_a
+    handler_type_a --> handler_finalize
+    router_if_else_simple_flow_if_type_eq_a -->|"else"| handler_type_b
+    handler_type_b --> handler_finalize
+    handler_finalize --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_if_else_simple_flow start
+    class handler_finalize,__end__ endnode
+    class router_if_else_simple_flow_if_type_eq_a router
+    class handler_setup,handler_type_a,handler_type_b handler
+    linkStyle 2 stroke:#2E8B57
+    linkStyle 4 stroke:#E07040

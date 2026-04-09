@@ -1,0 +1,6 @@
+digraph "minimal_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+
+}

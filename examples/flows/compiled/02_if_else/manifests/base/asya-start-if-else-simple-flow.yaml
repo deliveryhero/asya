@@ -1,0 +1,37 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-if-else-simple-flow
+  namespace: default
+  labels:
+    asya.sh/flow: if-else-simple-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-if-else-simple-flow
+  image: python:3.13-slim
+  handler: routers.start_if_else_simple_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: 02_if_else.handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_SETUP
+    value: 02_if_else.handler_setup
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_A
+    value: 02_if_else.handler_type_a
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
+    value: 02_if_else.handler_type_b
+  - name: ASYA_HANDLER_ROUTER_IF_ELSE_SIMPLE_FLOW_IF_TYPE_EQ_A
+    value: routers.router_if_else_simple_flow_if_type_eq_a
+  volumes:
+  - name: routers
+    configMap:
+      name: if-else-simple-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-llm-auditor-flow
+  namespace: default
+  labels:
+    asya.sh/flow: llm-auditor-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-llm-auditor-flow
+  image: python:3.13-slim
+  handler: routers.start_llm_auditor_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CRITIC
+    value: 10_async_sequential.critic
+  - name: ASYA_HANDLER_ACTOR_REVISER
+    value: 10_async_sequential.reviser
+  volumes:
+  - name: routers
+    configMap:
+      name: llm-auditor-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

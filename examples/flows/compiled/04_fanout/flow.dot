@@ -1,0 +1,26 @@
+digraph "analysis_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_analysis_flow; }
+
+    entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
+    fanin_analysis_flow_analysis [label="fanin_analysis_flow_analysis", fillcolor=lightblue];
+    merge_analysis [label="merge_analysis", fillcolor=lightsalmon];
+    router_analysis_flow_fanout_analysis [label="router_analysis_flow_fanout_analysis", fillcolor=wheat];
+    sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
+    start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];
+    topic_extractor [label="topic_extractor", fillcolor=lightblue];
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_analysis_flow -> router_analysis_flow_fanout_analysis;
+    router_analysis_flow_fanout_analysis -> fanin_analysis_flow_analysis [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_analysis_flow_analysis -> merge_analysis;
+    router_analysis_flow_fanout_analysis -> sentiment_analyzer;
+    sentiment_analyzer -> fanin_analysis_flow_analysis;
+    router_analysis_flow_fanout_analysis -> topic_extractor;
+    topic_extractor -> fanin_analysis_flow_analysis;
+    router_analysis_flow_fanout_analysis -> entity_recognizer;
+    entity_recognizer -> fanin_analysis_flow_analysis;
+    merge_analysis -> __end__;
+}

@@ -1,0 +1,26 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-validate-order
+  namespace: default
+  labels:
+    asya.sh/flow: order-processing
+spec:
+  actor: actor-validate-order
+  image: examples.asya.sh/validate-order:latest
+  handler: validate_order
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []
+  resiliency:
+    policies:
+      except_valueerror:
+        maxAttempts: 1
+        thenRoute:
+        - router-order-processing-except-valueerror
+    rules:
+    - errors:
+      - ValueError
+      policy: except_valueerror

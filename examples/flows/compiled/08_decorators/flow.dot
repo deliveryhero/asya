@@ -1,0 +1,15 @@
+digraph "decorator_definitions_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_decorator_definitions_flow; }
+
+    enrich [label="enrich", fillcolor=lightsalmon];
+    start_decorator_definitions_flow [label="start_decorator_definitions_flow", fillcolor=palegreen];
+    validate [label="validate", fillcolor=lightblue];
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_decorator_definitions_flow -> validate;
+    validate -> enrich;
+    enrich -> __end__;
+}

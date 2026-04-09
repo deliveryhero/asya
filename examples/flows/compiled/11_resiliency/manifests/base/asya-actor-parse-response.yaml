@@ -1,0 +1,24 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-parse-response
+  namespace: default
+  labels:
+    asya.sh/flow: resiliency-retry-patterns
+spec:
+  actor: actor-parse-response
+  image: examples.asya.sh/parse-response:latest
+  handler: 11_resiliency.parse_response
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env:
+  - name: ASYA_IGNORE_DECORATORS
+    value: tenacity.retry
+  resiliency:
+    timeout:
+      actor: 120
+    policies:
+      default:
+        maxAttempts: 5

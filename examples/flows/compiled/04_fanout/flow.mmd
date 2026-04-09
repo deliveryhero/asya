@@ -1,0 +1,33 @@
+flowchart TD
+    %% Flow: analysis_flow
+
+    entity_recognizer[entity_recognizer]
+    fanin_analysis_flow_analysis[fanin_analysis_flow_analysis]
+    merge_analysis[merge_analysis]
+    router_analysis_flow_fanout_analysis{{router_analysis_flow_fanout_analysis}}
+    sentiment_analyzer[sentiment_analyzer]
+    start_analysis_flow([start_analysis_flow])
+    topic_extractor[topic_extractor]
+    __end__((( )))
+
+    start_analysis_flow --> router_analysis_flow_fanout_analysis
+    router_analysis_flow_fanout_analysis -->|"fanout"| fanin_analysis_flow_analysis
+    fanin_analysis_flow_analysis --> merge_analysis
+    router_analysis_flow_fanout_analysis --> sentiment_analyzer
+    sentiment_analyzer --> fanin_analysis_flow_analysis
+    router_analysis_flow_fanout_analysis --> topic_extractor
+    topic_extractor --> fanin_analysis_flow_analysis
+    router_analysis_flow_fanout_analysis --> entity_recognizer
+    entity_recognizer --> fanin_analysis_flow_analysis
+    merge_analysis --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_analysis_flow start
+    class merge_analysis,__end__ endnode
+    class router_analysis_flow_fanout_analysis router
+    class entity_recognizer,fanin_analysis_flow_analysis,sentiment_analyzer,topic_extractor handler
+    linkStyle 1 stroke:#7B68EE

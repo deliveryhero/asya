@@ -1,0 +1,20 @@
+digraph "research_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_research_flow; }
+
+    fanin_research_flow_results [label="fanin_research_flow_results", fillcolor=lightblue];
+    research_agent [label="research_agent", fillcolor=lightblue];
+    router_research_flow_fanout_results [label="router_research_flow_fanout_results", fillcolor=wheat];
+    start_research_flow [label="start_research_flow", fillcolor=palegreen];
+    summarizer [label="summarizer", fillcolor=lightsalmon];
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_research_flow -> router_research_flow_fanout_results;
+    router_research_flow_fanout_results -> fanin_research_flow_results [label="fanout: p['topics']", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_research_flow_results -> summarizer;
+    router_research_flow_fanout_results -> research_agent;
+    research_agent -> fanin_research_flow_results;
+    summarizer -> __end__;
+}

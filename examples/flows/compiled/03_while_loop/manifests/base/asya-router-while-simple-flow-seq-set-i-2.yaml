@@ -1,0 +1,38 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-while-simple-flow-seq-set-i-2
+  namespace: default
+  labels:
+    asya.sh/flow: while-simple-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-while-simple-flow-seq-set-i-2
+  image: python:3.13-slim
+  handler: routers.router_while_simple_flow_seq_set_i_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: 03_while_loop.handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
+    value: 03_while_loop.handler_init
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: 03_while_loop.handler_process
+  - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_SEQ_SET_I
+    value: routers.router_while_simple_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_SEQ_SET_I_2
+    value: routers.router_while_simple_flow_seq_set_i_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_WHILE_I_LT_MAX_ITERATIONS
+    value: routers.router_while_simple_flow_while_i_lt_max_iterations
+  volumes:
+  - name: routers
+    configMap:
+      name: while-simple-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

@@ -475,14 +475,14 @@ def flow(p: dict) -> dict:
 
 
 class TestExampleFlowsCompile:
-    """Compile all example flows from examples/flows/ directory and verify valid Python output."""
+    """Compile example flow fixtures and verify valid Python output."""
 
-    EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "examples" / "flows"
+    EXAMPLES_DIR = Path(__file__).resolve().parent / "fixtures" / "example_flows"
 
     @pytest.fixture(autouse=True)
     def skip_if_no_examples(self):
         if not self.EXAMPLES_DIR.exists():
-            pytest.skip(f"Examples directory not found: {self.EXAMPLES_DIR}")
+            pytest.skip(f"Fixtures directory not found: {self.EXAMPLES_DIR}")
 
     def _compile_example(self, filename: str) -> str:
         source_file = self.EXAMPLES_DIR / filename

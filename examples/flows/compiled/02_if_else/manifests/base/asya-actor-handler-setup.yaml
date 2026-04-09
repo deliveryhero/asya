@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-setup
+  namespace: default
+  labels:
+    asya.sh/flow: if-else-simple-flow
+spec:
+  actor: actor-handler-setup
+  image: examples.asya.sh/handler-setup:latest
+  handler: 02_if_else.handler_setup
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

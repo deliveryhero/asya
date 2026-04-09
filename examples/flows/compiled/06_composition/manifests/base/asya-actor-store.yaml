@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-store
+  namespace: default
+  labels:
+    asya.sh/flow: outer-pipeline
+    asya.sh/role: end
+spec:
+  actor: actor-store
+  image: examples.asya.sh/store:latest
+  handler: 06_composition.store
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

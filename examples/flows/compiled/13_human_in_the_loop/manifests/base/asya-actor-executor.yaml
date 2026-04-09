@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-executor
+  namespace: default
+  labels:
+    asya.sh/flow: human-in-the-loop
+spec:
+  actor: actor-executor
+  image: examples.asya.sh/executor:latest
+  handler: 13_human_in_the_loop.executor
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

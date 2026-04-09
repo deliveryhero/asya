@@ -1,0 +1,20 @@
+digraph "agent_with_tools" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_agent_with_tools; }
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+    execute_tool [label="execute_tool", fillcolor=lightblue];
+    llm_call [label="llm_call", fillcolor=lightblue];
+    router_agent_with_tools_if_tool_calls [label="router_agent_with_tools_if_tool_calls", fillcolor=wheat];
+    router_agent_with_tools_while_loop [label="router_agent_with_tools_while_loop", fillcolor=wheat];
+    start_agent_with_tools [label="start_agent_with_tools\n\np['messages'] = p.get('messages', [])", fillcolor=palegreen];
+
+    start_agent_with_tools -> router_agent_with_tools_while_loop;
+    router_agent_with_tools_if_tool_calls -> execute_tool [label="p.get('tool_calls')", color="#2E8B57", fontcolor="#2E8B57"];
+    router_agent_with_tools_if_tool_calls -> __end__ [label="else", color="#D35400", fontcolor="#D35400"];
+    router_agent_with_tools_while_loop -> llm_call;
+    llm_call -> router_agent_with_tools_if_tool_calls;
+    execute_tool -> router_agent_with_tools_while_loop;
+}
