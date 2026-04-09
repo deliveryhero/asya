@@ -31,6 +31,20 @@ company's platform.
 | [Shared State Collaboration](shared-state-collaboration/) | State-proxy S3/GCS/Redis | Medium |
 | [Async Background Processing](async-background-processing/) | A2A non-blocking + FLY SSE | High |
 
+## Strategic Platform Pattern
+
+| Pattern | Integration Protocol | Readiness |
+|---|---|---|
+| [Enterprise Coding Platform](enterprise-coding-platform/) | MCP + agentgateway + per-session actors | Low |
+
+This is the highest-leverage use-case: agentic coding tools (Claude Code, Goose,
+etc.) running on Asya as a centralized, scalable platform managed by a DevX team.
+Developers connect via MCP from their IDE; the agent runs in isolated K8s pods
+with per-project toolchains, secrets, and workspace volumes. Heavy operations
+(test suites, builds) fan out to the mesh. The gateway rearchitecture
+(agentgateway + asya-bridge, aint `gateway-rearchitect/2zia`) is a major
+accelerator — OIDC auth, per-tool RBAC, rate limiting, and admin UI come free.
+
 ## Cross-Cutting Gaps
 
 These gaps affect multiple patterns:
