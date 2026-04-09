@@ -1,3 +1,0 @@
-pydantic
-tenacity
-timeout-decorator

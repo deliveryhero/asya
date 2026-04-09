@@ -1,8 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-- asya-actor-notify-rejection.yaml
-- asya-actor-validate-order.yaml
-- asya-router-order-processing-except-valueerror.yaml
-- asya-start-order-processing.yaml
-- configmap-routers.yaml

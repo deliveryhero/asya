@@ -1,8 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-- asya-actor-handler-a.yaml
-- asya-actor-handler-b.yaml
-- asya-actor-handler-c.yaml
-- asya-start-sequential-flow.yaml
-- configmap-routers.yaml

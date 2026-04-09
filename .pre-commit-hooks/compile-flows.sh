@@ -34,7 +34,7 @@ fi
 
 # Detect flow function name collisions across files
 declare -A seen_functions
-for flow_file in "$REPO_ROOT"/examples/flows/*.py "$REPO_ROOT"/examples/flows/agentic/*.py; do
+for flow_file in "$REPO_ROOT"/examples/flows/*.py; do
   [ -f "$flow_file" ] || continue
   fname="$(basename "$flow_file" .py)"
   [[ "$fname" == "__init__" || "$fname" == _asya_utils ]] && continue
@@ -47,7 +47,7 @@ for flow_file in "$REPO_ROOT"/examples/flows/*.py "$REPO_ROOT"/examples/flows/ag
   seen_functions[$func]="$flow_file"
 done
 
-# Make shared helpers importable (e.g. _asya_utils used by agentic flows)
+# Make shared helpers importable (e.g. _asya_utils)
 export PYTHONPATH="$REPO_ROOT/examples/flows:${PYTHONPATH:-}"
 
 # Store PIDs of background processes
@@ -55,7 +55,6 @@ pids=()
 
 for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
   "$REPO_ROOT"/examples/flows/*.py \
-  "$REPO_ROOT"/examples/flows/agentic/*.py \
   "$REPO_ROOT"/docs/website/img/flows/*.py; do
   [ -f "$flow_file" ] || continue
 
@@ -66,17 +65,13 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     # Subdirectory structure: nested_if/flow.py
     flow_name="$(basename "$flow_dir")"
   else
-    # Flat structure: nested_if.py -> compile to examples/flows/compiled/nested_if/
+    # Flat structure: 01_sequential.py -> compile to examples/flows/compiled/01_sequential/
     flow_name="$(basename "$flow_file" .py)"
     [[ "$flow_name" == "__init__" ]] && continue
     [[ "$flow_name" == _asya_utils ]] && continue
-
-    # Flows requiring unsupported syntax (inline with)
-    [[ "$flow_name" == adk_llm_auditor ]] && continue
-    [[ "$flow_name" == guardrails_sandwich ]] && continue
   fi
 
-  uv run --with-editable src/asya-lab --with-requirements examples/flows/requirements.txt asya compile "$flow_name" -f "$flow_file" --plot &
+  uv run --with-editable src/asya-lab asya compile "$flow_name" -f "$flow_file" --plot &
 
   # Store the process ID of the background task
   pids+=("$!")

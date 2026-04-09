@@ -13,11 +13,11 @@ handlers — not compilable flows.
 For explanation and worked examples, see
 [docs/usage/guide-agentic-patterns.md](../../../docs/usage/guide-agentic-patterns.md).
 
-## How these differ from `examples/flows/agentic/`
+## How these differ from Flow DSL agentic examples
 
-`examples/flows/agentic/` contains **Flow DSL** definitions — Python files that
-you compile with `asya flow compile` to generate router actors. Routing decisions
-are baked in at compile time.
+The [asya-samples](https://github.com/asyacore/asya-samples) repository contains **Flow DSL**
+definitions — Python files that you compile with `asya flow compile` to generate router actors.
+Routing decisions are baked in at compile time.
 
 These files are **generator actor handlers** — functions with `yield` statements
 that communicate with the Asya runtime via the ABI protocol at execution time.
