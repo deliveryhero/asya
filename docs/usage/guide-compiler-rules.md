@@ -596,7 +596,7 @@ Comprehensive working examples with compiled output are in
 Compile any example yourself:
 
 ```bash
-asya flow compile examples/flows/decorator_retry.py --output-dir compiled/ --verbose
+asya flow compile examples/flows/08_decorators.py --plot
 ```
 
 ---

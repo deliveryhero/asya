@@ -94,9 +94,10 @@ The flow compiler transforms this into a distributed actor graph:
 </p>
 <p align="center"><em>Each box is an independent actor. The loop runs as message-passing between queues.</em></p>
 
-More agentic flow examples: [human-in-the-loop](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/human_in_the_loop.py),
-[orchestrator-workers](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/orchestrator_workers.py),
-[multi-agent debate](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/multi_agent_debate.py).
+More agentic flow examples in [asya-samples](https://github.com/asyacore/asya-samples/tree/main/src/agentic/flows):
+[human-in-the-loop](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_human_in_the_loop.py),
+[orchestrator-workers](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_orchestrator_workers.py),
+[multi-agent debate](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_multi_agent_debate.py).
 
 
 ## Further reading
