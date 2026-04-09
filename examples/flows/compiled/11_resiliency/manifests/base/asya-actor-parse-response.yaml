@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-parse-response
   image: examples.asya.sh/parse-response:latest
-  handler: 11_resiliency.parse_response
+  handler: parse_response
   scaling:
     enabled: true
     minReplicaCount: 0

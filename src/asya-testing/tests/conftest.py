@@ -13,11 +13,9 @@ from pathlib import Path
 import pytest
 
 
-# Repo root: src/asya-testing/tests -> src/asya-testing -> src -> repo root
-_REPO_ROOT = Path(__file__).parent.parent.parent.parent
-
-# Agentic example flow modules (routing_classifier.py, parallel_sectioning.py, …)
-_AGENTIC_DIR = _REPO_ROOT / "examples" / "flows" / "agentic"
+# Agentic flow module fixtures (routing_classifier.py, parallel_sectioning.py, …)
+_FIXTURES_DIR = Path(__file__).parent / "fixtures"
+_AGENTIC_DIR = _FIXTURES_DIR / "agentic_flows"
 sys.path.insert(0, str(_AGENTIC_DIR))
 
 # Load handler.py by file path, bypassing asya_testing/__init__ which pulls
@@ -47,10 +45,10 @@ def load_routers():
             routers = load_routers("routing_classifier")
             monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
     """
-    compiled_dir = _AGENTIC_DIR / "compiled"
+    compiled_dir = _FIXTURES_DIR / "agentic_compiled"
 
     def _load(flow_name: str):
-        routers_path = compiled_dir / flow_name / "routers.py"
+        routers_path = compiled_dir / f"{flow_name}_routers.py"
         spec = importlib.util.spec_from_file_location(f"compiled_{flow_name}_routers", routers_path)
         module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
         spec.loader.exec_module(module)  # type: ignore[union-attr]

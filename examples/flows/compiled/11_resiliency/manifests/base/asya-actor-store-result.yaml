@@ -9,7 +9,7 @@ metadata:
 spec:
   actor: actor-store-result
   image: examples.asya.sh/store-result:latest
-  handler: 11_resiliency.store_result
+  handler: store_result
   scaling:
     enabled: true
     minReplicaCount: 0

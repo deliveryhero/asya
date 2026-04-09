@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-call-llm
   image: examples.asya.sh/call-llm:latest
-  handler: 11_resiliency.call_llm
+  handler: call_llm
   scaling:
     enabled: true
     minReplicaCount: 0

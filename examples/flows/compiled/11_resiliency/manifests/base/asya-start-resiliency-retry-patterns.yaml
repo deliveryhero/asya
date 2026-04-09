@@ -17,13 +17,13 @@ spec:
     maxReplicaCount: 2
   env:
   - name: ASYA_HANDLER_ACTOR_CALL_LLM
-    value: 11_resiliency.call_llm
+    value: call_llm
   - name: ASYA_HANDLER_ACTOR_PARSE_RESPONSE
-    value: 11_resiliency.parse_response
+    value: parse_response
   - name: ASYA_HANDLER_ACTOR_STORE_RESULT
-    value: 11_resiliency.store_result
+    value: store_result
   - name: ASYA_HANDLER_ACTOR_VALIDATE_INPUT
-    value: 11_resiliency.validate_input
+    value: validate_input
   volumes:
   - name: routers
     configMap:

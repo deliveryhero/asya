@@ -100,7 +100,7 @@ auto-detects scope from Python syntax.
 Context managers appear inside the flow function body. The compiler strips the
 `with` block and injects extracted config into every actor within the scope.
 
-Source: [`with_asyncio_timeout.py`](https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py)
+Source: [`flow_with_asyncio_timeout.py`](https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py)
 
 ```python
 @flow

@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-validate-input
   image: examples.asya.sh/validate-input:latest
-  handler: 11_resiliency.validate_input
+  handler: validate_input
   scaling:
     enabled: true
     minReplicaCount: 0

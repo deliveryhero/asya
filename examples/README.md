@@ -58,9 +58,9 @@ that use the ABI yield protocol for dynamic routing, streaming, and pause/resume
 
 | File | Pattern |
 |------|---------|
-| `actors/agentic/dynamic_routing.py` | Override routing at runtime via `yield "SET"` |
-| `actors/agentic/live_streaming.py` | Stream tokens to clients via `yield "FLY"` |
-| `actors/agentic/pause_for_human.py` | Pause envelope to S3 for human review |
+| `agentic/dynamic_routing.py` | Override routing at runtime via `yield "SET"` |
+| `agentic/live_streaming.py` | Stream tokens to clients via `yield "FLY"` |
+| `agentic/pause_for_human.py` | Pause envelope to S3 for human review |
 
 ## More Examples
 
