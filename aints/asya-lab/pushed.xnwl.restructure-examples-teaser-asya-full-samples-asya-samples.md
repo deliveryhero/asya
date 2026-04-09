@@ -1,7 +1,11 @@
 ---
 title: "Restructure examples: teaser in asya, full samples in asya-samples"
 priority: 2 # medium
+tags:
+  - pr:413
+  - pr:asya-samples/1
 ---
+
 
 ## Context
 
