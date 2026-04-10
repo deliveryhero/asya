@@ -1,19 +1,19 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "5ec388e983fc1ecad96a5dd126fefdb56e54b726",
+  "commit": "4cb6b7731fb41da4b314e2cc7bc76f02d9e64af0",
   "coverage": {
     "type": "merged",
     "format": "Merged",
     "total": 8239,
-    "covered": 4280,
+    "covered": 4278,
     "files": [
       {
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/cmd/sidecar/main.go",
         "normalized_path": "src/asya-sidecar/cmd/sidecar/main.go",
         "total": 263,
-        "covered": 51,
+        "covered": 49,
         "blocks": [
           {
             "type": "statement",
@@ -175,7 +175,7 @@
             "end_line": 99,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -26786,7 +26786,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 37367,
+    "code": 30877,
     "test": 20316,
     "code_files": [
       {
@@ -26818,73 +26818,101 @@
         "language": "Python"
       },
       {
-        "code": 5,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/demo-kubecon/compiled/text-improver/code/adapter_generate.py",
+        "code": 8,
+        "comment": 5,
+        "blank": 6,
+        "path": "examples/flows/00_minimal.py",
         "language": "Python"
       },
       {
-        "code": 5,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/demo-kubecon/compiled/text-improver/code/adapter_research.py",
+        "code": 16,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/flows/01_sequential.py",
         "language": "Python"
       },
       {
-        "code": 77,
-        "comment": 45,
-        "blank": 30,
-        "path": "examples/demo-kubecon/compiled/text-improver/code/routers.py",
+        "code": 22,
+        "comment": 8,
+        "blank": 12,
+        "path": "examples/flows/02_if_else.py",
         "language": "Python"
       },
       {
-        "code": 3,
-        "comment": 0,
-        "blank": 0,
-        "path": "examples/demo-kubecon/src/actors/__init__.py",
+        "code": 19,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/flows/03_while_loop.py",
         "language": "Python"
       },
       {
-        "code": 26,
-        "comment": 1,
-        "blank": 3,
-        "path": "examples/demo-kubecon/src/actors/evaluate.py",
+        "code": 22,
+        "comment": 9,
+        "blank": 12,
+        "path": "examples/flows/04_fanout.py",
         "language": "Python"
       },
       {
         "code": 9,
-        "comment": 1,
+        "comment": 0,
         "blank": 2,
-        "path": "examples/demo-kubecon/src/actors/format_output.py",
+        "path": "examples/flows/05_try_except.py",
         "language": "Python"
       },
       {
-        "code": 16,
-        "comment": 1,
-        "blank": 2,
-        "path": "examples/demo-kubecon/src/actors/generate.py",
+        "code": 24,
+        "comment": 4,
+        "blank": 14,
+        "path": "examples/flows/06_composition.py",
         "language": "Python"
       },
       {
-        "code": 18,
-        "comment": 1,
-        "blank": 2,
-        "path": "examples/demo-kubecon/src/actors/polish.py",
+        "code": 12,
+        "comment": 5,
+        "blank": 6,
+        "path": "examples/flows/07_mutations.py",
         "language": "Python"
       },
       {
-        "code": 16,
-        "comment": 1,
-        "blank": 2,
-        "path": "examples/demo-kubecon/src/actors/research.py",
+        "code": 25,
+        "comment": 12,
+        "blank": 15,
+        "path": "examples/flows/08_decorators.py",
         "language": "Python"
       },
       {
-        "code": 13,
+        "code": 92,
+        "comment": 95,
+        "blank": 40,
+        "path": "examples/flows/09_typed_pipeline.py",
+        "language": "Python"
+      },
+      {
+        "code": 12,
         "comment": 9,
-        "blank": 8,
-        "path": "examples/demo-kubecon/src/flow_text_improver.py",
+        "blank": 9,
+        "path": "examples/flows/10_async_sequential.py",
+        "language": "Python"
+      },
+      {
+        "code": 41,
+        "comment": 26,
+        "blank": 22,
+        "path": "examples/flows/11_resiliency.py",
+        "language": "Python"
+      },
+      {
+        "code": 17,
+        "comment": 9,
+        "blank": 9,
+        "path": "examples/flows/12_react_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 127,
+        "comment": 84,
+        "blank": 48,
+        "path": "examples/flows/13_human_in_the_loop.py",
         "language": "Python"
       },
       {
@@ -26895,1284 +26923,101 @@
         "language": "Python"
       },
       {
-        "code": 64,
-        "comment": 43,
-        "blank": 41,
-        "path": "examples/flows/adk_llm_auditor.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 6,
+        "code": 9,
+        "comment": 14,
         "blank": 4,
-        "path": "examples/flows/agentic/_asya_utils.py",
-        "language": "Python"
-      },
-      {
-        "code": 32,
-        "comment": 22,
-        "blank": 21,
-        "path": "examples/flows/agentic/actor_override_routing.py",
-        "language": "Python"
-      },
-      {
-        "code": 47,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/agentic/compiled/actor_override_routing/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 76,
-        "comment": 45,
-        "blank": 30,
-        "path": "examples/flows/agentic/compiled/evaluator_optimizer/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 41,
-        "comment": 42,
-        "blank": 23,
-        "path": "examples/flows/agentic/compiled/guardrails_sandwich/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 95,
-        "comment": 47,
-        "blank": 34,
-        "path": "examples/flows/agentic/compiled/hierarchical_delegation/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 91,
-        "comment": 47,
-        "blank": 33,
-        "path": "examples/flows/agentic/compiled/human_in_the_loop/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 60,
-        "comment": 43,
-        "blank": 30,
-        "path": "examples/flows/agentic/compiled/map_reduce/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 122,
-        "comment": 49,
-        "blank": 45,
-        "path": "examples/flows/agentic/compiled/multi_agent_debate/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 105,
-        "comment": 48,
-        "blank": 36,
-        "path": "examples/flows/agentic/compiled/orchestrator_workers/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 61,
-        "comment": 43,
-        "blank": 30,
-        "path": "examples/flows/agentic/compiled/parallel_sectioning/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 70,
-        "comment": 44,
-        "blank": 28,
-        "path": "examples/flows/agentic/compiled/plan_and_execute/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 77,
-        "comment": 45,
-        "blank": 30,
-        "path": "examples/flows/agentic/compiled/rag_pipeline/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 113,
-        "comment": 49,
-        "blank": 38,
-        "path": "examples/flows/agentic/compiled/react_tool_loop/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 78,
-        "comment": 45,
-        "blank": 30,
-        "path": "examples/flows/agentic/compiled/research_and_refine/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 66,
-        "comment": 44,
-        "blank": 28,
-        "path": "examples/flows/agentic/compiled/routing_classifier/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 39,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/agentic/compiled/sequential_pipeline/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/flows/agentic/compiled/tool_calling_agent/adapter_calculate.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/flows/agentic/compiled/tool_calling_agent/adapter_get_weather.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/flows/agentic/compiled/tool_calling_agent/adapter_list_gcs_files.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/flows/agentic/compiled/tool_calling_agent/adapter_web_search.py",
-        "language": "Python"
-      },
-      {
-        "code": 109,
-        "comment": 49,
-        "blank": 38,
-        "path": "examples/flows/agentic/compiled/tool_calling_agent/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 60,
-        "comment": 43,
-        "blank": 30,
-        "path": "examples/flows/agentic/compiled/voting_ensemble/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 57,
-        "comment": 64,
-        "blank": 37,
-        "path": "examples/flows/agentic/evaluator_optimizer.py",
-        "language": "Python"
-      },
-      {
-        "code": 68,
-        "comment": 65,
-        "blank": 37,
-        "path": "examples/flows/agentic/guardrails_sandwich.py",
-        "language": "Python"
-      },
-      {
-        "code": 167,
-        "comment": 87,
-        "blank": 59,
-        "path": "examples/flows/agentic/hierarchical_delegation.py",
-        "language": "Python"
-      },
-      {
-        "code": 127,
-        "comment": 84,
-        "blank": 48,
-        "path": "examples/flows/agentic/human_in_the_loop.py",
-        "language": "Python"
-      },
-      {
-        "code": 45,
-        "comment": 59,
-        "blank": 29,
-        "path": "examples/flows/agentic/map_reduce.py",
-        "language": "Python"
-      },
-      {
-        "code": 52,
-        "comment": 86,
-        "blank": 50,
-        "path": "examples/flows/agentic/multi_agent_debate.py",
-        "language": "Python"
-      },
-      {
-        "code": 35,
-        "comment": 73,
-        "blank": 39,
-        "path": "examples/flows/agentic/orchestrator_workers.py",
-        "language": "Python"
-      },
-      {
-        "code": 73,
-        "comment": 49,
-        "blank": 34,
-        "path": "examples/flows/agentic/parallel_sectioning.py",
-        "language": "Python"
-      },
-      {
-        "code": 26,
-        "comment": 62,
-        "blank": 34,
-        "path": "examples/flows/agentic/plan_and_execute.py",
-        "language": "Python"
-      },
-      {
-        "code": 100,
-        "comment": 77,
-        "blank": 48,
-        "path": "examples/flows/agentic/rag_pipeline.py",
-        "language": "Python"
-      },
-      {
-        "code": 85,
-        "comment": 48,
-        "blank": 34,
-        "path": "examples/flows/agentic/react_tool_loop.py",
-        "language": "Python"
-      },
-      {
-        "code": 28,
-        "comment": 63,
-        "blank": 32,
-        "path": "examples/flows/agentic/research_and_refine.py",
-        "language": "Python"
-      },
-      {
-        "code": 99,
-        "comment": 60,
-        "blank": 40,
-        "path": "examples/flows/agentic/routing_classifier.py",
-        "language": "Python"
-      },
-      {
-        "code": 136,
-        "comment": 53,
-        "blank": 26,
-        "path": "examples/flows/agentic/sequential_pipeline.py",
-        "language": "Python"
-      },
-      {
-        "code": 34,
-        "comment": 62,
-        "blank": 34,
-        "path": "examples/flows/agentic/tool_calling_agent.py",
-        "language": "Python"
-      },
-      {
-        "code": 46,
-        "comment": 50,
-        "blank": 28,
-        "path": "examples/flows/agentic/voting_ensemble.py",
-        "language": "Python"
-      },
-      {
-        "code": 22,
-        "comment": 11,
-        "blank": 14,
-        "path": "examples/flows/async_conditional.py",
-        "language": "Python"
-      },
-      {
-        "code": 18,
-        "comment": 11,
-        "blank": 12,
-        "path": "examples/flows/async_nested.py",
-        "language": "Python"
-      },
-      {
-        "code": 12,
-        "comment": 9,
-        "blank": 9,
-        "path": "examples/flows/async_sequential.py",
-        "language": "Python"
-      },
-      {
-        "code": 13,
-        "comment": 8,
-        "blank": 7,
-        "path": "examples/flows/bare_script_flow.py",
-        "language": "Python"
-      },
-      {
-        "code": 18,
-        "comment": 13,
-        "blank": 11,
-        "path": "examples/flows/bare_script_with_composition.py",
-        "language": "Python"
-      },
-      {
-        "code": 161,
-        "comment": 57,
-        "blank": 53,
-        "path": "examples/flows/compiled/adk_llm_auditor/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 54,
-        "comment": 43,
-        "blank": 26,
-        "path": "examples/flows/compiled/async_conditional/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 45,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/compiled/async_nested/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 37,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/async_sequential/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 37,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/bare_script_flow/routers.py",
+        "path": "examples/flows/compiled/00_minimal/routers.py",
         "language": "Python"
       },
       {
         "code": 38,
         "comment": 41,
         "blank": 22,
-        "path": "examples/flows/compiled/bare_script_with_composition/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 118,
-        "comment": 49,
-        "blank": 38,
-        "path": "examples/flows/compiled/complex_combined/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 104,
-        "comment": 47,
-        "blank": 34,
-        "path": "examples/flows/compiled/complex_with_while/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 45,
-        "comment": 42,
-        "blank": 25,
-        "path": "examples/flows/compiled/decorator_callsite/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 43,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/compiled/decorator_definitions/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 54,
-        "comment": 43,
-        "blank": 27,
-        "path": "examples/flows/compiled/decorator_inline_comments/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 40,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/decorator_retry/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 60,
-        "comment": 43,
-        "blank": 30,
-        "path": "examples/flows/compiled/fanout_comprehension/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 71,
-        "comment": 44,
-        "blank": 32,
-        "path": "examples/flows/compiled/fanout_conditional/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 59,
-        "comment": 43,
-        "blank": 30,
-        "path": "examples/flows/compiled/fanout_gather/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 60,
-        "comment": 43,
-        "blank": 30,
-        "path": "examples/flows/compiled/fanout_literal/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 81,
-        "comment": 45,
-        "blank": 37,
-        "path": "examples/flows/compiled/fanout_sequential/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 40,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/flow_composition_nested/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 39,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/flow_composition_simple/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 46,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/compiled/if_all_empty_branches/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 57,
-        "comment": 43,
-        "blank": 26,
-        "path": "examples/flows/compiled/if_elif_else/routers.py",
+        "path": "examples/flows/compiled/01_sequential/routers.py",
         "language": "Python"
       },
       {
         "code": 48,
         "comment": 42,
         "blank": 24,
-        "path": "examples/flows/compiled/if_else_simple/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 64,
-        "comment": 44,
-        "blank": 28,
-        "path": "examples/flows/compiled/if_mutations_in_branches/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 125,
-        "comment": 52,
-        "blank": 43,
-        "path": "examples/flows/compiled/if_nested/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 46,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/compiled/if_no_else/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 47,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/compiled/if_one_empty_branch/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 49,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/compiled/if_with_early_return/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 59,
-        "comment": 44,
-        "blank": 27,
-        "path": "examples/flows/compiled/inline_comment_overrides/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 9,
-        "comment": 14,
-        "blank": 4,
-        "path": "examples/flows/compiled/minimal/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 52,
-        "comment": 43,
-        "blank": 25,
-        "path": "examples/flows/compiled/mutations_before_after_handler/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 45,
-        "comment": 42,
-        "blank": 23,
-        "path": "examples/flows/compiled/mutations_only/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 46,
-        "comment": 42,
-        "blank": 23,
-        "path": "examples/flows/compiled/mutations_with_handler/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 96,
-        "comment": 48,
-        "blank": 36,
-        "path": "examples/flows/compiled/nested_if/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 57,
-        "comment": 43,
-        "blank": 26,
-        "path": "examples/flows/compiled/react_loop/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 74,
-        "comment": 45,
-        "blank": 30,
-        "path": "examples/flows/compiled/react_multi_tool/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 45,
-        "comment": 42,
-        "blank": 23,
-        "path": "examples/flows/compiled/resiliency_combined/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 49,
-        "comment": 43,
-        "blank": 24,
-        "path": "examples/flows/compiled/resiliency_error_routing/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 41,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/resiliency_retry_patterns/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 40,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/resiliency_tenacity_real/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 62,
-        "comment": 44,
-        "blank": 28,
-        "path": "examples/flows/compiled/sample_flow/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 38,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/sequential/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 38,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/sequential_with_class/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 9,
-        "comment": 14,
-        "blank": 4,
-        "path": "examples/flows/compiled/single_actor/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 71,
-        "comment": 45,
-        "blank": 29,
-        "path": "examples/flows/compiled/text_analysis_flow/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/flows/compiled/tool_adapter/adapter_format_greeting.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 4,
-        "blank": 1,
-        "path": "examples/flows/compiled/tool_adapter/adapter_get_weather.py",
-        "language": "Python"
-      },
-      {
-        "code": 39,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/tool_adapter/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 46,
-        "comment": 43,
-        "blank": 24,
-        "path": "examples/flows/compiled/try_except_catch_all/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 46,
-        "comment": 42,
-        "blank": 23,
-        "path": "examples/flows/compiled/try_except_finally/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 48,
-        "comment": 43,
-        "blank": 24,
-        "path": "examples/flows/compiled/try_except_fqn_types/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 52,
-        "comment": 44,
-        "blank": 25,
-        "path": "examples/flows/compiled/try_except_multiple_handlers/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 51,
-        "comment": 43,
-        "blank": 24,
-        "path": "examples/flows/compiled/try_except_nested/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 65,
-        "comment": 45,
-        "blank": 28,
-        "path": "examples/flows/compiled/try_except_retry_loop/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 41,
-        "comment": 42,
-        "blank": 23,
-        "path": "examples/flows/compiled/try_except_simple/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 47,
-        "comment": 43,
-        "blank": 24,
-        "path": "examples/flows/compiled/try_except_tuple_types/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 55,
-        "comment": 43,
-        "blank": 25,
-        "path": "examples/flows/compiled/try_except_with_conditional/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 39,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/typed_dataclass_pipeline/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 50,
-        "comment": 42,
-        "blank": 24,
-        "path": "examples/flows/compiled/typed_dict_pipeline/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 40,
-        "comment": 41,
-        "blank": 22,
-        "path": "examples/flows/compiled/typed_pydantic_pipeline/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 85,
-        "comment": 46,
-        "blank": 32,
-        "path": "examples/flows/compiled/while_break_continue/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 100,
-        "comment": 48,
-        "blank": 36,
-        "path": "examples/flows/compiled/while_loop_processing/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 73,
-        "comment": 45,
-        "blank": 30,
-        "path": "examples/flows/compiled/while_mutations_in_loop/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 90,
-        "comment": 47,
-        "blank": 34,
-        "path": "examples/flows/compiled/while_nested/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 83,
-        "comment": 46,
-        "blank": 32,
-        "path": "examples/flows/compiled/while_nested_loop/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 55,
-        "comment": 43,
-        "blank": 26,
-        "path": "examples/flows/compiled/while_react_loop/routers.py",
+        "path": "examples/flows/compiled/02_if_else/routers.py",
         "language": "Python"
       },
       {
         "code": 63,
         "comment": 44,
         "blank": 28,
-        "path": "examples/flows/compiled/while_simple/routers.py",
+        "path": "examples/flows/compiled/03_while_loop/routers.py",
         "language": "Python"
       },
       {
-        "code": 56,
+        "code": 60,
         "comment": 43,
-        "blank": 26,
-        "path": "examples/flows/compiled/while_true_simple/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 75,
-        "comment": 45,
         "blank": 30,
-        "path": "examples/flows/compiled/while_with_break/routers.py",
+        "path": "examples/flows/compiled/04_fanout/routers.py",
         "language": "Python"
       },
       {
-        "code": 66,
-        "comment": 44,
-        "blank": 28,
-        "path": "examples/flows/compiled/while_with_continue/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 66,
-        "comment": 44,
-        "blank": 28,
-        "path": "examples/flows/compiled/while_with_if/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 57,
-        "comment": 43,
-        "blank": 25,
-        "path": "examples/flows/compiled/with_asyncio_timeout/routers.py",
+        "code": 41,
+        "comment": 42,
+        "blank": 23,
+        "path": "examples/flows/compiled/05_try_except/routers.py",
         "language": "Python"
       },
       {
         "code": 39,
         "comment": 41,
         "blank": 22,
-        "path": "examples/flows/compiled/with_nested_timeout_scopes/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 62,
-        "comment": 44,
-        "blank": 28,
-        "path": "examples/flows/compiled_docs/sample_flow/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 70,
-        "comment": 45,
-        "blank": 29,
-        "path": "examples/flows/compiled_docs/text_analysis_flow/routers.py",
+        "path": "examples/flows/compiled/06_composition/routers.py",
         "language": "Python"
       },
       {
         "code": 46,
-        "comment": 11,
+        "comment": 42,
+        "blank": 23,
+        "path": "examples/flows/compiled/07_mutations/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 43,
+        "comment": 42,
         "blank": 24,
-        "path": "examples/flows/complex_combined.py",
+        "path": "examples/flows/compiled/08_decorators/routers.py",
         "language": "Python"
       },
       {
-        "code": 60,
-        "comment": 12,
-        "blank": 26,
-        "path": "examples/flows/complex_with_while.py",
+        "code": 50,
+        "comment": 42,
+        "blank": 24,
+        "path": "examples/flows/compiled/09_typed_pipeline/routers.py",
         "language": "Python"
       },
       {
-        "code": 25,
-        "comment": 14,
-        "blank": 15,
-        "path": "examples/flows/decorator_callsite.py",
-        "language": "Python"
-      },
-      {
-        "code": 25,
-        "comment": 12,
-        "blank": 15,
-        "path": "examples/flows/decorator_definitions.py",
-        "language": "Python"
-      },
-      {
-        "code": 27,
-        "comment": 10,
-        "blank": 13,
-        "path": "examples/flows/decorator_inline_comments.py",
-        "language": "Python"
-      },
-      {
-        "code": 24,
-        "comment": 16,
-        "blank": 15,
-        "path": "examples/flows/decorator_retry.py",
-        "language": "Python"
-      },
-      {
-        "code": 16,
-        "comment": 8,
-        "blank": 10,
-        "path": "examples/flows/fanout_comprehension.py",
-        "language": "Python"
-      },
-      {
-        "code": 28,
-        "comment": 10,
-        "blank": 16,
-        "path": "examples/flows/fanout_conditional.py",
-        "language": "Python"
-      },
-      {
-        "code": 14,
-        "comment": 8,
-        "blank": 11,
-        "path": "examples/flows/fanout_gather.py",
-        "language": "Python"
-      },
-      {
-        "code": 22,
-        "comment": 9,
-        "blank": 12,
-        "path": "examples/flows/fanout_literal.py",
-        "language": "Python"
-      },
-      {
-        "code": 16,
-        "comment": 9,
-        "blank": 10,
-        "path": "examples/flows/fanout_sequential.py",
-        "language": "Python"
-      },
-      {
-        "code": 32,
-        "comment": 4,
-        "blank": 18,
-        "path": "examples/flows/flow_composition_nested.py",
-        "language": "Python"
-      },
-      {
-        "code": 24,
-        "comment": 4,
-        "blank": 14,
-        "path": "examples/flows/flow_composition_simple.py",
-        "language": "Python"
-      },
-      {
-        "code": 19,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/if_all_empty_branches.py",
-        "language": "Python"
-      },
-      {
-        "code": 27,
-        "comment": 9,
-        "blank": 14,
-        "path": "examples/flows/if_elif_else.py",
-        "language": "Python"
-      },
-      {
-        "code": 22,
-        "comment": 8,
-        "blank": 12,
-        "path": "examples/flows/if_else_simple.py",
-        "language": "Python"
-      },
-      {
-        "code": 26,
-        "comment": 8,
-        "blank": 12,
-        "path": "examples/flows/if_mutations_in_branches.py",
-        "language": "Python"
-      },
-      {
-        "code": 51,
-        "comment": 0,
-        "blank": 16,
-        "path": "examples/flows/if_nested.py",
-        "language": "Python"
-      },
-      {
-        "code": 16,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/if_no_else.py",
-        "language": "Python"
-      },
-      {
-        "code": 19,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/if_one_empty_branch.py",
-        "language": "Python"
-      },
-      {
-        "code": 22,
-        "comment": 8,
-        "blank": 12,
-        "path": "examples/flows/if_with_early_return.py",
-        "language": "Python"
-      },
-      {
-        "code": 19,
-        "comment": 21,
-        "blank": 18,
-        "path": "examples/flows/inline_comment_overrides.py",
-        "language": "Python"
-      },
-      {
-        "code": 8,
-        "comment": 5,
-        "blank": 6,
-        "path": "examples/flows/minimal.py",
-        "language": "Python"
-      },
-      {
-        "code": 15,
-        "comment": 6,
-        "blank": 8,
-        "path": "examples/flows/mutations_before_after_handler.py",
-        "language": "Python"
-      },
-      {
-        "code": 9,
-        "comment": 5,
-        "blank": 4,
-        "path": "examples/flows/mutations_only.py",
-        "language": "Python"
-      },
-      {
-        "code": 12,
-        "comment": 5,
-        "blank": 6,
-        "path": "examples/flows/mutations_with_handler.py",
-        "language": "Python"
-      },
-      {
-        "code": 40,
-        "comment": 10,
-        "blank": 16,
-        "path": "examples/flows/nested_if.py",
-        "language": "Python"
-      },
-      {
-        "code": 17,
-        "comment": 9,
-        "blank": 9,
-        "path": "examples/flows/react_loop.py",
-        "language": "Python"
-      },
-      {
-        "code": 23,
-        "comment": 10,
-        "blank": 12,
-        "path": "examples/flows/react_multi_tool.py",
-        "language": "Python"
-      },
-      {
-        "code": 40,
-        "comment": 21,
-        "blank": 19,
-        "path": "examples/flows/resiliency_combined.py",
-        "language": "Python"
-      },
-      {
-        "code": 41,
-        "comment": 20,
-        "blank": 19,
-        "path": "examples/flows/resiliency_error_routing.py",
-        "language": "Python"
-      },
-      {
-        "code": 41,
-        "comment": 26,
+        "code": 37,
+        "comment": 41,
         "blank": 22,
-        "path": "examples/flows/resiliency_retry_patterns.py",
+        "path": "examples/flows/compiled/10_async_sequential/routers.py",
         "language": "Python"
       },
       {
-        "code": 30,
-        "comment": 23,
-        "blank": 19,
-        "path": "examples/flows/resiliency_tenacity_real.py",
+        "code": 41,
+        "comment": 41,
+        "blank": 22,
+        "path": "examples/flows/compiled/11_resiliency/routers.py",
         "language": "Python"
       },
       {
-        "code": 12,
-        "comment": 1,
-        "blank": 3,
-        "path": "examples/flows/sample_flow.py",
+        "code": 57,
+        "comment": 43,
+        "blank": 26,
+        "path": "examples/flows/compiled/12_react_loop/routers.py",
         "language": "Python"
       },
       {
-        "code": 16,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/sequential.py",
-        "language": "Python"
-      },
-      {
-        "code": 22,
-        "comment": 8,
-        "blank": 14,
-        "path": "examples/flows/sequential_with_class.py",
-        "language": "Python"
-      },
-      {
-        "code": 8,
-        "comment": 11,
-        "blank": 8,
-        "path": "examples/flows/single_actor.py",
-        "language": "Python"
-      },
-      {
-        "code": 34,
-        "comment": 6,
-        "blank": 17,
-        "path": "examples/flows/text_analysis_flow.py",
-        "language": "Python"
-      },
-      {
-        "code": 21,
-        "comment": 33,
-        "blank": 24,
-        "path": "examples/flows/tool_adapter.py",
-        "language": "Python"
-      },
-      {
-        "code": 21,
-        "comment": 0,
-        "blank": 8,
-        "path": "examples/flows/try_except_catch_all.py",
-        "language": "Python"
-      },
-      {
-        "code": 14,
-        "comment": 0,
-        "blank": 2,
-        "path": "examples/flows/try_except_finally.py",
-        "language": "Python"
-      },
-      {
-        "code": 13,
-        "comment": 5,
-        "blank": 4,
-        "path": "examples/flows/try_except_fqn_types.py",
-        "language": "Python"
-      },
-      {
-        "code": 16,
-        "comment": 0,
-        "blank": 2,
-        "path": "examples/flows/try_except_multiple_handlers.py",
-        "language": "Python"
-      },
-      {
-        "code": 19,
-        "comment": 15,
-        "blank": 5,
-        "path": "examples/flows/try_except_nested.py",
-        "language": "Python"
-      },
-      {
-        "code": 30,
-        "comment": 11,
-        "blank": 14,
-        "path": "examples/flows/try_except_retry_loop.py",
-        "language": "Python"
-      },
-      {
-        "code": 9,
-        "comment": 0,
-        "blank": 2,
-        "path": "examples/flows/try_except_simple.py",
-        "language": "Python"
-      },
-      {
-        "code": 13,
-        "comment": 5,
-        "blank": 4,
-        "path": "examples/flows/try_except_tuple_types.py",
-        "language": "Python"
-      },
-      {
-        "code": 17,
-        "comment": 7,
-        "blank": 4,
-        "path": "examples/flows/try_except_with_conditional.py",
-        "language": "Python"
-      },
-      {
-        "code": 68,
-        "comment": 82,
-        "blank": 38,
-        "path": "examples/flows/typed_dataclass_pipeline.py",
-        "language": "Python"
-      },
-      {
-        "code": 92,
-        "comment": 95,
-        "blank": 40,
-        "path": "examples/flows/typed_dict_pipeline.py",
-        "language": "Python"
-      },
-      {
-        "code": 81,
-        "comment": 91,
-        "blank": 47,
-        "path": "examples/flows/typed_pydantic_pipeline.py",
-        "language": "Python"
-      },
-      {
-        "code": 27,
-        "comment": 8,
-        "blank": 12,
-        "path": "examples/flows/while_break_continue.py",
-        "language": "Python"
-      },
-      {
-        "code": 39,
-        "comment": 8,
-        "blank": 18,
-        "path": "examples/flows/while_loop_processing.py",
-        "language": "Python"
-      },
-      {
-        "code": 23,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/while_mutations_in_loop.py",
-        "language": "Python"
-      },
-      {
-        "code": 30,
-        "comment": 9,
-        "blank": 14,
-        "path": "examples/flows/while_nested.py",
-        "language": "Python"
-      },
-      {
-        "code": 25,
-        "comment": 6,
-        "blank": 11,
-        "path": "examples/flows/while_nested_loop.py",
-        "language": "Python"
-      },
-      {
-        "code": 16,
-        "comment": 7,
-        "blank": 8,
-        "path": "examples/flows/while_react_loop.py",
-        "language": "Python"
-      },
-      {
-        "code": 19,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/while_simple.py",
-        "language": "Python"
-      },
-      {
-        "code": 19,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/while_true_simple.py",
-        "language": "Python"
-      },
-      {
-        "code": 21,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/while_with_break.py",
-        "language": "Python"
-      },
-      {
-        "code": 21,
-        "comment": 7,
-        "blank": 10,
-        "path": "examples/flows/while_with_continue.py",
-        "language": "Python"
-      },
-      {
-        "code": 25,
-        "comment": 8,
-        "blank": 12,
-        "path": "examples/flows/while_with_if.py",
-        "language": "Python"
-      },
-      {
-        "code": 12,
-        "comment": 8,
-        "blank": 8,
-        "path": "examples/flows/with_asyncio_timeout.py",
-        "language": "Python"
-      },
-      {
-        "code": 10,
-        "comment": 10,
-        "blank": 8,
-        "path": "examples/flows/with_nested_timeout_scopes.py",
+        "code": 91,
+        "comment": 47,
+        "blank": 33,
+        "path": "examples/flows/compiled/13_human_in_the_loop/routers.py",
         "language": "Python"
       },
       {
@@ -28827,6 +27672,62 @@
         "language": "Python"
       },
       {
+        "code": 60,
+        "comment": 12,
+        "blank": 26,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/complex_with_while.py",
+        "language": "Python"
+      },
+      {
+        "code": 27,
+        "comment": 8,
+        "blank": 12,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/while_break_continue.py",
+        "language": "Python"
+      },
+      {
+        "code": 23,
+        "comment": 7,
+        "blank": 10,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/while_mutations_in_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 30,
+        "comment": 9,
+        "blank": 14,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/while_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 19,
+        "comment": 7,
+        "blank": 10,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/while_simple.py",
+        "language": "Python"
+      },
+      {
+        "code": 21,
+        "comment": 7,
+        "blank": 10,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/while_with_break.py",
+        "language": "Python"
+      },
+      {
+        "code": 21,
+        "comment": 7,
+        "blank": 10,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/while_with_continue.py",
+        "language": "Python"
+      },
+      {
+        "code": 25,
+        "comment": 8,
+        "blank": 12,
+        "path": "src/asya-lab/tests/flow/fixtures/example_flows/while_with_if.py",
+        "language": "Python"
+      },
+      {
         "code": 100,
         "comment": 94,
         "blank": 22,
@@ -29366,6 +28267,20 @@
         "language": "Python"
       },
       {
+        "code": 96,
+        "comment": 48,
+        "blank": 36,
+        "path": "src/asya-testing/asya_testing/flows/compiled/nested_if/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 59,
+        "comment": 43,
+        "blank": 30,
+        "path": "src/asya-testing/asya_testing/flows/compiled/research_flow/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 0,
         "comment": 1,
         "blank": 0,
@@ -29534,6 +28449,83 @@
         "language": "Python"
       },
       {
+        "code": 41,
+        "comment": 42,
+        "blank": 23,
+        "path": "src/asya-testing/tests/fixtures/agentic_compiled/guardrails_sandwich_routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 60,
+        "comment": 43,
+        "blank": 30,
+        "path": "src/asya-testing/tests/fixtures/agentic_compiled/map_reduce_routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 61,
+        "comment": 43,
+        "blank": 30,
+        "path": "src/asya-testing/tests/fixtures/agentic_compiled/parallel_sectioning_routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 66,
+        "comment": 44,
+        "blank": 28,
+        "path": "src/asya-testing/tests/fixtures/agentic_compiled/routing_classifier_routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 39,
+        "comment": 41,
+        "blank": 22,
+        "path": "src/asya-testing/tests/fixtures/agentic_compiled/sequential_pipeline_routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 6,
+        "comment": 10,
+        "blank": 6,
+        "path": "src/asya-testing/tests/fixtures/agentic_flows/_asya_utils.py",
+        "language": "Python"
+      },
+      {
+        "code": 68,
+        "comment": 65,
+        "blank": 37,
+        "path": "src/asya-testing/tests/fixtures/agentic_flows/guardrails_sandwich.py",
+        "language": "Python"
+      },
+      {
+        "code": 45,
+        "comment": 59,
+        "blank": 29,
+        "path": "src/asya-testing/tests/fixtures/agentic_flows/map_reduce.py",
+        "language": "Python"
+      },
+      {
+        "code": 73,
+        "comment": 49,
+        "blank": 34,
+        "path": "src/asya-testing/tests/fixtures/agentic_flows/parallel_sectioning.py",
+        "language": "Python"
+      },
+      {
+        "code": 99,
+        "comment": 60,
+        "blank": 40,
+        "path": "src/asya-testing/tests/fixtures/agentic_flows/routing_classifier.py",
+        "language": "Python"
+      },
+      {
+        "code": 136,
+        "comment": 53,
+        "blank": 26,
+        "path": "src/asya-testing/tests/fixtures/agentic_flows/sequential_pipeline.py",
+        "language": "Python"
+      },
+      {
         "code": 185,
         "comment": 36,
         "blank": 48,
@@ -29553,6 +28545,13 @@
         "blank": 10,
         "path": "src/function-asya-flavors/merge.go",
         "language": "Go"
+      },
+      {
+        "code": 16,
+        "comment": 7,
+        "blank": 8,
+        "path": "testing/component/flow-compiler/tests/fixtures/while_react_loop.py",
+        "language": "Python"
       },
       {
         "code": 45,
@@ -30013,6 +29012,6 @@
       }
     ]
   },
-  "test_execution_time": 440000000000,
-  "timestamp": "2026-03-26T01:41:22.590833298Z"
+  "test_execution_time": 478000000000,
+  "timestamp": "2026-04-10T17:12:13.006816496Z"
 }
