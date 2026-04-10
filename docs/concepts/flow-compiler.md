@@ -106,9 +106,8 @@ Built-in rules support `claude_agent_sdk.tool`, `langchain.tools.tool`, and
 `langchain_core.tools.tool`. Custom tool decorators can be added via
 [compiler rules](../usage/guide-compiler-rules.md).
 
-See [`examples/flows/tool_adapter.py`](../../examples/flows/tool_adapter.py)
-for a working example with compiled output in
-[`examples/flows/compiled/tool_adapter/`](../../examples/flows/compiled/tool_adapter/).
+See [`flow_tool_adapter.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py)
+in [asya-samples](https://github.com/asyacore/asya-samples) for a working example.
 
 ## Purely additive
 

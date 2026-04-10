@@ -2886,10 +2886,8 @@ compiler auto-detects which context applies from Python syntax.</p>
 </code></pre></div>
 <p>Nested scopes are tracked independently — each <code>with</code> block produces a separate
 config record with its own <code>scope_actors</code> list.</p>
-<p>See <a href="../../../examples/flows/with_asyncio_timeout.py"><code>examples/flows/with_asyncio_timeout.py</code></a>
-and its compiled output in
-<a href="../../../examples/flows/compiled/with_asyncio_timeout/"><code>examples/flows/compiled/with_asyncio_timeout/</code></a>
-for a full walkthrough.</p>
+<p>See <a href="https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py"><code>flow_with_asyncio_timeout.py</code></a>
+in <a href="https://github.com/asyacore/asya-samples">asya-samples</a> for a full walkthrough.</p>
 <h3 id="decorators-on-actor-definitions">Decorators on actor definitions<a class="headerlink" href="#decorators-on-actor-definitions" title="Permanent link">#</a></h3>
 <p>When a decorator appears on a function definition (in the same file or an
 imported module), the compiler:</p>
@@ -2912,10 +2910,8 @@ imported module), the compiler:</p>
 </code></pre></div>
 <p>The <code>ASYA_IGNORE_DECORATORS</code> env var tells asya-runtime to strip the decorator
 before loading the handler module, so <code>@retry(...)</code> does not execute at runtime.</p>
-<p>See <a href="../../../examples/flows/decorator_retry.py"><code>examples/flows/decorator_retry.py</code></a>
-and its compiled output in
-<a href="../../../examples/flows/compiled/decorator_retry/"><code>examples/flows/compiled/decorator_retry/</code></a>
-for a full walkthrough.</p>
+<p>See <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_retry.py"><code>flow_decorator_retry.py</code></a>
+in <a href="https://github.com/asyacore/asya-samples">asya-samples</a> for a full walkthrough.</p>
 <h3 id="rule-matched-vs-unknown-decorators">Rule-matched vs unknown decorators<a class="headerlink" href="#rule-matched-vs-unknown-decorators" title="Permanent link">#</a></h3>
 <p>The compiler <strong>only strips decorators that match a rule</strong>. This is a core design
 principle: the rules file is the knowledge base for what the compiler understands.</p>
@@ -2964,8 +2960,8 @@ defaults. Supported actions: <code>actor</code>, <code>inline</code>, <code>unfo
 <div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: inline    — force inline, no actor boundary</span>
 <span class="n">p</span> <span class="o">=</span> <span class="n">validate</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>   <span class="c1"># asya: actor     — force separate actor</span>
 </code></pre></div>
-<p>See <a href="../../../examples/flows/inline_comment_overrides.py"><code>examples/flows/inline_comment_overrides.py</code></a>
-for a working example.</p>
+<p>See <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_inline_comment_overrides.py"><code>flow_inline_comment_overrides.py</code></a>
+in <a href="https://github.com/asyacore/asya-samples">asya-samples</a> for a working example.</p>
 <hr />
 <h2 id="rule-loading-and-precedence">Rule loading and precedence<a class="headerlink" href="#rule-loading-and-precedence" title="Permanent link">#</a></h2>
 <p>Rules are loaded from two sources:</p>
@@ -3086,9 +3082,8 @@ At runtime, the adapter function is loaded as the actor's handler instead of the
 original function. The adapter calls the original function, wrapping its inputs
 and outputs for the envelope protocol.</p>
 <h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">#</a></h3>
-<p>See <a href="../../../examples/flows/tool_adapter.py"><code>examples/flows/tool_adapter.py</code></a>
-and its compiled output in
-<a href="../../../examples/flows/compiled/tool_adapter/"><code>examples/flows/compiled/tool_adapter/</code></a>.</p>
+<p>See <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py"><code>flow_tool_adapter.py</code></a>
+in <a href="https://github.com/asyacore/asya-samples">asya-samples</a>.</p>
 <hr />
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
 <ul>

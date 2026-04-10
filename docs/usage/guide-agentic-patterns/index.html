@@ -2628,7 +2628,7 @@ they only emit ABI instructions for routing (<code>SET</code>, <code>GET</code>)
 LLM and have nothing to stream. Streaming happens in handler actors.</p>
 <hr />
 <h2 id="pattern-catalog">Pattern catalog<a class="headerlink" href="#pattern-catalog" title="Permanent link">#</a></h2>
-<p>Asya's <code>examples/flows/agentic/</code> directory contains 15 compilable flow patterns
+<p>The <a href="https://github.com/asyacore/asya-samples/tree/main/src/agentic/flows">asya-samples/agentic</a> repository contains 15+ compilable flow patterns
 covering the full spectrum of agentic architectures. The table below maps each
 pattern to common framework equivalents and identifies where in this guide it is
 explained in detail.</p>
@@ -2735,7 +2735,7 @@ explained in detail.</p>
 </tbody>
 </table></div>
 <p>Patterns 1-9 are explained in detail below. Patterns 10-15 follow the same
-primitives; see <code>examples/flows/agentic/</code> for compilable code.</p>
+primitives; see <a href="https://github.com/asyacore/asya-samples/tree/main/src/agentic/flows">asya-samples/agentic</a> for compilable code.</p>
 <hr />
 <h2 id="patterns">Patterns<a class="headerlink" href="#patterns" title="Permanent link">#</a></h2>
 <h3 id="react-tool-loop">ReAct tool loop<a class="headerlink" href="#react-tool-loop" title="Permanent link">#</a></h3>
@@ -2785,7 +2785,7 @@ tool actor. The tool result goes back into state, and the loop iterates.</p>
 handler -- the flow provides the outer loop, the actor provides the streaming.
 See <a href="#live-streaming">Live streaming</a> and
 <a href="../guide-streaming/">Streaming with FLY Events</a>.</p>
-<p>Full example: <code>examples/flows/agentic/react_tool_loop.py</code></p>
+<p>Full example: <a href="https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_react_tool_loop.py"><code>flow_react_tool_loop.py</code></a></p>
 <hr />
 <h3 id="evaluator-optimizer">Evaluator-optimizer<a class="headerlink" href="#evaluator-optimizer" title="Permanent link">#</a></h3>
 <p><strong>Framework equivalents</strong>: Anthropic evaluator-optimizer, ADK <code>LoopAgent</code> with
@@ -2824,7 +2824,7 @@ iterations reached.</p>
 different prompts, different scaling). The evaluator writes <code>state["score"]</code>
 and <code>state["feedback"]</code>; the generator reads the feedback on the next
 iteration.</p>
-<p>Full example: <code>examples/flows/agentic/evaluator_optimizer.py</code></p>
+<p>Full example: <a href="https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_evaluator_optimizer.py"><code>flow_evaluator_optimizer.py</code></a></p>
 <hr />
 <h3 id="orchestrator-workers">Orchestrator-workers<a class="headerlink" href="#orchestrator-workers" title="Permanent link">#</a></h3>
 <p><strong>Framework equivalents</strong>: Anthropic orchestrator-workers, LangGraph supervisor
@@ -2863,7 +2863,7 @@ across iterations.</p>
 <p>The orchestrator actor is the only one that requires an LLM -- it examines
 accumulated worker results and decides <code>next_action</code>. The <code>if/elif</code> dispatch
 compiles to condition routers. Each worker is a separately scaled AsyncActor.</p>
-<p>Full example: <code>examples/flows/agentic/orchestrator_workers.py</code></p>
+<p>Full example: <a href="https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_orchestrator_workers.py"><code>flow_orchestrator_workers.py</code></a></p>
 <hr />
 <h3 id="guardrails-sandwich">Guardrails sandwich<a class="headerlink" href="#guardrails-sandwich" title="Permanent link">#</a></h3>
 <p><strong>Framework equivalents</strong>: OpenAI Agents SDK <code>input_guardrails</code> /
@@ -2885,7 +2885,7 @@ or <code>output_validator</code> raises an exception, the envelope is routed to 
 <code>safe_fallback</code> actor instead of <code>x-sump</code>. This gives you the same guardrails
 behavior as ADK's <code>before_model_callback</code> / <code>after_model_callback</code>, but as
 explicit actors in the pipeline.</p>
-<p>Full example: <code>examples/flows/agentic/guardrails_sandwich.py</code></p>
+<p>Full example: <a href="https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_guardrails_sandwich.py"><code>flow_guardrails_sandwich.py</code></a></p>
 <hr />
 <h3 id="fan-out-fan-in">Fan-out / Fan-in<a class="headerlink" href="#fan-out-fan-in" title="Permanent link">#</a></h3>
 <p><strong>ADK equivalent</strong>: <code>ParallelAgent</code> / <code>asyncio.gather</code> in tools</p>
@@ -2956,7 +2956,7 @@ create-if-not-exists on the final merged output key.</p>
     <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reducer</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">state</span>
 </code></pre></div>
-<p>See <code>examples/flows/agentic/map_reduce.py</code> for a full example.</p>
+<p>See <a href="https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_map_reduce.py"><code>flow_map_reduce.py</code></a> for a full example.</p>
 <hr />
 <h3 id="dynamic-routing">Dynamic routing<a class="headerlink" href="#dynamic-routing" title="Permanent link">#</a></h3>
 <p><strong>ADK equivalent</strong>: <code>event.actions.transfer_to_agent = "BillingAgent"</code></p>
@@ -3065,7 +3065,7 @@ client sends a resume message (same task ID via A2A), the gateway routes it to
               ↑                                         ↑
               sidecar sets x-asya-pause           gateway routes resume
 </code></pre></div>
-<p>Compare with <code>examples/flows/agentic/human_in_the_loop.py</code>, which shows the
+<p>Compare with <a href="https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_human_in_the_loop.py"><code>flow_human_in_the_loop.py</code></a>, which shows the
 <strong>poll-based approval loop</strong> in Flow DSL: the flow keeps running, hitting an
 <code>approval_gate</code> actor that polls for human input. The pause/resume pattern
 here is a true suspension — the envelope is stored, nothing runs until the
@@ -3474,8 +3474,8 @@ tools without restarting the gateway.</p>
 <td><a href="../../reference/specs/flow-dsl/">Flow DSL</a></td>
 </tr>
 <tr>
-<td>Flow DSL examples (15 patterns)</td>
-<td><code>examples/flows/agentic/</code></td>
+<td>Flow DSL examples (19 patterns)</td>
+<td><a href="https://github.com/asyacore/asya-samples/tree/main/src/agentic/flows">asya-samples/agentic</a></td>
 </tr>
 <tr>
 <td>ABI handler examples (3 patterns)</td>

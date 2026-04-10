@@ -2611,9 +2611,8 @@ runtime via <code>ASYA_IGNORE_DECORATORS</code>.</p>
 <p>Built-in rules support <code>claude_agent_sdk.tool</code>, <code>langchain.tools.tool</code>, and
 <code>langchain_core.tools.tool</code>. Custom tool decorators can be added via
 <a href="../../usage/guide-compiler-rules/">compiler rules</a>.</p>
-<p>See <a href="../../examples/flows/tool_adapter.py"><code>examples/flows/tool_adapter.py</code></a>
-for a working example with compiled output in
-<a href="../../examples/flows/compiled/tool_adapter/"><code>examples/flows/compiled/tool_adapter/</code></a>.</p>
+<p>See <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py"><code>flow_tool_adapter.py</code></a>
+in <a href="https://github.com/asyacore/asya-samples">asya-samples</a> for a working example.</p>
 <h2 id="purely-additive">Purely additive<a class="headerlink" href="#purely-additive" title="Permanent link">#</a></h2>
 <p>The flow compiler is a build-time tool. It generates standard actors that run on
 the standard mesh. Removing the compiler does not affect already-deployed flows.

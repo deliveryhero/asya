@@ -2538,7 +2538,7 @@ auto-detects scope from Python syntax.</p>
 <h3 id="context-managers-in-flows">Context managers in flows<a class="headerlink" href="#context-managers-in-flows" title="Permanent link">#</a></h3>
 <p>Context managers appear inside the flow function body. The compiler strips the
 <code>with</code> block and injects extracted config into every actor within the scope.</p>
-<p>Source: <a href="../../examples/flows/with_asyncio_timeout.py"><code>examples/flows/with_asyncio_timeout.py</code></a></p>
+<p>Source: <a href="https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py"><code>flow_with_asyncio_timeout.py</code></a></p>
 <div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">document_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="n">p</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;processing&quot;</span>
@@ -2561,7 +2561,7 @@ auto-detects scope from Python syntax.</p>
    <code>ocr_extractor</code> and <code>language_detector</code> (the actors inside the scope)
 4. Leaves <code>translator</code> and <code>sentiment_analyzer</code> unaffected (outside the scope)</p>
 <p>The generated router has no trace of the timeout — it is pure routing logic:</p>
-<p>Compiled output: <a href="../../examples/flows/compiled/with_asyncio_timeout/routers.py"><code>examples/flows/compiled/with_asyncio_timeout/routers.py</code></a></p>
+<p>Compiled output: <a href="https://github.com/asyacore/asya-samples">asya-samples</a> (generated from the source above)</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start_document_pipeline</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">payload</span>
     <span class="n">_next</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2573,7 +2573,7 @@ auto-detects scope from Python syntax.</p>
     <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
 <p>Nested scopes are supported — each tracks its own actors independently.</p>
-<p>Source: <a href="../../examples/flows/with_nested_timeout_scopes.py"><code>examples/flows/with_nested_timeout_scopes.py</code></a></p>
+<p>Source: <a href="https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_nested_timeout_scopes.py"><code>flow_with_nested_timeout_scopes.py</code></a></p>
 <div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ingestion_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">async</span> <span class="k">with</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>        <span class="c1"># scope: fetch, parse, validate</span>
@@ -2588,7 +2588,7 @@ auto-detects scope from Python syntax.</p>
 <p>Decorators appear on handler function definitions — either in the same file as
 the flow or in imported modules. The compiler extracts config from the decorator
 arguments and applies it to that single actor's manifest.</p>
-<p>Source: <a href="../../examples/flows/decorator_retry.py"><code>examples/flows/decorator_retry.py</code></a></p>
+<p>Source: <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_retry.py"><code>flow_decorator_retry.py</code></a></p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tenacity</span><span class="w"> </span><span class="kn">import</span> <span class="n">retry</span><span class="p">,</span> <span class="n">stop_after_attempt</span>
 
@@ -2662,11 +2662,11 @@ arguments and applies it to that single actor's manifest.</p>
 3. Walks the where-tree: <code>param: stop</code> -&gt; <code>match: stop_after_attempt</code> -&gt; <code>param: max_attempt_number</code> -&gt; <code>assign-to: spec.resiliency.policies.default.maxAttempts</code>
 4. Extracts <code>5</code> and stores it for <code>fetch_data</code>'s manifest
 5. Adds <code>tenacity.retry</code> to <code>ASYA_IGNORE_DECORATORS</code> so the runtime strips <code>@retry</code> before loading the handler</p>
-<p>Compiled output: <a href="../../examples/flows/compiled/decorator_retry/routers.py"><code>examples/flows/compiled/decorator_retry/routers.py</code></a></p>
+<p>Compiled output: <a href="https://github.com/asyacore/asya-samples">asya-samples</a> (generated from the source above)</p>
 <h3 id="inline-overrides-on-flow-statements">Inline overrides on flow statements<a class="headerlink" href="#inline-overrides-on-flow-statements" title="Permanent link">#</a></h3>
 <p>For per-call control without rules, use <code># asya: &lt;action&gt;</code> comments directly
 on flow statements.</p>
-<p>Source: <a href="../../examples/flows/inline_comment_overrides.py"><code>examples/flows/inline_comment_overrides.py</code></a></p>
+<p>Source: <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_inline_comment_overrides.py"><code>flow_inline_comment_overrides.py</code></a></p>
 <div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">order_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">normalize_keys</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: inline   — runs inside the router process</span>
@@ -2679,14 +2679,14 @@ on flow statements.</p>
     <span class="n">p</span> <span class="o">=</span> <span class="n">charge_payment</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span>
 </code></pre></div>
-<p>Compiled output: <a href="../../examples/flows/compiled/inline_comment_overrides/routers.py"><code>examples/flows/compiled/inline_comment_overrides/routers.py</code></a></p>
+<p>Compiled output: <a href="https://github.com/asyacore/asya-samples">asya-samples</a> (generated from the source above)</p>
 <p>In the generated router, <code>normalize_keys</code> is inlined (its code runs inside the
 router function), while <code>validate_order</code> and <code>charge_payment</code> are resolved as
 separate actors via <code>resolve()</code>.</p>
 <h3 id="definition-site-decorators">Definition-site decorators<a class="headerlink" href="#definition-site-decorators" title="Permanent link">#</a></h3>
 <p>Functions decorated with <code>@actor</code>, <code>@inline</code>, <code>@flow</code>, or <code>@unfold</code> at their
 definition site carry that classification everywhere they are called.</p>
-<p>Source: <a href="../../examples/flows/decorator_definitions.py"><code>examples/flows/decorator_definitions.py</code></a></p>
+<p>Source: <a href="../../examples/flows/08_decorators.py"><code>examples/flows/08_decorators.py</code></a></p>
 <div class="highlight"><pre><span></span><code><span class="nd">@inline</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">inject_trace</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Runs inside the router — no actor boundary.&quot;&quot;&quot;</span>
@@ -2701,7 +2701,7 @@ definition site carry that classification everywhere they are called.</p>
     <span class="k">return</span> <span class="n">p</span>
 </code></pre></div>
 <p>And the equivalent call-site pattern for functions defined elsewhere:</p>
-<p>Source: <a href="../../examples/flows/decorator_callsite.py"><code>examples/flows/decorator_callsite.py</code></a></p>
+<p>Source: <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_callsite.py"><code>flow_decorator_callsite.py</code></a></p>
 <div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">inline</span><span class="p">(</span><span class="n">stamp_timestamp</span><span class="p">)(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># force inline regardless of definition</span>
 <span class="n">p</span> <span class="o">=</span> <span class="n">actor</span><span class="p">(</span><span class="n">validator</span><span class="p">)(</span><span class="n">p</span><span class="p">)</span>          <span class="c1"># force actor regardless of definition</span>
 </code></pre></div>
@@ -2714,7 +2714,7 @@ See the full YAML in
 <p>Functions decorated with <code>@tool</code> from supported frameworks are classified as
 actors. When called with non-standard signatures, the compiler generates an
 adapter wrapper.</p>
-<p>Source: <a href="../../examples/flows/tool_adapter.py"><code>examples/flows/tool_adapter.py</code></a></p>
+<p>Source: <a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py"><code>flow_tool_adapter.py</code></a></p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">claude_agent_sdk</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
 
 <span class="nd">@tool</span>
@@ -2750,7 +2750,7 @@ adapter wrapper.</p>
 </code></pre></div>
 <p>Standard <code>p = fn(p)</code> calls with <code>@tool</code> are treated as regular actor calls
 (no adapter needed). The adapter is only generated for non-standard patterns.</p>
-<p>Compiled output: <a href="../../examples/flows/compiled/tool_adapter/"><code>examples/flows/compiled/tool_adapter/</code></a></p>
+<p>Compiled output: <a href="https://github.com/asyacore/asya-samples">asya-samples</a> (generated from the source above)</p>
 <h3 id="asynciotimeout">asyncio.timeout<a class="headerlink" href="#asynciotimeout" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">with</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">ocr_extractor</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
@@ -2936,9 +2936,9 @@ statements:</p>
 <p>If a symbol cannot be resolved to an FQN, matching uses the bare name.</p>
 <hr />
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">#</a></h2>
-<p>The <a href="../../examples/flows/"><code>examples/flows/</code></a> directory contains working
-examples. Each has a <code>compiled/</code> subdirectory with the generated routers so you
-can see input and output side by side.</p>
+<p>The <a href="../../examples/flows/"><code>examples/flows/</code></a> directory contains teaser examples.
+Comprehensive working examples with compiled output are in
+<a href="https://github.com/asyacore/asya-samples">asya-samples</a>.</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
@@ -2949,44 +2949,44 @@ can see input and output side by side.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="../../examples/flows/decorator_retry.py"><code>decorator_retry.py</code></a></td>
-<td><a href="../../examples/flows/compiled/decorator_retry/"><code>compiled/decorator_retry/</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_retry.py"><code>flow_decorator_retry.py</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples">asya-samples</a></td>
 <td><code>@retry</code> config extraction + <code>asyncio.timeout</code> scope</td>
 </tr>
 <tr>
-<td><a href="../../examples/flows/with_asyncio_timeout.py"><code>with_asyncio_timeout.py</code></a></td>
-<td><a href="../../examples/flows/compiled/with_asyncio_timeout/"><code>compiled/with_asyncio_timeout/</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py"><code>flow_with_asyncio_timeout.py</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples">asya-samples</a></td>
 <td>Context manager scoped to multiple actors</td>
 </tr>
 <tr>
-<td><a href="../../examples/flows/with_nested_timeout_scopes.py"><code>with_nested_timeout_scopes.py</code></a></td>
-<td><a href="../../examples/flows/compiled/with_nested_timeout_scopes/"><code>compiled/with_nested_timeout_scopes/</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_nested_timeout_scopes.py"><code>flow_with_nested_timeout_scopes.py</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples">asya-samples</a></td>
 <td>Nested scopes with different timeouts</td>
 </tr>
 <tr>
-<td><a href="../../examples/flows/decorator_definitions.py"><code>decorator_definitions.py</code></a></td>
-<td><a href="../../examples/flows/compiled/decorator_definitions/"><code>compiled/decorator_definitions/</code></a></td>
+<td><a href="../../examples/flows/08_decorators.py"><code>08_decorators.py</code></a></td>
+<td>(compile locally)</td>
 <td><code>@actor</code> and <code>@inline</code> on function definitions</td>
 </tr>
 <tr>
-<td><a href="../../examples/flows/decorator_callsite.py"><code>decorator_callsite.py</code></a></td>
-<td><a href="../../examples/flows/compiled/decorator_callsite/"><code>compiled/decorator_callsite/</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_callsite.py"><code>flow_decorator_callsite.py</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples">asya-samples</a></td>
 <td><code>actor(fn)(p)</code> and <code>inline(fn)(p)</code> wrappers</td>
 </tr>
 <tr>
-<td><a href="../../examples/flows/inline_comment_overrides.py"><code>inline_comment_overrides.py</code></a></td>
-<td><a href="../../examples/flows/compiled/inline_comment_overrides/"><code>compiled/inline_comment_overrides/</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_inline_comment_overrides.py"><code>flow_inline_comment_overrides.py</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples">asya-samples</a></td>
 <td><code># asya: actor</code> / <code># asya: inline</code> directives</td>
 </tr>
 <tr>
-<td><a href="../../examples/flows/tool_adapter.py"><code>tool_adapter.py</code></a></td>
-<td><a href="../../examples/flows/compiled/tool_adapter/"><code>compiled/tool_adapter/</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py"><code>flow_tool_adapter.py</code></a></td>
+<td><a href="https://github.com/asyacore/asya-samples">asya-samples</a></td>
 <td><code>@tool</code> adapter generation for non-standard signatures</td>
 </tr>
 </tbody>
 </table></div>
 <p>Compile any example yourself:</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>examples/flows/decorator_retry.py<span class="w"> </span>--output-dir<span class="w"> </span>compiled/<span class="w"> </span>--verbose
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>examples/flows/08_decorators.py<span class="w"> </span>--plot
 </code></pre></div>
 <hr />
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
