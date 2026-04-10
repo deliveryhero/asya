@@ -1,220 +1,212 @@
-# Enterprise Coding Agent Platform
+# Agentic Workbench Platform
 
 ## The Problem
 
-Today, agentic coding tools (Claude Code, Goose, Aider, Cursor agent mode,
-Windsurf) run **on the developer's local machine**. This means:
+Today, data scientists and ML engineers who need to run research or agentic coding
+at scale face a painful choice:
 
-- Tests, builds, and deployments execute locally — limited by laptop resources
-- Each developer maintains their own environment (Python versions, Go toolchains,
-  Docker, kind clusters)
-- No isolation between projects — a runaway test can eat all RAM
-- No centralized observability — the DevX team can't see what agents are doing
-- No cost control — each developer burns their own API keys
-- No guardrails — agents can run arbitrary commands on local machines
-- No reuse — when developer A solves a build problem, developer B hits it again
+- **JupyterLab**: Heavy, static, one notebook per user, can't scale horizontally.
+  If you need 10 parallel research agents, you're out of luck. If the server dies,
+  your running experiment dies with it.
+- **Local machine**: Limited by laptop resources, no GPU, can't leave overnight tasks
+  running when you close your laptop.
+- **Ad-hoc VMs**: SSH into a cloud VM, but no lifecycle management, no shared data,
+  no way to fan out work to parallel workers.
 
 ## The Vision
 
-A company's Developer Experience (DevX) team provides **Coding Agent as a
-Service**: a centralized, scalable, isolated execution environment where agentic
-coding tools run on Kubernetes via Asya.
+Replace heavy static workbenches with a **two-tier model**:
 
-Developers connect from their IDE (VS Code, JetBrains, terminal) via MCP. The
-agent runs in an isolated container with the right toolchain, project-specific
-secrets, and full Kubernetes resources. Heavy operations (test suites, builds,
-multi-repo analysis) dispatch to the Asya mesh for parallel, auto-scaled
-execution.
+1. **Workbench pod** (Tier 1): A regular long-running pod the researcher SSHes into
+   (VS Code Remote, terminal). Has FUSE/state-proxy mounts to S3 with pre-downloaded
+   datasets. The researcher experiments interactively here — this is their "desk."
 
-## Why Asya (Not Just "Containers on K8s")
+2. **Research agent actors** (Tier 2): Ephemeral Asya actors that the researcher
+   spawns for heavy/parallel work. Think Karpathy's autoresearch — 10 agents each
+   searching the web, analyzing papers, running experiments. They share the same
+   S3 data (read-only or append-only), do a chunk of work, write results, and die.
+   A heartbeat message (from the workbench or a cron job) wakes them up for the
+   next chunk.
 
-Plain Kubernetes (Deployments + Services) gives you containers but not:
+The agents are NOT long-running pods. They follow the **interrupt-driven** pattern:
+wake on message, read state from S3, do work, write results to S3, die. If a pod
+crashes, the heartbeat retries. If you need more parallelism, more heartbeats spawn
+more pods via KEDA.
 
-1. **Interactive protocol**: Asya gateway speaks MCP and A2A natively. Developers
-   connect from any MCP-compatible client — no custom WebSocket server needed.
-2. **Queue-based dispatch**: Heavy operations (test suites across 20 repos) fan
-   out to the mesh. Each test runner scales independently via KEDA.
-3. **Pause/resume**: Long pipelines (multi-hour refactoring) checkpoint to S3.
-   Developer closes laptop, comes back tomorrow, resumes from exact point.
-4. **Streaming**: FLY events stream agent progress to the IDE in real-time — each
-   file edit, each test result, each reasoning step.
-5. **Guardrails as infrastructure**: Safety sandwich (input validation → agent →
-   output filter) is compiled into the actor graph, not bolted on as middleware.
-6. **Audit trail**: Every envelope carries the full processing history. Compliance
-   can inspect any agent action.
-7. **Durable execution**: If a node dies mid-test-suite, the queue retries. No
-   lost work.
+## Why Asya
+
+This model maps directly to Asya's architecture:
+
+| Concept | Asya Primitive |
+|---|---|
+| Research agent | AsyncActor (queue-driven, ephemeral pod) |
+| Shared datasets | State-proxy mount (S3/GCS, read-only) |
+| Research results | State-proxy mount (S3/GCS, append with CAS) |
+| Spawn 10 agents | Fan-out (10 messages, KEDA scales to 10 pods) |
+| Heartbeat | Cron-triggered message to actor queue |
+| Progress streaming | FLY events (SSE to workbench or gateway) |
+| Coordination | MQ — actors route envelopes to each other |
+| Crash recovery | Queue retry — message not ACKed, redelivered |
 
 ## Architecture
 
 ```
-Developer's IDE                     Company K8s Cluster
-+-----------------+                +------------------------------------------+
-| VS Code / Term  |  MCP over     | agentgateway (Rust, LF)                  |
-|                 |  HTTPS        |   - MCP federation                       |
-| MCP client      |<------------>|   - OIDC auth (Keycloak/Auth0)           |
-| (Claude Code,   |               |   - Per-tool RBAC (CEL expressions)      |
-|  Goose, etc.)   |               |   - Rate limiting, guardrails            |
-+-----------------+               |   - Admin UI / MCP playground            |
-                                  +------------------+------------------------+
-                                                     |
-                                  +------------------v------------------------+
-                                  | asya-bridge (Go, stateless, ~1,500 LOC)   |
-                                  |   - Create envelopes, publish to queues   |
-                                  |   - Subscribe to status/FLY subjects      |
-                                  |   - Stream results back via SSE           |
-                                  +------------------+------------------------+
-                                                     |
-                                  +------------------v------------------------+
-                                  | Transport (NATS JetStream)                |
-                                  |   - actor input queues (work distribution)|
-                                  |   - status.{task_id} (retained)           |
-                                  |   - fly.{task_id} (ephemeral streaming)   |
-                                  +--+--------+--------+---------------------+
-                                     |        |        |
-                              +------v--+ +---v----+ +-v---------+
-                              | Coding  | | Test   | | Build     |
-                              | Agent   | | Runner | | Runner    |
-                              | Actor   | | Actors | | Actors    |
-                              | (1/user)| | (KEDA) | | (KEDA)   |
-                              +---------+ +--------+ +-----------+
-                                  |
-                              +---v-----------+
-                              | Workspace     |
-                              | (PVC or       |
-                              |  emptyDir +   |
-                              |  git clone)   |
-                              +---------------+
+Researcher (SSH / VS Code Remote)
++-------------------------------------------+
+| Workbench Pod (long-running, NOT an actor) |
+|                                           |
+|  /data/datasets  ── FUSE mount ──> S3 (read-only, pre-downloaded)
+|  /data/results   ── FUSE mount ──> S3 (append, shared with agents)
+|  /workspace      ── PVC or git clone                              
+|                                           |
+|  The researcher:                          |
+|    - Explores data interactively          |
+|    - Develops agent code                  |
+|    - Dispatches research tasks via MQ     |
+|    - Monitors results in /data/results/   |
++-----+-------------------------------------+
+      |
+      | Sends task messages to actor queues
+      | (or cron job sends heartbeats)
+      |
++-----v----------------------------------------+
+| Transport (NATS JetStream / RabbitMQ / SQS)  |
+|   research-agent.task-1                       |
+|   research-agent.task-2                       |
+|   ...                                        |
+|   research-agent.task-N                       |
++---+--------+--------+---------+--------------+
+    |        |        |         |
++---v---+ +--v----+ +-v-----+ +v------+
+| Agent | | Agent | | Agent | | Agent |  (KEDA: 0 → N)
+| Pod 1 | | Pod 2 | | Pod 3 | | Pod N |
+|       | |       | |       | |       |
+| state-proxy:                        |
+|   /data (S3 read-only)              |
+|   /results (S3 append, CAS)         |
+|   /checkpoint (S3 read-write)       |
+|                                     |
+| Each invocation:                    |
+|   1. Read checkpoint (where I left off)
+|   2. Read task from payload         |
+|   3. Do work (web search, LLM, compute)
+|   4. Write results to /results/     |
+|   5. Write checkpoint (progress)    |
+|   6. Die (message ACKed)            |
++-------------------------------------+
 ```
 
-## The Hybrid Actor Model
+## The Heartbeat Pattern
 
-The coding agent is NOT a pipeline of actors (too slow for interactive use).
-It's a **single long-lived actor** that:
-
-1. **Runs the tight inner loop locally** — file reads, writes, git operations,
-   small shell commands execute inside the actor pod in sub-second time. No queue
-   hops. This is the ReAct cycle: LLM → tool → observe → repeat.
-
-2. **Dispatches heavy operations to the mesh** — test suites, builds, linting
-   across repos, security scans fan out to specialized actors via the normal Asya
-   envelope routing. These actors scale independently via KEDA.
-
-3. **Streams everything via FLY** — every file edit, command output, reasoning
-   step streamed to the developer's IDE in real-time.
-
-4. **Pauses for human approval** — dangerous operations (force push, production
-   deploy, delete database) route to `x-pause`. Developer reviews in IDE and
-   approves or rejects.
+Instead of long-running pods that accumulate memory leaks and stale connections:
 
 ```
-                Coding Agent Actor (single pod per session)
-                +------------------------------------------+
-                |                                          |
-                |  ReAct Loop (in-process, fast):           |
-                |    LLM call (Claude API)                 |
-                |      → file read/write (local fs)        |
-                |      → git operations (local binary)     |
-                |      → small shell cmds (subprocess)     |
-                |      → yield FLY (stream to IDE)         |
-                |      → repeat                            |
-                |                                          |
-                |  Heavy dispatch (via mesh, parallel):     |
-                |    yield envelope → test-runner actors    |
-                |    yield envelope → build-runner actors   |
-                |    yield envelope → scan-runner actors    |
-                |    (fan-out/fan-in with KEDA scaling)     |
-                |                                          |
-                |  Human gates:                             |
-                |    yield SET ".route.next" ["x-pause"]   |
-                |    (checkpoint → IDE shows approval UI)   |
-                +------------------------------------------+
+Cron Job (every 5 min)
+  └── Publishes heartbeat message to each agent's queue
+        └── KEDA detects queue depth > 0
+              └── Scales pod from 0 → 1
+                    └── Pod starts, reads checkpoint from S3
+                          └── Picks next work item from task list
+                                └── Does work (search, analyze, generate)
+                                      └── Writes results + checkpoint to S3
+                                            └── Pod dies (queue empty)
+                                                  └── KEDA scales to 0
+
+Next heartbeat: repeat from checkpoint
 ```
 
-## Developer Experience
+This simulates OpenClaw's "session lanes" but distributed:
+- Each agent has its own queue (= OpenClaw session lane)
+- Heartbeat = OpenClaw's "followup" queue mode
+- Checkpoint = OpenClaw's workspace memory
+- Pod death + restart = clean slate, no state corruption
 
-### Connecting
+## Coordination Between Agents
 
-```bash
-# Developer authenticates once (OIDC via company SSO)
-asya auth login
+Research agents sharing S3 need to avoid duplicating work. Three patterns:
 
-# IDE auto-discovers tools via MCP
-# agentgateway returns: coding-session, run-tests, deploy, scan-security, ...
+### (a) Task List in S3 (simplest)
+```python
+# Orchestrator writes task list
+with open("/results/tasks.json", "w") as f:
+    json.dump([
+        {"id": "t1", "query": "transformers survey 2026", "status": "pending"},
+        {"id": "t2", "query": "RLHF alternatives", "status": "pending"},
+    ], f)
+
+# Agent claims a task (CAS prevents double-claim)
+tasks = json.load(open("/results/tasks.json"))
+my_task = next(t for t in tasks if t["status"] == "pending")
+my_task["status"] = "claimed"
+my_task["agent"] = os.getenv("POD_NAME")
+# CAS write — if another agent claimed between read and write, FileExistsError
 ```
 
-### Session Lifecycle
+### (b) Per-Agent Queues (Asya-native)
+Fan-out: orchestrator sends one message per task, each to its own queue.
+No coordination needed — each agent gets exactly one task per heartbeat.
 
-```
-1. Developer sends message from IDE
-2. agentgateway authenticates (OIDC token), enforces RBAC
-3. asya-bridge creates envelope, publishes to coding-agent queue
-4. KEDA scales up coding-agent pod (if not running)
-5. Pod starts with:
-   - Project container image (Python 3.13 + Node 20 + project deps)
-   - Workspace volume (PVC with git checkout, or emptyDir + clone)
-   - Secrets (GitHub token, API keys from namespace Secret)
-6. Agent executes task, streams FLY events
-7. Developer sees real-time progress in IDE
-8. Agent completes → result returned via MCP
-9. Pod stays warm for follow-up messages (cooldown: 5 min)
-10. After inactivity → KEDA scales to zero
+### (c) Envelope Routing (actors talk to each other)
+Agent A discovers something relevant to Agent B's research topic.
+Agent A yields an envelope routed to Agent B's queue:
+```python
+yield "SET", ".route.next", ["agent-b"]
+yield {"finding": "...", "from_agent": "agent-a"}
 ```
 
-### Multi-Turn Conversations
+## Example: Autoresearch Pipeline
 
+```python
+# Researcher dispatches from workbench:
+for topic in ["RLHF alternatives", "scaling laws 2026", "emergent abilities"]:
+    publish_to_queue("research-agent", {
+        "task": "deep_search",
+        "topic": topic,
+        "max_iterations": 5,
+        "output_dir": f"/results/research/{slugify(topic)}/"
+    })
+
+# Each agent runs independently, writing to its output_dir:
+# /results/research/rlhf-alternatives/
+#   ├── iteration-1.json    (search results)
+#   ├── iteration-2.json    (refined search)
+#   ├── iteration-3.json    (analysis)
+#   ├── summary.json        (final findings)
+#   └── checkpoint.json     (resume state)
+
+# After all agents complete, researcher reads results:
+# ls /data/results/research/
+# rlhf-alternatives/  scaling-laws-2026/  emergent-abilities/
 ```
-Turn 1: "Fix the authentication bug in login.py"
-  → Agent reads files, identifies bug, proposes fix, streams reasoning
-  → Writes fix, runs related unit tests
-  → Returns: "Fixed null check on line 42, tests pass"
 
-Turn 2: "Now add integration tests for the fix"
-  → Same context_id, same workspace, conversation history preserved
-  → Agent reads existing test patterns, writes new tests
-  → Dispatches full test suite to test-runner actors (fan-out)
-  → Returns: "Added 3 integration tests, all 47 tests pass"
+## Example: GPU-Bound Experiment
 
-Turn 3: "Create a PR"
-  → Agent runs git commit, git push
-  → Calls GitHub API (via namespace secret)
-  → Returns: "PR #142 created: Fix auth null check"
+```python
+# Researcher designs experiment on workbench, then dispatches:
+for config in hyperparameter_grid:
+    publish_to_queue("gpu-experiment", {
+        "task": "train_model",
+        "config": config,
+        "dataset": "/data/datasets/imagenet-subset/",
+        "output_dir": f"/results/experiments/{config['name']}/"
+    })
+
+# GPU actors (KEDA scales based on queue depth + GPU availability):
+# - Read dataset from shared S3 (read-only mount)
+# - Train model with given hyperparameters
+# - Write metrics + model checkpoint to /results/experiments/
+# - Die after training completes
 ```
 
-## Enterprise DevX Platform Features
+## Enterprise Platform Layer
 
-### For the Platform Team
+For a DevX team providing this company-wide:
 
-- **Project templates**: Pre-built container images per tech stack
-  (Python, Node, Go, Java) with standard toolchains
-- **Secret management**: Per-project Kubernetes Secrets with GitHub tokens,
-  API keys, cloud credentials — injected via `secretRefs`
-- **Cost attribution**: Per-user, per-project compute + LLM token tracking
-  via sidecar metrics with `client_id` labels
-- **Guardrails**: agentgateway's CEL-based RBAC + content guardrails prevent
-  agents from accessing unauthorized repos or running dangerous commands
-- **Audit trail**: Every agent action is in the envelope. Compliance team
-  can inspect any session.
-- **Capacity planning**: KEDA metrics show concurrent sessions, queue depths,
-  pod utilization across all projects
-
-### For Developers
-
-- **Zero setup**: Connect from IDE, start coding. No local environment to maintain.
-- **Full isolation**: Each session runs in its own pod. Your runaway test doesn't
-  affect anyone else.
-- **Persistent workspace**: Git checkout persists across sessions (PVC or
-  state-proxy). Come back tomorrow and continue.
-- **Shared tooling**: Platform team maintains linters, formatters, test frameworks.
-  Every project gets the same standard toolchain.
-- **Fast heavy ops**: Test suites fan out across the mesh. 20 test files run on
-  20 pods in parallel. What takes 10 minutes locally takes 1 minute on the mesh.
-
-### For Engineering Leadership
-
-- **Visibility**: Dashboard showing agent adoption, session durations, success
-  rates, cost per team
-- **Standardization**: Every team uses the same coding agent configuration.
-  Best practices enforced at platform level.
-- **Scalability**: Add more nodes to the cluster, not more developer laptops.
-  100 concurrent coding sessions is a scaling problem, not a procurement problem.
+- **Project templates**: Pre-built workbench images per team (DS, ML, SWE) with
+  standard toolchains and pre-downloaded datasets
+- **GPU scheduling**: KEDA + node selectors for GPU actors (A100, H100 pools)
+- **Cost attribution**: Per-user compute + GPU hours tracked via sidecar metrics
+- **Data governance**: Read-only S3 mounts prevent agents from modifying source
+  datasets. Results written to team-scoped prefixes.
+- **Shared results**: Team members see each other's research results via shared
+  S3 prefix. State-proxy CAS prevents corruption.

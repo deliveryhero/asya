@@ -35,15 +35,14 @@ company's platform.
 
 | Pattern | Integration Protocol | Readiness |
 |---|---|---|
-| [Enterprise Coding Platform](enterprise-coding-platform/) | MCP + agentgateway + per-session actors | Low |
+| [Agentic Workbench Platform](enterprise-coding-platform/) | Workbench (SSH) + heartbeat actors + state-proxy | Medium |
 
-This is the highest-leverage use-case: agentic coding tools (Claude Code, Goose,
-etc.) running on Asya as a centralized, scalable platform managed by a DevX team.
-Developers connect via MCP from their IDE; the agent runs in isolated K8s pods
-with per-project toolchains, secrets, and workspace volumes. Heavy operations
-(test suites, builds) fan out to the mesh. The gateway rearchitecture
-(agentgateway + asya-bridge, aint `gateway-rearchitect/2zia`) is a major
-accelerator — OIDC auth, per-tool RBAC, rate limiting, and admin UI come free.
+Replace heavy static workbenches (JupyterLab) with a two-tier model: a
+researcher's workbench pod (SSH, VS Code Remote, FUSE-mounted S3 datasets) +
+ephemeral Asya actors for parallel research/compute. Actors follow the heartbeat
+pattern — wake on message, read checkpoint from S3, do work, write results, die.
+Simulates OpenClaw's session model but distributed and crash-safe. The #1 gap is
+FUSE mount for state-proxy (use s3fs-fuse as pragmatic starting point).
 
 ## Cross-Cutting Gaps
 

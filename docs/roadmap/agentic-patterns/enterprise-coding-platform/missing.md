@@ -1,301 +1,270 @@
-# Enterprise Coding Platform: Missing Functionality
+# Agentic Workbench Platform: Missing Functionality
 
-This is the largest gap analysis because the use-case is furthest from Asya's
-current sweet spot (stateless pipelines). Organized by architectural layer.
-
----
-
-## Layer 1: Gateway / Protocol (agentgateway + asya-bridge)
-
-### P0-GW-1. MCP blocking tools/call
-
-**Current state**: MCP `tools/call` dispatches to queue and returns immediately.
-Coding MCP clients (Claude Code, Goose) expect synchronous tool results —
-they call a tool and wait for the answer inline.
-
-**Files** (current gateway, pre-rearchitect):
-- `src/asya-gateway/internal/mcp/handlers.go:84-139` — returns task metadata
-
-**What's needed**:
-- asya-bridge: hold HTTP connection, subscribe to `status.{task_id}`, relay
-  FLY events inline, return final result when terminal status arrives
-- Timeout: per-tool configurable, default to tool's `timeout_sec`
-- This is the #1 blocker. Without it, no MCP client can use Asya as backend.
-
-**In rearchitected world**: asya-bridge subscribes to NATS `status.{id}`
-subject — blocking wait is a simple `sub.NextMsg(timeout)` loop. Much
-simpler than current PG poll + channel approach.
-
-### P0-GW-2. MCP session/conversation continuity
-
-**Current state**: Each MCP `tools/call` creates a new task. No way to
-maintain conversation context across calls. Developer's multi-turn
-conversation ("fix the bug" → "add tests" → "create PR") creates 3
-independent tasks with no shared state.
-
-**What's needed**:
-- Session ID parameter on MCP tools/call (or derived from MCP session)
-- Session maps to a specific coding-agent pod (sticky routing)
-- Pod keeps workspace and conversation state in memory across calls
-- asya-bridge routes by session ID to the right actor queue
-
-**Design options**:
-- (a) agentgateway's MCP session → session header on bridge requests
-- (b) NATS subject per session: `coding.{session_id}` → specific pod subscribes
-- (c) Sticky queue consumer: pod subscribes with consumer group = session ID
-
-### P0-GW-3. Per-tool RBAC and project isolation
-
-**Current state**: All authenticated clients can call all tools. No way to
-restrict developer A to project-A tools only.
-
-**In rearchitected world**: agentgateway provides **CEL-based per-tool RBAC**
-out of the box. The DevX team writes rules like:
-```yaml
-rules:
-  - match: "tool.name.startsWith('project-a/')"
-    allow: "user.groups.contains('team-a')"
-```
-This is FREE with agentgateway — no Asya code needed.
+The revised model (workbench + heartbeat-driven agents) has fewer gaps than the
+previous "coding agent as a service" model because it plays to Asya's strengths.
+The agents ARE Asya actors — ephemeral, queue-driven, state-in-files.
 
 ---
 
-## Layer 2: Actor / Runtime
+## Layer 1: State-Proxy / Data Access
 
-### P0-RT-1. Subprocess execution in actor handler
+### P0-SP-1. No FUSE mount — only Python builtins patched
 
-**Current state**: Python runtime executes handler functions via
-`asyncio.run()` or direct call. No support for subprocess, Popen, or shell
-command execution. Coding agents MUST execute shell commands (git, make,
-npm, pytest, etc.).
+**This is the single biggest gap for this use-case.**
+
+**Current state**: State-proxy patches `builtins.open()`, `os.stat()`,
+`os.listdir()`, etc. This works for pure-Python code but NOT for:
+- C-extension libraries (pandas `pd.read_csv()`, PyTorch `torch.load()`,
+  numpy `np.load()`, OpenCV `cv2.imread()`)
+- Shell commands (`cat`, `grep`, `wc`, `head`)
+- Git operations (`git clone`, `git log`)
+- Any non-Python tool in the container
+
+For a research workbench where data scientists use pandas, PyTorch, and shell
+tools on S3-backed data, Python-only patching is a non-starter.
 
 **Files**:
-- `src/asya-runtime/asya_runtime.py:593-636` — handler execution, no subprocess
+- `src/asya-runtime/asya_runtime.py:983-1155` — `_install_state_proxy_hooks()`
+  patches only Python builtins
+- No FUSE code anywhere in the codebase (confirmed by search)
+
+**What's needed**: FUSE-based state-proxy mount.
+
+**Options**:
+- **(a) goofys / s3fs-fuse**: Off-the-shelf FUSE mount for S3. NOT Asya-specific.
+  Deploy as sidecar or init container. Zero Asya code needed. Works for
+  workbench pods AND actor pods.
+  - Pro: Zero development effort
+  - Con: No CAS, no xattr integration, no Asya-native metrics
+  - Con: Latency on metadata operations (ls, stat) can be slow
+
+- **(b) Custom FUSE connector**: Replace the HTTP-over-Unix-socket with a FUSE
+  mount backed by the same connector sidecars. The connector sidecar serves
+  FUSE instead of HTTP.
+  - Pro: Full CAS support, xattr, Asya metrics
+  - Pro: Same connector images work for both FUSE and Python-patched modes
+  - Con: Significant engineering (~4-6 weeks), requires privileged containers
+    or `--device /dev/fuse`
+
+- **(c) Hybrid**: Use goofys/s3fs for workbench pods (no Asya dependency),
+  keep Python-patched state-proxy for actor pods (where handlers are Python).
+  This is the pragmatic path — workbench doesn't need CAS or xattr.
+
+**Recommendation**: Start with (c). Workbench pods use s3fs-fuse for
+transparent filesystem access. Actor pods continue using state-proxy with
+Python patching (handlers are Python, `io.BytesIO` workaround for C libs).
+Add FUSE connector (b) as a later enhancement.
+
+### P0-SP-2. No read-only mount mode
+
+**Current state**: State-proxy has no mount-level read-only flag. Any pod that
+mounts a state-proxy path can write to it. For shared datasets, you want
+multiple pods to read but NOT write.
+
+**Files**:
+- `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml:340-346`
+  — `writeMode` only has `buffered` and `passthrough`, no `readonly`
+- `src/asya-runtime/asya_runtime.py` — no read-only check on mount config
+
+**What's needed**:
+- `writeMode: readonly` in AsyncActor CRD
+- Runtime refuses `open(..., "w")` on read-only mounts (raises `PermissionError`)
+- For FUSE/s3fs: mount with `-o ro` flag
+
+**Effort**: Small (1-2 days for runtime + CRD change).
+
+### P1-SP-3. No append-only mode (create-new-files-only)
+
+**Current state**: CAS prevents overwriting keys that changed since last read,
+but doesn't prevent overwriting keys at all. For research results where
+multiple agents write to the same prefix, you want "create new files but never
+overwrite existing ones."
+
+**What's needed**:
+- `writeMode: append` — all writes use `exclusive=True` (If-None-Match: *)
+- Agents write to unique keys: `/results/agent-1/finding-001.json`
+- Any attempt to overwrite existing key raises `FileExistsError`
+
+**Effort**: Small (2-3 days). The exclusive flag already exists in the runtime;
+just need a mount-level default.
+
+---
+
+## Layer 2: Heartbeat / Trigger Mechanism
+
+### P0-HB-1. No cron/heartbeat message trigger
+
+**Current state**: Actors consume messages placed by upstream actors or the
+gateway. No built-in mechanism to send periodic "wake up" messages. The
+existing aint (`open.1f7m`) is scoped to retry-delay, not heartbeat.
+
+**Files**:
+- `.aint/aints/agentic-umbrella/open.1f7m.scheduled-trigger-crew-actors-cronjob-based-delay-transports.md`
+  — low priority, narrowly scoped
 
 **What's needed** (two options):
 
-**(a) Allow subprocess in Python handlers** (simpler):
-- No runtime change needed — Python handlers CAN call `subprocess.run()`.
-  The runtime doesn't prevent it. The limitation is that the handler must
-  be Python, and subprocess results must be returned in the payload dict.
-- This actually works today. The "gap" is more about handler design patterns
-  and container image setup (install git, make, etc.) than runtime changes.
-- Document the pattern and provide a reference handler.
+**(a) External CronJob** (simplest, no Asya changes):
+- Kubernetes CronJob publishes heartbeat messages to actor queues
+- CronJob pod has MQ client (NATS, RabbitMQ CLI, AWS CLI for SQS)
+- Template provided via `asya-crew` Helm chart
+- Payload includes: `{"type": "heartbeat", "timestamp": "...", "agent_id": "..."}`
 
-**(b) Non-Python actor runtime** (more flexible):
-- Alternative runtime protocol: sidecar talks to any process via stdin/stdout
-  or HTTP, not just the Python socket server.
-- Actor container runs Claude Code binary (or any agent binary) directly.
-- Sidecar sends envelope via HTTP, receives response + FLY events.
-- Requires: new runtime adapter in sidecar (not just Python socket protocol).
+**(b) Crew actor `x-cron`** (Asya-native):
+- New crew actor that runs as a CronJob
+- Configurable: target queues, schedule, payload template
+- Integrated with AsyncActor CRD: `trigger: { cron: "*/5 * * * *" }`
+- When fired, publishes message to actor's input queue
 
-**Recommendation**: Start with (a). Python handler that wraps subprocess calls
-is sufficient. The handler IS the coding agent — it calls the LLM, reads
-files, runs commands, all within a single handler invocation.
+**Recommendation**: Start with (a). A CronJob manifest is trivial to write
+and doesn't require Asya code changes. Promote to (b) when multiple teams
+need the same pattern.
 
-### P0-RT-2. Long-running handler execution
+### P1-HB-2. No "work remaining" check before heartbeat
 
-**Current state**: `resiliency.actorTimeout` enforces a per-message timeout.
-A coding session can last hours — a single "fix this bug" task might involve
-20 LLM calls, 50 file reads, 10 test runs.
+**Current state** (with external CronJob): Heartbeat fires every 5 minutes
+regardless of whether there's work to do. If the agent has no pending tasks
+in its task list (in S3), the pod starts, reads the empty list, and dies
+immediately. Wasted cold start.
+
+**What's needed**:
+- CronJob checks "is there pending work?" before publishing heartbeat
+- Options: (a) CronJob reads task list from S3 directly, (b) separate
+  "scheduler" actor that maintains task state and only fires heartbeats
+  when tasks are pending
+
+---
+
+## Layer 3: Workspace / Workbench Pod
+
+### P1-WB-1. No workbench pod CRD or Helm chart
+
+**Current state**: Asya provides AsyncActor CRD for actor pods. No equivalent
+for the researcher's workbench pod (long-running, SSH-enabled, interactive).
+
+**What's needed**:
+- Helm chart or CRD for workbench pods with:
+  - SSH access (or VS Code Remote tunnel)
+  - FUSE/s3fs mounts to shared datasets
+  - MQ client pre-installed (for dispatching tasks to actors)
+  - GPU support (optional, for interactive experiments)
+  - PVC for persistent workspace (/home, project files)
+
+**Alternative**: This is arguably NOT Asya's responsibility. Use a standard
+Kubernetes StatefulSet or JupyterHub spawner. The workbench doesn't need
+Asya's sidecar or routing. It just publishes messages to actor queues.
+
+**Recommendation**: Provide a documented template (not a CRD). The workbench
+is a standard K8s workload that happens to interact with Asya actors via MQ.
+
+### P1-WB-2. No init containers in AsyncActor CRD
+
+**Current state**: AsyncActor composition templates don't render init containers.
+Can't run `git clone` or `pip install` before the handler starts.
 
 **Files**:
-- `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml:275-277`
-  — actorTimeout field
-- `src/asya-sidecar/internal/router/` — timeout enforcement
+- `deploy/helm-charts/asya-crossplane/templates/composition-sqs.yaml` — no
+  `initContainers` section in pod spec
 
 **What's needed**:
-- Very long timeout for coding-agent actors: `actorTimeout: "4h"` or similar
-- Or: no timeout (infinite), relying on external session management to kill
-  idle pods via KEDA scale-down
-- Timeout budget preserved across pause/resume (already works)
+- `initContainers` field in AsyncActor CRD spec
+- Composition template renders init containers before runtime + sidecar
+- Use cases: git clone workspace, download model weights, install dependencies
 
-**Risk**: Long-running handlers tie up a queue consumer slot. If the actor
-has `maxReplicaCount: 1`, only one session runs at a time.
-**Mitigation**: Each user gets their own actor/queue (see session routing below).
+**Workaround**: Use class handler `__init__()` to fetch data after runtime
+starts. Or bake everything into the container image at build time.
 
-### P1-RT-3. Per-session actor routing (sticky sessions)
-
-**Current state**: Actors consume from a shared queue. All messages to the
-`coding-agent` queue go to any available pod. A developer's second message
-might hit a different pod (different workspace, different state).
-
-**What's needed**:
-- Per-session queue or routing key: `coding.{user_id}.{session_id}`
-- Each session pod subscribes only to its session's messages
-- KEDA ScaledObject per session (or per user)
-- Session creation: first message creates queue + triggers pod scale-up
-- Session teardown: inactivity → KEDA scales to zero → queue deleted
-
-**Design options**:
-- (a) Dynamic AsyncActor CRD per session (Crossplane creates queue + pod)
-- (b) NATS consumer groups with session ID as durable name
-- (c) Single actor with internal routing (actor pod dispatches by session)
-
-**Recommendation**: (b) with NATS JetStream. Each session pod is a durable
-consumer on `coding.{session_id}`. No CRD churn. KEDA scales based on
-consumer pending count.
+**Effort**: Medium (1-2 weeks for CRD + composition changes).
 
 ---
 
-## Layer 3: Workspace & State
+## Layer 4: Agent Coordination
 
-### P0-WS-1. Workspace volume strategy
+### P1-AC-1. No in-handler message dispatch (yield DISPATCH)
 
-**Current state**: No built-in workspace management. Actors get an emptyDir
-or state-proxy mount. No PVC support in the default composition.
+**Current state**: An actor handler can only route its output envelope to the
+next actor in `route.next`. It can't dispatch a NEW message to an arbitrary
+queue mid-execution (needed for agent-to-agent coordination).
 
-**What's needed** (tiered approach):
+**What's needed** (ABI extension):
+```python
+# Fire-and-forget: send message to another agent
+yield "DISPATCH", {"queue": "agent-b", "payload": {"finding": "..."}}
 
-**(a) Ephemeral workspace** (simplest, good for short sessions):
-- emptyDir volume + `git clone` on pod start (init container)
-- Workspace lost on pod termination
-- Fine for: one-shot tasks ("fix this file", "run tests")
+# Or: dispatch and wait for response (synchronous fan-out within handler)
+result = yield "DISPATCH_WAIT", {"queue": "agent-b", "payload": {...}}
+```
 
-**(b) PVC-backed workspace** (persistent across sessions):
-- ReadWriteOnce PVC per session, mounted at `/workspace`
-- Survives pod restarts and scale-to-zero events
-- Requires: PVC lifecycle management (create on session start, delete after
-  inactivity, or retain for N days)
-- Requires: composition template change to support PVC volumes
+**Alternative**: Handler publishes directly to NATS/RabbitMQ using a client
+library in the container. This bypasses the ABI but works today. Less
+observable (no envelope metadata, no tracing).
 
-**(c) Git-based persistence** (stateless pods):
-- emptyDir + git clone at start + git push at end
-- No PVC needed — workspace state is in git
-- Works for code changes but not for build artifacts (node_modules, venv)
-- Fastest cold start if git repo is small
+### P1-AC-2. No shared checkpoint coordination
 
-**Recommendation**: Start with (c) for code, add (b) for projects that need
-build artifact persistence. State-proxy S3 can supplement for large artifacts.
-
-### P1-WS-2. Container image per project/tech stack
-
-**Current state**: Actors use a single container image specified in the
-AsyncActor CRD. No built-in concept of "project template" images.
+**Current state**: Each agent reads/writes its own checkpoint in S3. No
+mechanism for a "coordinator" to know when all agents have completed their
+current iteration (needed for synchronized multi-agent research rounds).
 
 **What's needed**:
-- Project template registry: `coding-agent-python:3.13`, `coding-agent-node:20`,
-  `coding-agent-go:1.24`, `coding-agent-java:21`
-- Each template includes: base toolchain + git + standard tools + asya runtime
-- Dynamic image selection: agentgateway routes based on project metadata
-  → asya-bridge selects appropriate actor template
-- Or: per-project AsyncActor CRD with the right image (platform team maintains)
-
-### P1-WS-3. Build artifact caching across sessions
-
-**What's needed**:
-- Shared read-only mounts for common dependencies (npm cache, pip cache,
-  Go module proxy)
-- State-proxy S3 mount for per-project build caches
-- Container image layers with pre-installed project dependencies (built by CI)
-
----
-
-## Layer 4: Mesh Dispatch (Heavy Operations)
-
-### P1-MD-1. Fan-out from within a handler (not flow DSL)
-
-**Current state**: Fan-out is a Flow DSL construct compiled into router actors.
-A coding agent handler running the ReAct loop can't fan-out mid-execution
-to parallelize test runs.
-
-**What's needed**:
-- ABI extension: `yield "DISPATCH", {"actor": "test-runner", "payload": {...}}`
-- Sidecar creates child envelope, publishes to target actor's queue
-- Handler continues (doesn't wait — fire-and-forget for parallel ops)
-- Or: `results = yield "DISPATCH_WAIT", [{"actor": "test-runner", ...}, ...]`
-  for synchronous fan-out within the handler
-
-**Alternative**: Handler publishes directly to NATS (bypassing sidecar). Less
-elegant but works today with the right client library in the container.
-
-### P1-MD-2. Shared test/build runner actors
-
-**What's needed** (crew actor library for coding):
-- `x-test-runner`: Runs test commands in isolated container, streams output
-  via FLY, returns pass/fail + coverage
-- `x-build-runner`: Runs build commands, streams output, returns artifacts
-- `x-lint-runner`: Runs linters, returns findings
-- `x-scan-runner`: Security scanning (SAST, dependency audit)
-
-These actors are pre-deployed by the platform team. Coding agents dispatch
-to them for heavy operations. Each scales independently via KEDA.
+- Fan-out/fan-in: orchestrator dispatches N tasks, fan-in aggregator waits
+  for all N to complete. This IS the flow DSL pattern, but triggered by
+  heartbeat rather than a flow.
+- Or: state-proxy based coordination — agents write completion markers,
+  coordinator polls for N markers before advancing to next phase.
 
 ---
 
 ## Layer 5: Enterprise Platform
 
-### P1-EP-1. Cost attribution and quotas
+### P1-EP-1. GPU scheduling integration
+
+**Current state**: AsyncActor CRD supports `nodeSelector` and `tolerations`
+but no GPU-aware scheduling primitives (request N GPUs, GPU type selection).
 
 **What's needed**:
-- Sidecar metrics with `client_id` label (from envelope header)
-- LLM token tracking: handler reports usage to sidecar via ABI
-  `yield "SET", ".headers.x-asya-usage", {"tokens": 5000, "model": "claude-4"}`
-- Compute time tracking: sidecar records wall-clock per handler invocation
-- Aggregation: usage table or NATS KV keyed by `{client_id, date}`
-- Quota enforcement: agentgateway rate limiter checks remaining budget
+- `resources.limits.nvidia.com/gpu: 1` support in actor spec
+- Node selector for GPU pools: `gpu-type: a100`
+- KEDA scaling aware of GPU availability (don't scale to 10 if only 4 GPUs)
 
-### P1-EP-2. Session management dashboard
+**Effort**: Small — mostly CRD field additions. KEDA GPU-aware scaling is
+harder and may require custom scaler.
 
-**What's needed**:
-- List active sessions: which users, which projects, how long running
-- Session metrics: LLM calls, tool invocations, files modified, tests run
-- Kill session: terminate runaway coding agent
-- agentgateway admin UI could be extended for this
-
-### P2-EP-3. Shared knowledge across sessions
+### P2-EP-2. Cost attribution for GPU workloads
 
 **What's needed**:
-- When developer A solves a build issue, the solution is captured
-- Next time developer B hits the same issue, the agent recalls the fix
-- Implementation: state-proxy S3 mount with team-scoped knowledge base
-- Or: external memory system (vector DB) accessible from agent handlers
-
-### P2-EP-4. Pre-built action templates
-
-**What's needed**:
-- Common coding tasks as pre-compiled flows:
-  - "Fix failing CI" (fetch CI logs → analyze → fix → push → verify)
-  - "Refactor function" (analyze → plan → edit → test → PR)
-  - "Add feature from spec" (read spec → plan → implement → test → PR)
-- These are MCP tools in agentgateway's tool registry
-- Reusable across all projects
+- Sidecar metrics with GPU time labels
+- Per-user GPU hour tracking
+- Integration with cloud billing (GKE, EKS GPU node pools)
 
 ---
 
 ## Priority Summary
 
-| ID | Gap | Layer | Priority | Effort |
-|---|---|---|---|---|
-| GW-1 | MCP blocking tools/call | Gateway | P0 | 1-2 weeks |
-| GW-2 | Session/conversation continuity | Gateway | P0 | 2-3 weeks |
-| RT-1 | Subprocess execution pattern | Runtime | P0 | 1 week (docs + ref handler) |
-| RT-2 | Long-running handler execution | Runtime | P0 | 1 week (config) |
-| WS-1 | Workspace volume strategy | Workspace | P0 | 2-3 weeks |
-| GW-3 | Per-tool RBAC | Gateway | P0 | 0 (free with agentgateway) |
-| RT-3 | Per-session actor routing | Runtime | P1 | 3-4 weeks |
-| WS-2 | Container image per stack | Workspace | P1 | 2-3 weeks |
-| MD-1 | In-handler fan-out dispatch | Mesh | P1 | 2-3 weeks |
-| MD-2 | Shared runner crew actors | Mesh | P1 | 3-4 weeks |
-| EP-1 | Cost attribution | Platform | P1 | 3-4 weeks |
-| WS-3 | Build artifact caching | Workspace | P1 | 2 weeks |
-| EP-2 | Session dashboard | Platform | P1 | 2-3 weeks |
-| EP-3 | Shared team knowledge | Platform | P2 | 4-6 weeks |
-| EP-4 | Pre-built action templates | Platform | P2 | ongoing |
+| ID | Gap | Layer | Priority | Effort | Notes |
+|---|---|---|---|---|---|
+| SP-1 | FUSE mount | State-proxy | P0 | 0 (s3fs) / 4-6w (custom) | Use s3fs-fuse for now |
+| SP-2 | Read-only mount mode | State-proxy | P0 | 1-2 days | Add `readonly` writeMode |
+| HB-1 | Heartbeat trigger | Trigger | P0 | 1-2 days (CronJob template) | External CronJob first |
+| SP-3 | Append-only mode | State-proxy | P1 | 2-3 days | Default `exclusive=True` |
+| WB-1 | Workbench template | Workspace | P1 | 1 week | Documented template, not CRD |
+| WB-2 | Init containers | Actor | P1 | 1-2 weeks | CRD + composition change |
+| AC-1 | In-handler dispatch | ABI | P1 | 2-3 weeks | New ABI verb |
+| AC-2 | Checkpoint coordination | Coordination | P1 | 2-3 weeks | Fan-in or state markers |
+| HB-2 | Work-remaining check | Trigger | P1 | 1 week | CronJob pre-check |
+| EP-1 | GPU scheduling | Platform | P1 | 1 week | CRD fields |
+| EP-2 | GPU cost tracking | Platform | P2 | 3-4 weeks | Metrics + billing |
 
-## What agentgateway Gives for Free
+## What's Already There (No Gaps)
 
-The gateway rearchitecture (aint `gateway-rearchitect/2zia`) is a major
-accelerator for this use-case:
-
-- **MCP federation**: Aggregate coding agent tools + external MCP servers
-  (GitHub MCP, Jira MCP, Slack MCP) into a single endpoint
-- **Per-tool RBAC**: CEL expressions restrict access by user/team/project
-- **Rate limiting**: Token bucket per user prevents runaway sessions
-- **Content guardrails**: Prevent agents from outputting secrets, PII
-- **OIDC auth**: Plug into company SSO (Keycloak, Auth0, Okta)
-- **Admin UI**: View active tools, sessions, metrics
-- **OTLP observability**: Trace every tool call through Jaeger/Langfuse
-
-These would require months of engineering on the current gateway. With
-agentgateway, they're configuration.
+- **S3 shared access from multiple pods** — state-proxy mounts same
+  `STATE_BUCKET` + `STATE_PREFIX` across actors (works today)
+- **CAS conflict detection** — `s3-buffered-cas` detects concurrent writes
+  via ETag (works today)
+- **Exclusive file creation** — `open("/path", "x")` → `If-None-Match: *`
+  (works today)
+- **KEDA autoscaling** — queue depth → pod count (works today)
+- **FLY streaming** — agents stream progress to gateway (works today)
+- **Envelope routing** — agents send messages to each other via MQ (works today)
+- **Class handler init** — `__init__()` runs once per pod (workaround for
+  init containers, works today)
+- **Secret injection** — per-namespace secrets via `secretRefs` (works today)
