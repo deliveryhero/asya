@@ -35,14 +35,14 @@ company's platform.
 
 | Pattern | Integration Protocol | Readiness |
 |---|---|---|
-| [Agentic Workbench Platform](enterprise-coding-platform/) | Workbench (SSH) + heartbeat actors + state-proxy | Medium |
+| [Agentic Research Platform](enterprise-coding-platform/) | Flows + state-proxy + gateway | Medium-High |
 
-Replace heavy static workbenches (JupyterLab) with a two-tier model: a
-researcher's workbench pod (SSH, VS Code Remote, FUSE-mounted S3 datasets) +
-ephemeral Asya actors for parallel research/compute. Actors follow the heartbeat
-pattern — wake on message, read checkpoint from S3, do work, write results, die.
-Simulates OpenClaw's session model but distributed and crash-safe. The #1 gap is
-FUSE mount for state-proxy (use s3fs-fuse as pragmatic starting point).
+A research or development task IS a flow. Fan-out 10 researchers, fan-in to
+evaluator, loop until coverage is sufficient. All actors ephemeral, state in
+the message, heavy artifacts in state-proxy S3. The platform provides the
+cluster, state-proxy mounts, container images, and gateway. The researcher
+writes a flow, compiles, deploys, triggers. Gaps are the same cross-cutting
+gaps as other patterns (fan-in timeout, max-iteration guard, MCP blocking).
 
 ## Cross-Cutting Gaps
 

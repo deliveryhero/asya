@@ -1,212 +1,209 @@
-# Agentic Workbench Platform
+# Agentic Research & Development Platform
 
 ## The Problem
 
-Today, data scientists and ML engineers who need to run research or agentic coding
-at scale face a painful choice:
+Researchers and engineers need to run large-scale agentic tasks — deep research
+across 10 topics in parallel, iterative experiment-evaluate loops, multi-agent
+code analysis across 20 repos. Today this means either running sequentially on
+one machine (slow) or building ad-hoc infrastructure for each project (wasteful).
 
-- **JupyterLab**: Heavy, static, one notebook per user, can't scale horizontally.
-  If you need 10 parallel research agents, you're out of luck. If the server dies,
-  your running experiment dies with it.
-- **Local machine**: Limited by laptop resources, no GPU, can't leave overnight tasks
-  running when you close your laptop.
-- **Ad-hoc VMs**: SSH into a cloud VM, but no lifecycle management, no shared data,
-  no way to fan out work to parallel workers.
+## The Insight
 
-## The Vision
+**A research task IS a flow.** Fan-out 10 researchers, fan-in to an evaluator,
+loop if coverage is insufficient, write artifacts to S3. All actors ephemeral,
+state in the message, heavy artifacts in state-proxy. The "platform" is just
+"a Kubernetes cluster running Asya with state-proxy mounts to shared data."
 
-Replace heavy static workbenches with a **two-tier model**:
-
-1. **Workbench pod** (Tier 1): A regular long-running pod the researcher SSHes into
-   (VS Code Remote, terminal). Has FUSE/state-proxy mounts to S3 with pre-downloaded
-   datasets. The researcher experiments interactively here — this is their "desk."
-
-2. **Research agent actors** (Tier 2): Ephemeral Asya actors that the researcher
-   spawns for heavy/parallel work. Think Karpathy's autoresearch — 10 agents each
-   searching the web, analyzing papers, running experiments. They share the same
-   S3 data (read-only or append-only), do a chunk of work, write results, and die.
-   A heartbeat message (from the workbench or a cron job) wakes them up for the
-   next chunk.
-
-The agents are NOT long-running pods. They follow the **interrupt-driven** pattern:
-wake on message, read state from S3, do work, write results to S3, die. If a pod
-crashes, the heartbeat retries. If you need more parallelism, more heartbeats spawn
-more pods via KEDA.
-
-## Why Asya
-
-This model maps directly to Asya's architecture:
-
-| Concept | Asya Primitive |
-|---|---|
-| Research agent | AsyncActor (queue-driven, ephemeral pod) |
-| Shared datasets | State-proxy mount (S3/GCS, read-only) |
-| Research results | State-proxy mount (S3/GCS, append with CAS) |
-| Spawn 10 agents | Fan-out (10 messages, KEDA scales to 10 pods) |
-| Heartbeat | Cron-triggered message to actor queue |
-| Progress streaming | FLY events (SSE to workbench or gateway) |
-| Coordination | MQ — actors route envelopes to each other |
-| Crash recovery | Queue retry — message not ACKed, redelivered |
+No special workbench pods. No heartbeat hacks. No new concepts. The Flow DSL
+already supports every agentic pattern a researcher needs.
 
 ## Architecture
 
 ```
-Researcher (SSH / VS Code Remote)
-+-------------------------------------------+
-| Workbench Pod (long-running, NOT an actor) |
-|                                           |
-|  /data/datasets  ── FUSE mount ──> S3 (read-only, pre-downloaded)
-|  /data/results   ── FUSE mount ──> S3 (append, shared with agents)
-|  /workspace      ── PVC or git clone                              
-|                                           |
-|  The researcher:                          |
-|    - Explores data interactively          |
-|    - Develops agent code                  |
-|    - Dispatches research tasks via MQ     |
-|    - Monitors results in /data/results/   |
-+-----+-------------------------------------+
+Researcher (local machine, remote VM, IDE, terminal — anywhere)
+  |
+  | 1. Write flow in Python
+  | 2. asya flow compile research.py
+  | 3. kubectl apply -f compiled/manifests/
+  | 4. Trigger via gateway: POST /mcp tools/call or POST /a2a/
+  |
+  v
+Asya Mesh (all actors ephemeral, KEDA-scaled)
+
+  Orchestrator
       |
-      | Sends task messages to actor queues
-      | (or cron job sends heartbeats)
+      | [fan-out: N researcher actors in parallel]
       |
-+-----v----------------------------------------+
-| Transport (NATS JetStream / RabbitMQ / SQS)  |
-|   research-agent.task-1                       |
-|   research-agent.task-2                       |
-|   ...                                        |
-|   research-agent.task-N                       |
-+---+--------+--------+---------+--------------+
-    |        |        |         |
-+---v---+ +--v----+ +-v-----+ +v------+
-| Agent | | Agent | | Agent | | Agent |  (KEDA: 0 → N)
-| Pod 1 | | Pod 2 | | Pod 3 | | Pod N |
-|       | |       | |       | |       |
-| state-proxy:                        |
-|   /data (S3 read-only)              |
-|   /results (S3 append, CAS)         |
-|   /checkpoint (S3 read-write)       |
-|                                     |
-| Each invocation:                    |
-|   1. Read checkpoint (where I left off)
-|   2. Read task from payload         |
-|   3. Do work (web search, LLM, compute)
-|   4. Write results to /results/     |
-|   5. Write checkpoint (progress)    |
-|   6. Die (message ACKed)            |
-+-------------------------------------+
+  +---+---+---+---+
+  |   |   |   |   |
+  R1  R2  R3  ... RN    (each: search → analyze → write findings)
+  |   |   |   |   |
+  +---+---+---+---+
+      |
+      | [fan-in: aggregate all findings]
+      |
+  Evaluator
+      |
+      | [if coverage < threshold: refine queries, loop]
+      | [if coverage >= threshold: break]
+      |
+  Synthesizer (final report)
+      |
+  x-sink → results in envelope payload
+           + heavy artifacts in state-proxy S3
 ```
 
-## The Heartbeat Pattern
+## Why Asya (The Actor Model Advantage)
 
-Instead of long-running pods that accumulate memory leaks and stale connections:
+The flow compiles to a graph of stateless, ephemeral actors. Each actor:
 
-```
-Cron Job (every 5 min)
-  └── Publishes heartbeat message to each agent's queue
-        └── KEDA detects queue depth > 0
-              └── Scales pod from 0 → 1
-                    └── Pod starts, reads checkpoint from S3
-                          └── Picks next work item from task list
-                                └── Does work (search, analyze, generate)
-                                      └── Writes results + checkpoint to S3
-                                            └── Pod dies (queue empty)
-                                                  └── KEDA scales to 0
+1. **Receives an envelope** with the full research context (all previous
+   findings, evaluation scores, refined queries) in the payload
+2. **Does its work** (web search, LLM analysis, code scan, experiment)
+3. **Enriches the payload** with its results
+4. **Yields the envelope** to the next actor in the route
+5. **Dies** (pod scales to zero when queue is empty)
 
-Next heartbeat: repeat from checkpoint
-```
+No shared mutable state. No long-running processes. No heartbeats. If a pod
+crashes mid-work, the queue retries. If you need 10 researchers, KEDA scales
+to 10 pods. When they're done, KEDA scales back to zero.
 
-This simulates OpenClaw's "session lanes" but distributed:
-- Each agent has its own queue (= OpenClaw session lane)
-- Heartbeat = OpenClaw's "followup" queue mode
-- Checkpoint = OpenClaw's workspace memory
-- Pod death + restart = clean slate, no state corruption
+State-proxy is for **heavy artifacts only** — datasets, model weights, generated
+reports. The research context itself travels in the message.
 
-## Coordination Between Agents
+## Example Flows
 
-Research agents sharing S3 need to avoid duplicating work. Three patterns:
-
-### (a) Task List in S3 (simplest)
-```python
-# Orchestrator writes task list
-with open("/results/tasks.json", "w") as f:
-    json.dump([
-        {"id": "t1", "query": "transformers survey 2026", "status": "pending"},
-        {"id": "t2", "query": "RLHF alternatives", "status": "pending"},
-    ], f)
-
-# Agent claims a task (CAS prevents double-claim)
-tasks = json.load(open("/results/tasks.json"))
-my_task = next(t for t in tasks if t["status"] == "pending")
-my_task["status"] = "claimed"
-my_task["agent"] = os.getenv("POD_NAME")
-# CAS write — if another agent claimed between read and write, FileExistsError
-```
-
-### (b) Per-Agent Queues (Asya-native)
-Fan-out: orchestrator sends one message per task, each to its own queue.
-No coordination needed — each agent gets exactly one task per heartbeat.
-
-### (c) Envelope Routing (actors talk to each other)
-Agent A discovers something relevant to Agent B's research topic.
-Agent A yields an envelope routed to Agent B's queue:
-```python
-yield "SET", ".route.next", ["agent-b"]
-yield {"finding": "...", "from_agent": "agent-a"}
-```
-
-## Example: Autoresearch Pipeline
+### Deep Research (Fan-Out + Evaluate Loop)
 
 ```python
-# Researcher dispatches from workbench:
-for topic in ["RLHF alternatives", "scaling laws 2026", "emergent abilities"]:
-    publish_to_queue("research-agent", {
-        "task": "deep_search",
-        "topic": topic,
-        "max_iterations": 5,
-        "output_dir": f"/results/research/{slugify(topic)}/"
-    })
+@flow
+async def deep_research(p):
+    p = await plan_research(p)           # decompose into sub-topics
 
-# Each agent runs independently, writing to its output_dir:
-# /results/research/rlhf-alternatives/
-#   ├── iteration-1.json    (search results)
-#   ├── iteration-2.json    (refined search)
-#   ├── iteration-3.json    (analysis)
-#   ├── summary.json        (final findings)
-#   └── checkpoint.json     (resume state)
+    p["iteration"] = 0
+    while p["iteration"] < 3:
+        p["iteration"] += 1
 
-# After all agents complete, researcher reads results:
-# ls /data/results/research/
-# rlhf-alternatives/  scaling-laws-2026/  emergent-abilities/
+        # Fan-out: one researcher per sub-topic
+        p["findings"] = [
+            researcher(topic) for topic in p["sub_topics"]
+        ]
+
+        p = await evaluator(p)           # score coverage, identify gaps
+        if p["coverage"] >= 0.85:
+            break
+        p = await query_refiner(p)       # refine queries for next round
+
+    p = await synthesizer(p)             # final report from all findings
+    return p
 ```
 
-## Example: GPU-Bound Experiment
+### Multi-Repo Code Analysis
 
 ```python
-# Researcher designs experiment on workbench, then dispatches:
-for config in hyperparameter_grid:
-    publish_to_queue("gpu-experiment", {
-        "task": "train_model",
-        "config": config,
-        "dataset": "/data/datasets/imagenet-subset/",
-        "output_dir": f"/results/experiments/{config['name']}/"
-    })
+@flow
+async def code_audit(p):
+    # Fan-out: one scanner per repository
+    p["scan_results"] = [
+        security_scanner(repo) for repo in p["repositories"]
+    ]
+    p = await vulnerability_aggregator(p)
+    p = await severity_classifier(p)
 
-# GPU actors (KEDA scales based on queue depth + GPU availability):
-# - Read dataset from shared S3 (read-only mount)
-# - Train model with given hyperparameters
-# - Write metrics + model checkpoint to /results/experiments/
-# - Die after training completes
+    if p["critical_count"] > 0:
+        p = await remediation_advisor(p)  # suggest fixes
+
+    return p
+```
+
+### Experiment Grid Search
+
+```python
+@flow
+async def hyperparameter_search(p):
+    # Fan-out: one trainer per config
+    p["results"] = [
+        train_and_evaluate(config) for config in p["grid"]
+    ]
+    p = await result_ranker(p)           # rank by metric
+    p = await report_generator(p)        # summary + charts
+    return p
+```
+
+### ReAct Agent with Tool Loop
+
+```python
+@flow
+async def research_agent(p):
+    p["messages"] = []
+    while True:
+        p = await llm_reason(p)          # decide next action
+        if not p.get("tool_calls"):
+            break                        # final answer
+        p = await tool_executor(p)       # run tool, append observation
+    return p
+```
+
+## State-Proxy for Heavy Artifacts
+
+State in the message handles research context (findings, scores, queries).
+State-proxy handles heavy artifacts that shouldn't travel in envelopes:
+
+```python
+# Researcher actor writes large dataset analysis to S3
+async def researcher(payload):
+    results = await heavy_analysis(payload["topic"])
+
+    # Large artifact → state-proxy (not in message)
+    with open(f"/state/artifacts/{payload['topic']}.json", "w") as f:
+        json.dump(results["detailed_analysis"], f)
+
+    # Summary → message payload (travels with envelope)
+    payload["findings"] = results["summary"]
+    payload["artifact_path"] = f"/state/artifacts/{payload['topic']}.json"
+    return payload
+```
+
+Downstream actors read artifacts from state-proxy when needed:
+```python
+async def synthesizer(payload):
+    for finding in payload["findings"]:
+        if finding.get("artifact_path"):
+            with open(finding["artifact_path"]) as f:
+                details = json.load(f)
+            # Use details for deeper synthesis
+    ...
 ```
 
 ## Enterprise Platform Layer
 
 For a DevX team providing this company-wide:
 
-- **Project templates**: Pre-built workbench images per team (DS, ML, SWE) with
-  standard toolchains and pre-downloaded datasets
-- **GPU scheduling**: KEDA + node selectors for GPU actors (A100, H100 pools)
-- **Cost attribution**: Per-user compute + GPU hours tracked via sidecar metrics
-- **Data governance**: Read-only S3 mounts prevent agents from modifying source
-  datasets. Results written to team-scoped prefixes.
-- **Shared results**: Team members see each other's research results via shared
-  S3 prefix. State-proxy CAS prevents corruption.
+### What the Platform Team Provides
+
+- **The cluster**: Kubernetes with Asya (Crossplane, KEDA, transport, gateway)
+- **State-proxy mounts**: Pre-configured S3 buckets per team/project with datasets
+- **Container images**: Per-tech-stack images (Python+DS, Node, Go, Java) with
+  standard toolchains and pre-installed dependencies
+- **Gateway**: MCP/A2A endpoint for triggering flows, streaming progress, auth
+- **GPU node pools**: KEDA-scaled GPU actors for ML workloads
+- **Cost attribution**: Per-user/team compute + LLM token tracking via metrics
+
+### What the Researcher Does
+
+1. Writes a flow in Python (using Flow DSL)
+2. Compiles: `asya flow compile research.py`
+3. Deploys: `kubectl apply -f compiled/manifests/`
+4. Triggers: `POST /mcp tools/call` or `asya mcp send`
+5. Monitors: FLY events stream progress in real-time
+6. Reads results: In the final envelope payload or state-proxy S3
+
+### Scaling Properties
+
+| Dimension | How It Scales |
+|---|---|
+| More topics/repos | Fan-out: more messages → KEDA scales more pods |
+| Deeper research | Loop iterations: evaluator controls convergence |
+| More users/teams | Namespace isolation: each team's actors independent |
+| Larger artifacts | State-proxy S3: unlimited storage, actors remain stateless |
+| GPU workloads | Node selectors + tolerations: GPU actors on GPU nodes |
