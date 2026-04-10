@@ -1,0 +1,33 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-sequential-flow
+  namespace: default
+  labels:
+    asya.sh/flow: sequential-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-sequential-flow
+  image: python:3.13-slim
+  handler: routers.start_sequential_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_A
+    value: 01_sequential.handler_a
+  - name: ASYA_HANDLER_ACTOR_HANDLER_B
+    value: 01_sequential.handler_b
+  - name: ASYA_HANDLER_ACTOR_HANDLER_C
+    value: 01_sequential.handler_c
+  volumes:
+  - name: routers
+    configMap:
+      name: sequential-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

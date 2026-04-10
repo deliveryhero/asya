@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-merge-analysis
+  namespace: default
+  labels:
+    asya.sh/flow: analysis-flow
+    asya.sh/role: end
+spec:
+  actor: actor-merge-analysis
+  image: examples.asya.sh/merge-analysis:latest
+  handler: 04_fanout.merge_analysis
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

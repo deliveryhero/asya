@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-transformer
+  namespace: default
+  labels:
+    asya.sh/flow: typeddict-pipeline
+spec:
+  actor: actor-transformer
+  image: examples.asya.sh/transformer:latest
+  handler: 09_typed_pipeline.transformer
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

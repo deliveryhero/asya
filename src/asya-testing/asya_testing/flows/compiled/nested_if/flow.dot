@@ -1,0 +1,40 @@
+digraph "test_nested_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_test_nested_flow; }
+
+    finalize_result [label="finalize_result", fillcolor=lightsalmon];
+    route_a_x [label="route_a_x", fillcolor=lightblue];
+    route_a_y [label="route_a_y", fillcolor=lightblue];
+    route_b_x [label="route_b_x", fillcolor=lightblue];
+    route_b_y [label="route_b_y", fillcolor=lightblue];
+    router_test_nested_flow_if_level1_eq_a [label="router_test_nested_flow_if_level1_eq_a", fillcolor=wheat];
+    router_test_nested_flow_if_level2_eq_x [label="router_test_nested_flow_if_level2_eq_x\n\np['path'] = 'A'", fillcolor=wheat];
+    router_test_nested_flow_if_level2_eq_x_2 [label="router_test_nested_flow_if_level2_eq_x_2\n\np['path'] = 'B'", fillcolor=wheat];
+    router_test_nested_flow_seq_set_route [label="router_test_nested_flow_seq_set_route\n\np['route'] = 'A-X'", fillcolor=wheat];
+    router_test_nested_flow_seq_set_route_2 [label="router_test_nested_flow_seq_set_route_2\n\np['route'] = 'A-Y'", fillcolor=wheat];
+    router_test_nested_flow_seq_set_route_3 [label="router_test_nested_flow_seq_set_route_3\n\np['route'] = 'B-X'", fillcolor=wheat];
+    router_test_nested_flow_seq_set_route_4 [label="router_test_nested_flow_seq_set_route_4\n\np['route'] = 'B-Y'", fillcolor=wheat];
+    start_test_nested_flow [label="start_test_nested_flow", fillcolor=palegreen];
+    validate_input [label="validate_input", fillcolor=lightblue];
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_test_nested_flow -> validate_input;
+    validate_input -> router_test_nested_flow_if_level1_eq_a;
+    router_test_nested_flow_seq_set_route -> route_a_x;
+    router_test_nested_flow_seq_set_route_2 -> route_a_y;
+    router_test_nested_flow_if_level2_eq_x -> router_test_nested_flow_seq_set_route [label="p['level2'] == 'X'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_test_nested_flow_if_level2_eq_x -> router_test_nested_flow_seq_set_route_2 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_test_nested_flow_seq_set_route_3 -> route_b_x;
+    router_test_nested_flow_seq_set_route_4 -> route_b_y;
+    router_test_nested_flow_if_level2_eq_x_2 -> router_test_nested_flow_seq_set_route_3 [label="p['level2'] == 'X'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_test_nested_flow_if_level2_eq_x_2 -> router_test_nested_flow_seq_set_route_4 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_test_nested_flow_if_level1_eq_a -> router_test_nested_flow_if_level2_eq_x [label="p['level1'] == 'A'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_test_nested_flow_if_level1_eq_a -> router_test_nested_flow_if_level2_eq_x_2 [label="else", color="#D35400", fontcolor="#D35400"];
+    route_a_x -> finalize_result;
+    route_a_y -> finalize_result;
+    route_b_x -> finalize_result;
+    route_b_y -> finalize_result;
+    finalize_result -> __end__;
+}

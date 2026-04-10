@@ -1,9 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-- asya-actor-handler-finalize.yaml
-- asya-actor-handler-process.yaml
-- asya-actor-handler-setup.yaml
-- asya-router-if-one-empty-branch-flow-if-skip-processing.yaml
-- asya-start-if-one-empty-branch-flow.yaml
-- configmap-routers.yaml

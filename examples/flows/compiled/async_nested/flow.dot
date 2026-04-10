@@ -1,6 +1,0 @@
-digraph "review_pipeline_flow" {
-    rankdir=TB;
-    node [shape=box, style=filled, fontname="Helvetica"];
-
-
-}

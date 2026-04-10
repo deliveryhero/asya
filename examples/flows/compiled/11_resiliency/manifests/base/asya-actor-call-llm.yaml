@@ -1,0 +1,27 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-call-llm
+  namespace: default
+  labels:
+    asya.sh/flow: resiliency-retry-patterns
+spec:
+  actor: actor-call-llm
+  image: examples.asya.sh/call-llm:latest
+  handler: 11_resiliency.call_llm
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env:
+  - name: ASYA_IGNORE_DECORATORS
+    value: tenacity.retry
+  resiliency:
+    timeout:
+      actor: 120
+    policies:
+      default:
+        maxAttempts: 3
+        maxDuration: 60
+        initialDelay: 1
+        maxInterval: 30

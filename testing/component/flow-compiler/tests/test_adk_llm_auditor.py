@@ -41,7 +41,7 @@ def compile_and_import():
 
 
 def test_parse_sequential_async(project_root):
-    flow_file = project_root / "examples" / "flows" / "async_sequential.py"
+    flow_file = project_root / "examples" / "flows" / "10_async_sequential.py"
     source = flow_file.read_text()
     parser = FlowParser(source, str(flow_file))
     result = parser.parse()
@@ -58,7 +58,7 @@ def test_execute_sequential_async(project_root, compile_and_import, monkeypatch)
     monkeypatch.setenv("ASYA_HANDLER_CRITIC", "critic")
     monkeypatch.setenv("ASYA_HANDLER_REVISER", "reviser")
 
-    flow_file = project_root / "examples" / "flows" / "async_sequential.py"
+    flow_file = project_root / "examples" / "flows" / "10_async_sequential.py"
     source = flow_file.read_text()
     routers = compile_and_import(source)
 
@@ -75,7 +75,7 @@ def _run_react_loop_if_router(project_root, compile_and_import, monkeypatch, pay
     monkeypatch.setenv("ASYA_HANDLER_LLM_CALL", "llm_call")
     monkeypatch.setenv("ASYA_HANDLER_EXECUTE_TOOL", "execute_tool")
 
-    flow_file = project_root / "examples" / "flows" / "while_react_loop.py"
+    flow_file = project_root / "testing" / "component" / "flow-compiler" / "tests" / "fixtures" / "while_react_loop.py"
     source = flow_file.read_text()
     routers = compile_and_import(source)
 

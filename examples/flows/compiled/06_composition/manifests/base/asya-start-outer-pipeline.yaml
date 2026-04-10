@@ -1,0 +1,35 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-outer-pipeline
+  namespace: default
+  labels:
+    asya.sh/flow: outer-pipeline
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-outer-pipeline
+  image: python:3.13-slim
+  handler: routers.start_outer_pipeline
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ENRICH
+    value: 06_composition.enrich
+  - name: ASYA_HANDLER_ACTOR_PREPROCESS
+    value: 06_composition.preprocess
+  - name: ASYA_HANDLER_ACTOR_STORE
+    value: 06_composition.store
+  - name: ASYA_HANDLER_ACTOR_VALIDATE
+    value: 06_composition.validate
+  volumes:
+  - name: routers
+    configMap:
+      name: outer-pipeline-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true

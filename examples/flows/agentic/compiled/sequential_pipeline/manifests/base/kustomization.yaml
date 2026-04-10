@@ -1,9 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-- asya-actor-data-analyst.yaml
-- asya-actor-execution-planner.yaml
-- asya-actor-risk-evaluator.yaml
-- asya-actor-trading-analyst.yaml
-- asya-start-sequential-pipeline.yaml
-- configmap-routers.yaml
