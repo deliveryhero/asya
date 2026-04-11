@@ -1,127 +1,65 @@
 ---
-title: "RFC: Replace asya-gateway with agentgateway + asya-bridge architecture"
+title: "RFC: Replace asya-gateway with agentgateway + asya-dispatcher"
 priority: 1 # high
 status: open
 tags: [architecture, rfc]
 ---
 
-# RFC: agentgateway + asya-bridge
+# RFC: agentgateway + asya-dispatcher
 
-## Problem
+Replace `asya-gateway` (~7,150 LOC Go monolith) with:
 
-`asya-gateway` (~7,150 LOC Go) is a monolith that handles MCP server, A2A server,
-auth (JWT/OAuth 2.1), task state (PostgreSQL), SSE streaming, queue dispatch, mesh
-sidecar callbacks, and observability. The api/mesh split requires `pg_notify` for
-cross-process sync, which is risky (8KB limit, dedicated PG connection, feedback
-loops, 2s poll fallback).
+1. **agentgateway** (LF, Rust) -- MCP server, A2A proxy, auth, rate limiting
+2. **asya-dispatcher** (new, Go, ~2,000 LOC) -- two-port HTTP service:
+   - Port 8080 (external): `/dispatch`, `/stream/{id}`, `/tasks/{id}`, `/a2a/*`
+   - Port 8081 (internal): `/mesh/{id}/*` (sidecar callbacks)
 
-## Proposal
+## Key Design Decisions
 
-Replace `asya-gateway` with two components:
+- **Two-step API**: `POST /dispatch` (round-robin, generates ID) +
+  `GET /stream/{id}` (hash-routed, holds SSE). Standard REST pattern,
+  maps to A2A `tasks/send` + `tasks/subscribe`.
+- **Consistent hash via Ingress**: `upstream-hash-by: $http_x_asya_envelope_id`.
+  Two Ingresses: external (client-facing) and internal (sidecar-facing).
+  ID generation is application concern (dispatcher), routing is networking
+  concern (Ingress).
+- **`x-asya-gateway-url` in envelope**: sidecar reads gateway URL from
+  envelope headers, eliminating `ASYA_GATEWAY_URL` env var.
+- **`X-Asya-Envelope-ID` header**: sidecar sets this on every POST for
+  consistent hash routing. Always present on sidecar requests.
+- **DB for metadata only**: lightweight task status table, async writes.
+  No pub/sub, no pg_notify, no JSONB payload/result columns.
+- **SSE + mesh in same process**: Go channels for real-time delivery,
+  no cross-process sync needed.
 
-1. **agentgateway** (LF project, Rust) -- MCP server, A2A proxy, auth, rate
-   limiting, guardrails, observability, admin UI. Stateless.
-2. **asya-bridge** (new, Go, ~1,500-2,000 LOC) -- stateless HTTP-to-MQ translator.
-   Creates envelopes, publishes to actor queues, subscribes to status/FLY subjects.
-   No PostgreSQL. No pg_notify.
+## Eliminates
 
-## Key Architectural Change
+- pg_notify (8KB limit, dedicated conn, feedback loops)
+- api/mesh gateway split (ASYA_GATEWAY_MODE)
+- ASYA_GATEWAY_URL env var in sidecars
+- MCP server code (~1,868 LOC) -> agentgateway
+- Auth/OAuth code (~755 LOC) -> agentgateway
+- PG as pub/sub bus
+- task_updates table
 
-Sidecars stop POSTing to `/mesh/*` HTTP endpoints. Instead, they publish status
-events to transport subjects (`status.{task_id}`, `fly.{task_id}`). The bridge
-subscribes to these subjects. This eliminates:
-- The api/mesh gateway split
-- PostgreSQL as task state store
-- pg_notify for cross-process communication
-- The x-sink queue consumer in the gateway
+## Full RFC
 
-## Architecture
-
-```
-Client --> agentgateway (MCP server, A2A proxy, auth, rate limit, guardrails)
-             |
-       MCP tool/call, A2A passthrough
-             |
-       asya-bridge (stateless, ~1,500 LOC)
-         - POST /dispatch: create envelope, publish to actor queue,
-           subscribe to status.{id}, stream result back
-         - POST /a2a/*: A2A task lifecycle via transport subjects
-         - GET /stream/{id}: subscribe to fly.{id}, SSE
-         - GET /tasks/{id}: read from state-proxy (S3/GCS/Redis)
-             |
-       Transport (NATS JetStream preferred)
-         - actor input queues (work distribution)
-         - status.{task_id} (task state events, retained)
-         - fly.{task_id} (FLY token streams, ephemeral)
-         - resume.{task_id} (pause/resume signals)
-             |
-       Actor Mesh (sidecars publish to subjects, not HTTP)
-```
-
-## What agentgateway Provides (Free)
-
-- MCP tool federation (aggregate tools from multiple meshes + external MCP servers)
-- Per-tool RBAC via CEL expressions
-- Token-bucket + global rate limiting
-- Content guardrails (regex, OpenAI moderation, Bedrock, Model Armor)
-- OpenAPI-to-MCP auto-conversion
-- Built-in admin UI + MCP playground
-- Full OTLP observability (Jaeger, Langfuse integration)
-- MCP auth spec compliance (OIDC, Keycloak, Auth0 adapters)
-
-## What Gets Deleted vs Created
-
-| Component | LOC | Fate |
-|---|---|---|
-| asya-gateway (entire) | ~7,150 | Deleted |
-| internal/envelopestore/ (PG) | ~1,593 | Deleted |
-| internal/mcp/ (MCP server) | ~1,868 | Deleted (agentgateway) |
-| internal/oauth/ | ~521 | Deleted (agentgateway) |
-| internal/toolstore/ | ~515 | Deleted (agentgateway) |
-| internal/consumer/ | ~196 | Deleted |
-| **asya-bridge (new)** | 0 | **Created ~1,500-2,000 LOC** |
-
-Net: ~70-75% code reduction.
-
-## Transport Requirements
-
-| Transport | Pub/Sub | Retained/Replay | KV | Fit |
-|---|---|---|---|---|
-| NATS+JetStream | Native | JetStream | NATS KV | Best |
-| RabbitMQ | Topic exchanges | Manual | No | Good |
-| Google Pub/Sub | Native | Seek | No | Good |
-| SQS | Needs SNS | No | No | Weak |
-
-## Sidecar Change (small)
-
-```go
-// Before: HTTP POST to mesh gateway
-http.Post(meshGatewayURL+"/mesh/"+id+"/progress", body)
-// After: publish to transport subject (same queue client)
-queue.Publish("status."+id, progressMsg)
-```
-
-## A2A Without PostgreSQL
-
-- Task state = latest retained message on status.{id} subject
-- History = state-proxy (x-sink already persists there)
-- Pause/resume = x-pause writes to state-proxy, publishes status; x-resume
-  reads from state-proxy on resume.{id} signal
-- ListTasks = prefix scan in NATS KV or state-proxy (degraded vs SQL)
-
-## Risks
-
-- ListTasks filtering degraded without SQL (acceptable for most AI agent use cases)
-- SQS deployments need adaptation (SNS fan-out)
-- agentgateway is young (~1 year, but backed by AWS/Cisco/Microsoft/Red Hat)
-- NATS becomes load-bearing for state signaling, not just messaging
+See [rfc.md](rfc.md) for complete design including:
+- agentgateway research findings and capabilities
+- asya-gateway code audit by bucket (~7,150 LOC breakdown)
+- Ingress configuration (nginx consistent hash)
+- Two-step dispatch flow diagrams
+- A2A/MCP protocol mapping
+- Sidecar changes (header + envelope URL)
+- DB schema (metadata only)
+- Code impact analysis (~72% reduction)
+- Risks and open questions
 
 ## Sub-tasks
 
-- [ ] Write detailed RFC with sequence diagrams
-- [ ] Prototype asya-bridge with NATS JetStream
-- [ ] Prototype sidecar subject-based status publishing
+- [ ] Prototype asya-dispatcher with two-step API
+- [ ] Prototype Ingress consistent hash routing (nginx)
+- [ ] Sidecar: read gateway URL from envelope, set X-Asya-Envelope-ID header
 - [ ] Evaluate agentgateway MCP federation with Asya flows
-- [ ] Design A2A task lifecycle without PostgreSQL
-- [ ] Design ListTasks with NATS KV or state-proxy
+- [ ] Design simplified DB schema (metadata only)
 - [ ] Migration plan from current architecture
