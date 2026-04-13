@@ -1,16 +1,10 @@
 # Managed by git-aint — overwritten on every `git aint init`
-# On aint-sync branch: track active/, archive/, scripts/, docs/, and auto files
+# On aint-sync branch: only track aints/, scripts/, and AGENTS.md
+# Everything else (source code, docs, etc.) lives on main branch
 *
 !.gitignore
 !AGENTS.md
-!active/
-!active/**
-!archive/
-!archive/**
-!docs/
-!docs/**
-!trash/
-!trash/**
+!aints/
+!aints/**
 !scripts/
 !scripts/**
-!auto_state.md
