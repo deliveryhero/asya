@@ -2,6 +2,7 @@
 title: "Transport: add SendWithDelay() and rename Nack() to Requeue()"
 status: merged
 priority: 1
+parent: s62ja
 ---
 
 Extend the transport interface in src/asya-sidecar/pkg/transport/transport.go.

@@ -2,6 +2,7 @@
 title: "Flow DSL: fan-out/fan-in dot diagram visualization"
 status: merged
 priority: 3
+parent: 4e5zh
 dependencies:
   - 1ih5
 tags:

@@ -2,6 +2,7 @@
 title: Import a2a-go v0.3.7 and implement state mapping
 status: merged
 priority: 2
+parent: emmc5
 tags:
   - pr:257
 ---

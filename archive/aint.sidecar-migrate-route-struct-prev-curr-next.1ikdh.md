@@ -2,6 +2,7 @@
 title: "Sidecar: migrate Route struct to prev/curr/next"
 status: merged
 priority: 1
+parent: l9v6p
 ---
 
 Migrate the sidecar's Route struct and all dependent routing logic from `{Actors, Current}` to `{Prev, Curr, Next}`.

@@ -2,6 +2,7 @@
 title: "Phase 1.3: Create SQS Composition (queue + KEDA + deployment)"
 status: merged
 priority: 1
+parent: h0mji
 dependencies:
   - 1f3z
   - 1fe3

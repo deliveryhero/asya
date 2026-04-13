@@ -2,6 +2,7 @@
 title: "Gateway: resume flow via message/send with task_id"
 status: merged
 priority: 2
+parent: hwek2
 dependencies:
   - 1kmp
 tags:
