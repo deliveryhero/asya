@@ -137,7 +137,7 @@ metadata:
   labels:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
-  package: {{ .Values.functions.flavorsRepository }}:{{ .Values.functions.flavorsVersion }}
+  package: {{ .Values.functions.flavorsRepository }}:{{ .Values.functions.flavorsVersion | default .Chart.AppVersion }}
   packagePullPolicy: {{ .Values.functions.flavorsPackagePullPolicy }}
   runtimeConfigRef:
     name: function-asya-flavors-runtime
