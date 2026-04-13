@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.2] - 2026-04-13
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Bug Fixes
+* fix(charts): fail with clear message when ProviderConfig CRDs are missing by @atemate in https://github.com/deliveryhero/asya/pull/415
+### Documentation
+* docs: Restructure examples/ into curated teaser by @atemate in https://github.com/deliveryhero/asya/pull/413
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.0.1...v1.0.2
+
+
+
 ## [1.0.1] - 2026-03-25
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -1478,6 +1493,9 @@ All images are published to GitHub Container Registry:
 [0.5.16]: https://github.com/deliveryhero/asya/releases/tag/v0.5.16
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.1...HEAD
 [1.0.1]: https://github.com/deliveryhero/asya/releases/tag/v1.0.1
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/deliveryhero/asya/releases/tag/v1.0.2
 
