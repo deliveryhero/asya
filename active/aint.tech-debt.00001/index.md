@@ -1,0 +1,56 @@
+---
+title: Tech debt
+status: open
+priority: 2
+children:
+  - 0mtj2
+  - 1ffas
+  - 1jnjg
+  - 1k34w
+  - 1k5a0
+  - 4v092
+  - jhreb
+  - mqd9a
+  - msic9
+  - nqf56
+  - rruzx
+  - u5pdc
+  - w76v1
+  - wozvz
+  - wpla1
+  - y6xvh
+  - 1k38q
+  - qh2y1
+  - tj91u
+  - pw0jj
+  - 1f7wi
+  - 1facb
+  - 1ffp2
+  - 1fm8l
+  - 1fwaa
+  - 1jqks
+  - 1k1bx
+  - 1msun
+  - 1oa6z
+  - 1omcl
+  - 1phpj
+  - 2k242
+  - 4d6ze
+  - 56o1e
+  - 5ttg4
+  - 6e74y
+  - a38so
+  - ah8o4
+  - dxo1d
+  - ez342
+  - fba44
+  - hvk0d
+  - jgwnk
+  - jj4of
+  - o2b6b
+  - pe83q
+  - pwx66
+  - r2brm
+  - ts8ha
+  - xcd1s
+---

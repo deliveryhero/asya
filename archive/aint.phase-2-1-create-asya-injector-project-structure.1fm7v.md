@@ -1,0 +1,47 @@
+---
+title: "Phase 2.1: Create asya-injector project structure"
+status: merged
+priority: 1
+parent: h0mji
+---
+
+Bootstrap the asya-injector Go project for the mutating admission webhook.
+
+## Tasks
+
+1. Create src/asya-injector/ directory structure
+2. Initialize Go module (go mod init)
+3. Set up basic project layout:
+   - cmd/injector/main.go - entrypoint
+   - internal/webhook/ - webhook handler
+   - internal/injection/ - sidecar injection logic
+   - internal/config/ - configuration loading
+4. Add Dockerfile for building the injector image
+5. Add Makefile with standard targets (build, test, lint)
+6. Add to root Makefile for unified builds
+7. Create basic health check endpoint (/healthz)
+
+## Acceptance Criteria
+
+- `make build` in src/asya-injector produces binary
+- Docker image builds successfully
+- Health endpoint responds with 200 OK
+- Project follows existing Go conventions in repo
+
+## Technical Notes
+
+- Use controller-runtime for webhook infrastructure (same as current operator)
+- Or use vanilla net/http for simpler implementation
+- Webhook will need TLS certificates (cert-manager integration later)
+
+## Reference
+
+See docs/rfc/rfc-crossplane.md Section 6 (Mutating Webhook)
+
+
+---
+**Close reason**: Closed
+
+
+---
+_Migrated from beads `asya-p39`_

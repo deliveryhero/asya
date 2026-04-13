@@ -1,0 +1,8 @@
+---
+title: "Observability: route-override hit rate metrics per actor"
+status: open
+priority: 4
+parent: 2w664
+---
+
+Emit Prometheus metrics tracking override hit rates per actor (e.g. how many messages were routed via override vs normal path). Enables operators to monitor traffic splits in Grafana dashboards.

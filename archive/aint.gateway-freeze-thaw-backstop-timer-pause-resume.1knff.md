@@ -1,0 +1,12 @@
+---
+title: "Gateway: freeze/thaw backstop timer on pause/resume"
+status: merged
+priority: 2
+parent: hwek2
+dependencies:
+  - 1kmp
+tags:
+  - pr:217
+---
+
+Update taskstore timeout handling: on pause, cancel backstop timer and save remaining_sec (deadline - now). On resume, restart timer with remaining_sec and set x-asya-resume-timeout header on resume message. x-resume uses this to stamp new deadline_at on outbound message. See RFC section 6.3. Unit tests for timer suspend/resume, remaining time calculation.
