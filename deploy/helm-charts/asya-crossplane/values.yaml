@@ -3,6 +3,8 @@
 # then upgrade with providerConfigs.install=true.
 providerConfigs:
   install: false
+  # Skip CRD existence checks (for offline helm template / GitOps rendering)
+  skipCRDCheck: false
 
 # Crossplane provider configuration
 providers:
