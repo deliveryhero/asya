@@ -1,5 +1,44 @@
 {{- if .Values.providerConfigs.install }}
+{{- /* Fail early with actionable message if ProviderConfig CRDs are not yet registered.
+       Skip checks when providerConfigs.skipCRDCheck=true (for offline helm template / GitOps). */ -}}
+{{- if not .Values.providerConfigs.skipCRDCheck }}
+{{- if not (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "providerconfigs.kubernetes.crossplane.io") -}}
+{{- fail `
+[!] ProviderConfig CRDs are not yet available on this cluster.
+
+Crossplane providers need time to register their CRDs after installation.
+This is expected on first install — use a two-step approach:
+
+  Step 1 — install providers only (skip ProviderConfigs):
+
+    helm install asya-crossplane asya/asya-crossplane \
+      --set providerConfigs.install=false ...
+
+  Step 2 — wait for providers, then enable ProviderConfigs:
+
+    kubectl wait --for=condition=Healthy providers --all --timeout=300s
+    helm upgrade asya-crossplane asya/asya-crossplane \
+      --reuse-values --set providerConfigs.install=true
+
+To render templates offline (helm template / GitOps), set:
+
+    --set providerConfigs.skipCRDCheck=true
+` -}}
+{{- end }}
+{{- end }}
 {{- if .Values.providers.aws.enabled }}
+{{- if not .Values.providerConfigs.skipCRDCheck }}
+{{- if not (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "providerconfigs.aws.upbound.io") -}}
+{{- fail `
+[!] AWS ProviderConfig CRD (providerconfigs.aws.upbound.io) is not yet available.
+
+Wait for the AWS provider to become Healthy, then re-run:
+
+    kubectl wait --for=condition=Healthy providers/provider-aws-sqs --timeout=300s
+    helm upgrade asya-crossplane asya/asya-crossplane --reuse-values --set providerConfigs.install=true
+` -}}
+{{- end }}
+{{- end }}
 ---
 apiVersion: aws.upbound.io/v1beta1
 kind: ProviderConfig
@@ -44,6 +83,18 @@ spec:
   {{- end }}
 {{- end }}
 {{- if .Values.providers.gcp.enabled }}
+{{- if not .Values.providerConfigs.skipCRDCheck }}
+{{- if not (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "providerconfigs.gcp.upbound.io") -}}
+{{- fail `
+[!] GCP ProviderConfig CRD (providerconfigs.gcp.upbound.io) is not yet available.
+
+Wait for the GCP provider to become Healthy, then re-run:
+
+    kubectl wait --for=condition=Healthy providers/provider-gcp-pubsub --timeout=300s
+    helm upgrade asya-crossplane asya/asya-crossplane --reuse-values --set providerConfigs.install=true
+` -}}
+{{- end }}
+{{- end }}
 ---
 apiVersion: gcp.upbound.io/v1beta1
 kind: ProviderConfig

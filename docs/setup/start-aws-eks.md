@@ -223,15 +223,36 @@ awsProviderConfig:
     key: credentials
 ```
 
-### 3. Install Asya Crossplane Chart
+### 3. Install Asya Crossplane Chart (two-step)
+
+Crossplane providers must reach `Healthy` before their CRDs exist and ProviderConfigs
+can be created. Install with `providerConfigs.install=false` first.
 
 ```bash
 helm repo add asya https://asya.sh/charts
 helm repo update asya
 
+# Step 1: install providers, XRDs, and compositions (skip ProviderConfigs)
 helm install asya-crossplane asya/asya-crossplane --version $ASYA_VERSION \
   -n crossplane-system \
-  -f crossplane-values.yaml
+  -f crossplane-values.yaml \
+  --set providerConfigs.install=false
+```
+
+Wait for providers to register their CRDs:
+
+```bash
+kubectl wait --for=condition=Healthy providers --all --timeout=300s
+```
+
+Then enable ProviderConfigs:
+
+```bash
+# Step 2: enable ProviderConfigs (CRDs now exist)
+helm upgrade asya-crossplane asya/asya-crossplane --version $ASYA_VERSION \
+  -n crossplane-system \
+  --reuse-values \
+  --set providerConfigs.install=true
 ```
 
 ### 4. Install Gateway (Optional)

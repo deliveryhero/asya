@@ -1,6 +1,10 @@
-# ProviderConfig installation (set to false for first install before CRDs exist)
+# ProviderConfig installation — requires provider CRDs to be registered first.
+# On fresh installs, leave this false, wait for providers to become Healthy,
+# then upgrade with providerConfigs.install=true.
 providerConfigs:
-  install: true
+  install: false
+  # Skip CRD existence checks (for offline helm template / GitOps rendering)
+  skipCRDCheck: false
 
 # Crossplane provider configuration
 providers:
@@ -25,7 +29,9 @@ functions:
   autoReadyVersion: "v0.6.0"
   flavorsEnabled: true
   flavorsRepository: "ghcr.io/deliveryhero/function-asya-flavors"
-  flavorsVersion: "0.5.3"
+  # flavorsVersion defaults to Chart.AppVersion (set at release time).
+  # Override only for pinning to a specific version.
+  flavorsVersion: ""
   flavorsPackagePullPolicy: IfNotPresent
   flavorsResources:
     requests:
