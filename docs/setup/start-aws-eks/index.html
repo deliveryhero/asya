@@ -2643,13 +2643,27 @@ helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-creds</span>
 <span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">credentials</span>
 </code></pre></div>
-<h3 id="3-install-asya-crossplane-chart">3. Install Asya Crossplane Chart<a class="headerlink" href="#3-install-asya-crossplane-chart" title="Permanent link">#</a></h3>
+<h3 id="3-install-asya-crossplane-chart-two-step">3. Install Asya Crossplane Chart (two-step)<a class="headerlink" href="#3-install-asya-crossplane-chart-two-step" title="Permanent link">#</a></h3>
+<p>Crossplane providers must reach <code>Healthy</code> before their CRDs exist and ProviderConfigs
+can be created. Install with <code>providerConfigs.install=false</code> first.</p>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>asya<span class="w"> </span>https://asya.sh/charts
 helm<span class="w"> </span>repo<span class="w"> </span>update<span class="w"> </span>asya
 
+<span class="c1"># Step 1: install providers, XRDs, and compositions (skip ProviderConfigs)</span>
 helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span class="w"> </span>asya/asya-crossplane<span class="w"> </span>--version<span class="w"> </span><span class="nv">$ASYA_VERSION</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-n<span class="w"> </span>crossplane-system<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>crossplane-values.yaml
+<span class="w">  </span>-f<span class="w"> </span>crossplane-values.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>providerConfigs.install<span class="o">=</span><span class="nb">false</span>
+</code></pre></div>
+<p>Wait for providers to register their CRDs:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Healthy<span class="w"> </span>providers<span class="w"> </span>--all<span class="w"> </span>--timeout<span class="o">=</span>300s
+</code></pre></div>
+<p>Then enable ProviderConfigs:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Step 2: enable ProviderConfigs (CRDs now exist)</span>
+helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crossplane<span class="w"> </span>asya/asya-crossplane<span class="w"> </span>--version<span class="w"> </span><span class="nv">$ASYA_VERSION</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>crossplane-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--reuse-values<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>providerConfigs.install<span class="o">=</span><span class="nb">true</span>
 </code></pre></div>
 <h3 id="4-install-gateway-optional">4. Install Gateway (Optional)<a class="headerlink" href="#4-install-gateway-optional" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># gateway-values.yaml</span>
@@ -3928,10 +3942,10 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             2. Configure Crossplane Values
         </a>
         
-        <a href="#3-install-asya-crossplane-chart"
+        <a href="#3-install-asya-crossplane-chart-two-step"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            3. Install Asya Crossplane Chart
+            3. Install Asya Crossplane Chart (two-step)
         </a>
         
         <a href="#4-install-gateway-optional"
