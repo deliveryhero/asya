@@ -39,11 +39,13 @@ jobs:
           echo "::error::Tag '$TAG' does not match semver pattern vX.Y.Z"
           exit 1
         fi
+        git fetch --tags --quiet
         MAJOR=$(echo "$TAG" | cut -d. -f1 | tr -d 'v')
-        if [ "$MAJOR" -ge 1 ]; then
-          BODY="${{ github.event.release.body }}"
-          if ! echo "$BODY" | grep -q 'MAJOR_VERSION_BUMP_CONFIRMED'; then
-            echo "::error::Major version bump (${TAG}) requires 'MAJOR_VERSION_BUMP_CONFIRMED' in the release description. This prevents accidental major releases."
+        PREV_TAG=$(git tag -l 'v*.*.*' | sort -V | grep -B1 "^${TAG}$" | head -1)
+        PREV_MAJOR=$(echo "${PREV_TAG:-v0.0.0}" | cut -d. -f1 | tr -d 'v')
+        if [ "$MAJOR" -gt "$PREV_MAJOR" ]; then
+          if ! echo "${{ github.event.release.body }}" | grep -q 'MAJOR_VERSION_BUMP_CONFIRMED'; then
+            echo "::error::Major version bump (${PREV_TAG:-none} -> ${TAG}). Add 'MAJOR_VERSION_BUMP_CONFIRMED' to the release description."
             exit 1
           fi
         fi
