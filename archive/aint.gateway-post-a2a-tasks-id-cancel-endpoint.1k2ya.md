@@ -1,0 +1,11 @@
+---
+title: "Gateway: POST /a2a/tasks/{id}:cancel endpoint"
+status: merged
+priority: 3
+dependencies:
+  - 1kwi
+tags:
+  - pr:217
+---
+
+Add Cancel method to TaskStore interface. Implement in PgStore and in-memory Store. Validate task is not in terminal state (succeeded/failed/canceled). Mark as canceled, notify SSE subscribers. Add POST /a2a/tasks/{id}:cancel REST endpoint and tasks/cancel JSON-RPC method. Unit tests for state transition, terminal state rejection, SSE notification.

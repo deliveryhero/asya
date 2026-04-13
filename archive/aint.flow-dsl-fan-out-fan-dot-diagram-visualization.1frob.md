@@ -1,0 +1,55 @@
+---
+title: "Flow DSL: fan-out/fan-in dot diagram visualization"
+status: merged
+priority: 3
+dependencies:
+  - 1ih5
+tags:
+  - type:feature
+---
+
+## Summary
+
+Extend the dot diagram generator to visualize fan-out/fan-in patterns. Show the fan-out split, parallel sub-agent branches, and aggregator merge point.
+
+## Visual Design
+
+```
+[fan-out-router] ──┬──► [sub-agent] ──┐
+                   ├──► [sub-agent] ──┤
+                   └──► [sub-agent] ──┘
+                                      │
+                               [aggregator]
+                                      │
+                              [next-actor]
+```
+
+- Fan-out router node has a distinctive shape (e.g., diamond or double-bordered box)
+- Sub-agent branches shown as parallel edges
+- Aggregator node has merge-point indicator
+- Edge labels show slice_count or iterator expression
+
+## Changes
+
+### `src/asya-cli/asya_cli/flow/dotgen.py`
+- Handle `FanOutCall` operation type
+- Generate subgraph cluster for fan-out/fan-in segment
+- Fan-out router → multiple edges to sub-agent(s)
+- Sub-agent(s) → single edge to aggregator
+- Aggregator → continuation actor
+
+### Tests
+- Generate dot for homogeneous fan-out (one sub-agent, multiple edges)
+- Generate dot for heterogeneous fan-out (multiple sub-agents, each with one edge)
+- Verify generated DOT is valid (parseable by graphviz)
+- Visual correctness (snapshot test or string comparison)
+
+## Dependencies
+- DEPENDS ON: Flow DSL fan-out parser (need FanOutCall IR nodes)
+
+## References
+- RFC: docs/rfc/fan-in/rfc-fan-in.md (Flow DSL Examples)
+
+
+---
+_Migrated from beads `asya-dulv`_
