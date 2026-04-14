@@ -1,6 +1,6 @@
 module github.com/deliveryhero/asya/asya-sidecar
 
-go 1.25.0
+go 1.25.9
 
 require (
 	cloud.google.com/go/pubsub v1.50.1
