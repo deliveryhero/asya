@@ -3,7 +3,7 @@ title: "Aggregator crew actor: S3 split-key fan-in handler"
 status: merged
 priority: 2
 dependencies:
-  - 1i9o
+  - 1i9ob
 ---
 
 ## Summary

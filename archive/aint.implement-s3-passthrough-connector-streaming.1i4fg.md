@@ -3,7 +3,7 @@ title: Implement s3-passthrough connector (streaming)
 status: merged
 priority: 2
 dependencies:
-  - 1iph
+  - 1iphj
 tags:
   - pr:200
 ---

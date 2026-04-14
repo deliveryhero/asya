@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - 8gc6
+  - 8gc6l
 tags:
   - worktree:.worktrees/xrd-v2/af25.phase-1-5-remove-injector-render-full-deployment
   - branch:xrd-v2/af25.phase-1-5-remove-injector-render-full-deployment

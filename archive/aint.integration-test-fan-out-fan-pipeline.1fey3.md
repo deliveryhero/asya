@@ -3,9 +3,9 @@ title: "Integration test: fan-out/fan-in pipeline"
 status: merged
 priority: 2
 dependencies:
-  - 1fci
-  - 1i4x
-  - 1isz
+  - 1fci2
+  - 1i4xr
+  - 1iszt
 tags:
   - pr:211
 ---

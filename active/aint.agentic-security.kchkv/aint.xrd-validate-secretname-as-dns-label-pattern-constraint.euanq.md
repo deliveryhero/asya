@@ -3,7 +3,7 @@ title: "XRD: validate secretName as DNS label (pattern constraint)"
 status: open
 priority: 3
 dependencies:
-  - agentic-security/wcnw
+  - wcnwl
 ---
 
 ## Problem

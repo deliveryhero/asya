@@ -3,7 +3,7 @@ title: "Phase 1.4: Set up provider credentials (AWS/LocalStack)"
 status: merged
 priority: 1
 dependencies:
-  - 1f2u
+  - 1f2u2
 ---
 
 Configure Crossplane provider credentials for AWS (LocalStack in testing, real AWS in production).

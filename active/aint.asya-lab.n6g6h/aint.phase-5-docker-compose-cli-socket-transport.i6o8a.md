@@ -4,8 +4,8 @@ status: working
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - 5ifn
-  - cavw
+  - 5ifnq
+  - cavwg
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/i6o8.phase-5-docker-compose-cli-socket-transport
   - branch:asya-lab/i6o8.phase-5-docker-compose-cli-socket-transport

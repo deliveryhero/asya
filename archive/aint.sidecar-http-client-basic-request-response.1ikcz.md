@@ -3,8 +3,7 @@ title: Sidecar HTTP client — basic request/response
 status: merged
 priority: 2
 dependencies:
-  - 1iof
-  - 1ig1
+  - 1iofo
 tags:
   - pr:192
 reason: "Sidecar HTTP client implemented in PR #189 (net/http over Unix socket, POST /invoke)."

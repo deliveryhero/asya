@@ -3,8 +3,8 @@ title: "Gateway: GET /a2a/tasks list endpoint with filtering"
 status: merged
 priority: 3
 dependencies:
-  - 1kwi
-  - 1kx4
+  - 1kwi6
+  - 1kx4i
 tags:
   - pr:217
 ---

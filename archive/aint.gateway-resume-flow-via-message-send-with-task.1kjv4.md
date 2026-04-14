@@ -3,7 +3,7 @@ title: "Gateway: resume flow via message/send with task_id"
 status: merged
 priority: 2
 dependencies:
-  - 1kmp
+  - 1kmp9
 tags:
   - pr:217
 ---

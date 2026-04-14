@@ -3,7 +3,7 @@ title: "Research: Stateful actor for fan-out/fan-in coordination"
 status: merged
 priority: 2
 dependencies:
-  - 1ffm
+  - 1ffmx
 tags:
   - beads:needs-spec
 ---

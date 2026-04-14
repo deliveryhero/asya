@@ -3,8 +3,8 @@ title: "Crossplane + Injector: resiliency config in XRD and ASYA_RESILIENCY_* en
 status: merged
 priority: 2
 dependencies:
-  - 1f6f
-  - 1fez
+  - 1f6fd
+  - 1fezq
 ---
 
 Update Crossplane XRD and compositions + injector to support resiliency configuration.

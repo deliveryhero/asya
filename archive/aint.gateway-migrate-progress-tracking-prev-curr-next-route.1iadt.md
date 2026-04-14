@@ -3,7 +3,7 @@ title: "Gateway: migrate progress tracking to prev/curr/next route"
 status: merged
 priority: 2
 dependencies:
-  - 1ikd
+  - 1ikdh
 ---
 
 Migrate gateway types, database schema, progress calculation, and task store queries from `{actors, current}` to `{prev, curr, next}`.

@@ -3,8 +3,8 @@ title: "Phase 2.3: Add AsyncActor XR querying for configuration"
 status: merged
 priority: 1
 dependencies:
-  - 1fmq
-  - 1f3z
+  - 1fmqr
+  - 1f3zt
 ---
 
 Enhance the webhook to query AsyncActor XR for injection configuration.

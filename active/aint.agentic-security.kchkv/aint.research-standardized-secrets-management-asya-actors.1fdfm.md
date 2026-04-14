@@ -3,7 +3,7 @@ title: "External secrets integration: Vault, ESO, cloud secret managers (post-v0
 status: open
 priority: 3
 dependencies:
-  - agentic-security/wcnw
+  - wcnwl
 tags:
   - type:feature
 ---

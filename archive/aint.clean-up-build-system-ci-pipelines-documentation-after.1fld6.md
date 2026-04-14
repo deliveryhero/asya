@@ -3,7 +3,7 @@ title: Clean up build system, CI pipelines, and documentation after operator rem
 status: merged
 priority: 3
 dependencies:
-  - 1fdm
+  - 1fdmc
 ---
 
 Clean up all references to the old asya-operator after its code and Helm chart have been deleted.

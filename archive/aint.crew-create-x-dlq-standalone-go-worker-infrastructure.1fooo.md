@@ -3,7 +3,7 @@ title: "Crew: create x-dlq standalone Go worker for infrastructure DLQ"
 status: merged
 priority: 2
 dependencies:
-  - 1fez
+  - 1fezq
 ---
 
 Create a minimal standalone Go binary for processing transport-level DLQ messages.

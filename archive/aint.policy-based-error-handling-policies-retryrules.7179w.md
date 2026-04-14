@@ -4,7 +4,7 @@ status: merged
 priority: 1
 assignee: Artem Yushkovskiy
 dependencies:
-  - p5py
+  - p5pyv
 tags:
   - worktree:.worktrees/resiliency/7179.policy-based-error-handling-policies-retryrules
   - branch:resiliency/7179.policy-based-error-handling-policies-retryrules

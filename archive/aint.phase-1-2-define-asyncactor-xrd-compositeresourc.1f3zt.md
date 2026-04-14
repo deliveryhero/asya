@@ -3,7 +3,7 @@ title: "Phase 1.2: Define AsyncActor XRD (CompositeResourceDefinition)"
 status: merged
 priority: 1
 dependencies:
-  - 1f2u
+  - 1f2u2
 ---
 
 Create the Crossplane CompositeResourceDefinition (XRD) that defines the AsyncActor API.

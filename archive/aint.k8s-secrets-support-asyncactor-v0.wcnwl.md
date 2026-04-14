@@ -4,7 +4,7 @@ status: merged
 priority: 1
 assignee: Artem Yushkovskiy
 dependencies:
-  - 1fuy
+  - 1fuyh
 tags:
   - worktree:.worktrees/agentic-security/wcnw.k8s-secrets-support-asyncactor-v0
   - branch:agentic-security/wcnw.k8s-secrets-support-asyncactor-v0

@@ -3,9 +3,9 @@ title: Implement AsyaExecutor with skill resolution
 status: merged
 priority: 2
 dependencies:
-  - 1qn6
-  - 1qzr
-  - 1qv3
+  - 1qn6a
+  - 1qzrl
+  - 1qv3k
 tags:
   - pr:257
 ---

@@ -3,7 +3,7 @@ title: Update sidecar-runtime protocol documentation
 status: merged
 priority: 3
 dependencies:
-  - 1in0
+  - 1in05
 tags:
   - pr:192
 reason: docs/architecture/protocols/sidecar-runtime.md rewritten for HTTP POST /invoke + GET /healthz in this PR.

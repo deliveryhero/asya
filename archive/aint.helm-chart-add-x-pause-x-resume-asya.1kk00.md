@@ -3,8 +3,8 @@ title: "Helm chart: add x-pause and x-resume to asya-crew chart"
 status: merged
 priority: 2
 dependencies:
-  - 1kcw
-  - 1kr9
+  - 1kcww
+  - 1kr9s
 tags:
   - pr:221
 ---

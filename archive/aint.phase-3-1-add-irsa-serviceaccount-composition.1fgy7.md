@@ -3,7 +3,7 @@ title: "Phase 3.1: Add IRSA ServiceAccount to Composition"
 status: merged
 priority: 2
 dependencies:
-  - 1fd2
+  - 1fd2i
 ---
 
 Configure ServiceAccount with IAM Roles for Service Accounts (IRSA) in the Crossplane Composition.

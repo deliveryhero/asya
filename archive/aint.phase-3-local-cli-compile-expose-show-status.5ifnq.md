@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - hox4
+  - hox4n
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/5ifn.phase-3-local-cli-compile-expose-show-status
   - branch:asya-lab/5ifn.phase-3-local-cli-compile-expose-show-status

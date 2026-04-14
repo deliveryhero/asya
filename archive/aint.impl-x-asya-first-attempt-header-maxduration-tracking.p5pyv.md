@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - nqf5
+  - nqf56
 tags:
   - worktree:.worktrees/resiliency/p5py.impl-x-asya-first-attempt-header-maxduration-tracking
   - branch:resiliency/p5py.impl-x-asya-first-attempt-header-maxduration-tracking

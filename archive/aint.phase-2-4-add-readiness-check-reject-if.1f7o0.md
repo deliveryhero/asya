@@ -3,7 +3,7 @@ title: "Phase 2.4: Add readiness check (reject if infrastructure not ready)"
 status: merged
 priority: 1
 dependencies:
-  - 1f4o
+  - 1f4o3
 ---
 
 Implement readiness check to prevent pod creation before infrastructure is ready.

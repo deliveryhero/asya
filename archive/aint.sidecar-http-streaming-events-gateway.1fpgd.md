@@ -3,7 +3,7 @@ title: "Sidecar: forward upstream events to gateway"
 status: merged
 priority: 2
 dependencies:
-  - 1in0
+  - 1in05
 tags:
   - type:feature
   - pr:205

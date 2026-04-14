@@ -3,7 +3,7 @@ title: Component tests for sidecar SLA enforcement
 status: merged
 priority: 2
 dependencies:
-  - 1k1p
+  - 1k1pt
 tags:
   - worktree:.worktrees/1crv/1kqf0j.component-tests-sidecar-sla-enforcement
   - branch:1crv/1kqf0j.component-tests-sidecar-sla-enforcement

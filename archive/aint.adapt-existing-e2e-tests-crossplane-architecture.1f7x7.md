@@ -3,10 +3,10 @@ title: Adapt existing E2E tests for Crossplane architecture
 status: merged
 priority: 2
 dependencies:
-  - 1fm4
-  - 1fj4
-  - 1f20
-  - 1fsq
+  - 1fm4j
+  - 1fj4v
+  - 1f20h
+  - 1fsqz
 ---
 
 Adapt the existing E2E test suite (testing/e2e/) to work with the new Crossplane + Mutating Webhook architecture instead of the old asya-operator.

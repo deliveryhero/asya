@@ -4,7 +4,7 @@ status: open
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - cavw
+  - cavwg
 tags:
   - worktree:.worktrees/asya-lab/8su9.add-socket-transport-component-test-suite
   - branch:asya-lab/8su9.add-socket-transport-component-test-suite

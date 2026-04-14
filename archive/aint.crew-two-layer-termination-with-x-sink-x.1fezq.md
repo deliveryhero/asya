@@ -3,7 +3,7 @@ title: "Crew: two-layer termination with x-sink, x-sump, and configurable hooks"
 status: merged
 priority: 3
 dependencies:
-  - 1fsy
+  - 1fsyl
 ---
 
 Redesign crew terminal actors with a two-layer termination scheme replacing happy-end and error-end.

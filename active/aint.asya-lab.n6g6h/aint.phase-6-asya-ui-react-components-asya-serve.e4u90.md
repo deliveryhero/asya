@@ -4,8 +4,8 @@ status: working
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - 5ifn
-  - 4g10
+  - 5ifnq
+  - 4g10s
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/e4u9.phase-6-asya-ui-react-components-asya-serve
   - branch:asya-lab/e4u9.phase-6-asya-ui-react-components-asya-serve

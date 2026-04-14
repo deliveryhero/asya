@@ -4,7 +4,7 @@ status: merged
 priority: 1
 assignee: Artem Yushkovskiy
 dependencies:
-  - dlad
+  - dlad8
 tags:
   - worktree:.worktrees/.worktrees/compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli
   - branch:compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli

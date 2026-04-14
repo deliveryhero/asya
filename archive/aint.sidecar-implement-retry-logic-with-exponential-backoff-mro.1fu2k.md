@@ -3,10 +3,10 @@ title: "Sidecar: implement retry logic with exponential backoff and MRO-based er
 status: merged
 priority: 1
 dependencies:
-  - 1f4z
-  - 1fj6
-  - 1fsy
-  - 1f6f
+  - 1f4zi
+  - 1fj66
+  - 1fsyl
+  - 1f6fd
 ---
 
 Add retry logic to the sidecar's message processing flow in src/asya-sidecar/internal/router/router.go.

@@ -3,8 +3,8 @@ title: Replace happy-end/error-end with x-sink/x-sump across code, tests, and do
 status: merged
 priority: 3
 dependencies:
-  - 1fo5
-  - 1ffm
+  - 1fo5a
+  - 1ffmx
 ---
 
 Remove legacy happy-end and error-end actor names in favor of x-sink and x-sump. This includes:

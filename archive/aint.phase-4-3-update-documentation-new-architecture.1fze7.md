@@ -3,8 +3,8 @@ title: "Phase 4.3: Update documentation for new architecture"
 status: merged
 priority: 3
 dependencies:
-  - 1fea
-  - 1ft4
+  - 1fea4
+  - 1ft4z
 ---
 
 Update all documentation to reflect the new Crossplane architecture.

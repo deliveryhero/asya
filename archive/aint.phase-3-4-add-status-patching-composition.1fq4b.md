@@ -3,7 +3,7 @@ title: "Phase 3.4: Add status patching to Composition"
 status: merged
 priority: 2
 dependencies:
-  - 1fd2
+  - 1fd2i
 ---
 
 Configure Crossplane to patch AsyncActor status with composed resource status.

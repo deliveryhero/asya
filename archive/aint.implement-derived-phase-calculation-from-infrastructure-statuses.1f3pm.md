@@ -3,9 +3,9 @@ title: Implement derived phase calculation from infrastructure statuses
 status: merged
 priority: 2
 dependencies:
-  - 1fq4
-  - 1fkc
-  - 1f4n
+  - 1fq4b
+  - 1fkci
+  - 1f4ns
 ---
 
 Implement complex phase derivation logic that computes AsyncActor phase from multiple infrastructure component statuses.

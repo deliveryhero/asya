@@ -3,7 +3,7 @@ title: "Gateway: listen on _sink queue and support status.phase for result repor
 status: merged
 priority: 2
 dependencies:
-  - 1ffm
+  - 1ffmx
 tags:
   - pr:193
 ---

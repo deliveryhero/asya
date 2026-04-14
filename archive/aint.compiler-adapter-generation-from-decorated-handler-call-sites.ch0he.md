@@ -3,8 +3,8 @@ title: Compiler adapter generation from decorated handler call sites
 status: rejected
 priority: 2
 dependencies:
-  - srn2
-  - 1fmi
+  - srn2x
+  - 1fmik
 tags:
   - integrate-into:gml9
   - absorbed-into:gml9

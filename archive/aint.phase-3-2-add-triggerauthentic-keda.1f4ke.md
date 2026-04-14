@@ -3,7 +3,7 @@ title: "Phase 3.2: Add TriggerAuthentication for KEDA"
 status: merged
 priority: 2
 dependencies:
-  - 1fd2
+  - 1fd2i
 ---
 
 Configure KEDA TriggerAuthentication for AWS authentication.

@@ -3,7 +3,7 @@ title: Add Deployment status patching to Composition
 status: merged
 priority: 2
 dependencies:
-  - 1fav
+  - 1fav6
 ---
 
 Patch Deployment status back to AsyncActor composite resource.

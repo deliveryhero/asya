@@ -4,7 +4,7 @@ status: rejected
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - 7179
+  - 7179w
 tags:
   - integrate-into:gml9
   - absorbed-into:gml9

@@ -4,7 +4,7 @@ status: merged
 priority: 1
 assignee: Artem Yushkovskiy
 dependencies:
-  - hppv
+  - hppv5
 tags:
   - worktree:.worktrees/asya-lab/syop.compiler-adapter-generation-tool-decorated-functions
   - branch:asya-lab/syop.compiler-adapter-generation-tool-decorated-functions

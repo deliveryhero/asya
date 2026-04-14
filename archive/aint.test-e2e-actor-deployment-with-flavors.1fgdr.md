@@ -3,7 +3,7 @@ title: "Test: E2E actor deployment with flavors"
 status: merged
 priority: 2
 dependencies:
-  - 1fzs
+  - 1fzs2
 ---
 
 Add end-to-end test for deploying actors with flavors in a Kind cluster.

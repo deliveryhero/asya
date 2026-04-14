@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - af25
+  - af25i
 tags:
   - worktree:.worktrees/xrd-v2/lfcf.phase-2-flatten-workload-structure-promote-handler-rewrite
   - branch:xrd-v2/lfcf.phase-2-flatten-workload-structure-promote-handler-rewrite

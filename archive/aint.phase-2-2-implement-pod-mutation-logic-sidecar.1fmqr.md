@@ -3,7 +3,7 @@ title: "Phase 2.2: Implement pod mutation logic (sidecar injection)"
 status: merged
 priority: 1
 dependencies:
-  - 1fm7
+  - 1fm7v
 ---
 
 Implement the core sidecar injection logic that mutates pods.

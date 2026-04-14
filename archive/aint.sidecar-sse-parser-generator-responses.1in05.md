@@ -3,8 +3,8 @@ title: Sidecar SSE parser for generator responses
 status: merged
 priority: 2
 dependencies:
-  - 1i6y
-  - 1ikc
+  - 1i6yq
+  - 1ikcz
 tags:
   - pr:205
 ---

@@ -3,7 +3,7 @@ title: "Crew Helm chart: built-in persistence flavors for checkpointer"
 status: merged
 priority: 2
 dependencies:
-  - 1k34
+  - 1k34w
 tags:
   - worktree:.worktrees/debt/1k5a8e.crew-helm-chart-built-in-persistence-flavors-checkpointer
   - branch:debt/1k5a8e.crew-helm-chart-built-in-persistence-flavors-checkpointer

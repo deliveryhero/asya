@@ -3,7 +3,7 @@ title: Add transport credential Secret to Crossplane Composition
 status: merged
 priority: 2
 dependencies:
-  - 1fm4
+  - 1fm4j
 ---
 
 Add a composed Secret resource to the SQS Composition that creates transport credentials in the actor's namespace.

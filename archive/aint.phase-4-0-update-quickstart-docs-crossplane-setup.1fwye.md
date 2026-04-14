@@ -3,7 +3,7 @@ title: "Phase 4.0: Update quickstart docs for Crossplane setup"
 status: merged
 priority: 2
 dependencies:
-  - 1fm4
+  - 1fm4j
 ---
 
 Update the quickstart documentation to reflect the new Crossplane + Webhook architecture.

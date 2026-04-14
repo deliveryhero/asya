@@ -3,7 +3,7 @@ title: "Gateway: freeze/thaw backstop timer on pause/resume"
 status: merged
 priority: 2
 dependencies:
-  - 1kmp
+  - 1kmp9
 tags:
   - pr:217
 ---

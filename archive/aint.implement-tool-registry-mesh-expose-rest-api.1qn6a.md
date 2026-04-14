@@ -3,7 +3,7 @@ title: Implement tool registry and /mesh/expose REST API
 status: merged
 priority: 2
 dependencies:
-  - 1qtb
+  - 1qtbd
 tags:
   - pr:257
 ---

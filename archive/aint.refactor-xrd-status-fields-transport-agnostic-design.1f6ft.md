@@ -3,7 +3,7 @@ title: Refactor XRD status fields for transport-agnostic design
 status: merged
 priority: 3
 dependencies:
-  - 1fea
+  - 1fea4
 ---
 
 ## Context

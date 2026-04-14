@@ -3,7 +3,7 @@ title: Rename /mesh/partial to /mesh/fly and implement A2A-native FLY format
 status: merged
 priority: 2
 dependencies:
-  - 1qdv
+  - 1qdvw
 tags:
   - pr:257
 ---

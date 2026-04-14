@@ -3,7 +3,7 @@ title: "Phase 4.2: Create Helm charts for new architecture"
 status: merged
 priority: 2
 dependencies:
-  - 1fm4
+  - 1fm4j
 ---
 
 Create Helm charts for deploying the Crossplane-based Asya system.

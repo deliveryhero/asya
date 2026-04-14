@@ -3,7 +3,7 @@ title: "Component test: aggregator actor with RocksDB"
 status: rejected
 priority: 2
 dependencies:
-  - 1fo5
+  - 1fo5a
 reason: decided to go with virtual actors
 ---
 

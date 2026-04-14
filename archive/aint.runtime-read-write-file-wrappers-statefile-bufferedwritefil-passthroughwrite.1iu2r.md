@@ -3,7 +3,7 @@ title: "Runtime: Read/write file wrappers (_StateFile, _BufferedWriteFile, _Pass
 status: merged
 priority: 1
 dependencies:
-  - 1ipg
+  - 1ipgh
 tags:
   - pr:195
 ---

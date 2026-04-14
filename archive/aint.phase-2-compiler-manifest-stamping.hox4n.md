@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - pyt1
+  - pyt1i
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/hox4.phase-2-compiler-manifest-stamping
   - branch:asya-lab/hox4.phase-2-compiler-manifest-stamping

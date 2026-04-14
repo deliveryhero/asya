@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - u5pd
+  - u5pdc
 tags:
   - worktree:.worktrees/xrd-v2/8gc6.phase-1-remove-leaked-provider-fields-from-xrd
   - branch:xrd-v2/8gc6.phase-1-remove-leaked-provider-fields-from-xrd

@@ -3,11 +3,11 @@ title: "Integration test: pause/resume flow end-to-end"
 status: merged
 priority: 2
 dependencies:
-  - 1kk0
-  - 1knc
-  - 1knf
-  - 1ka9
-  - 1k2y
+  - 1kk00
+  - 1knc9
+  - 1knff
+  - 1ka9i
+  - 1k2y7
 tags:
   - worktree:.worktrees/1ixy/1kpm6e.integration-test-pause-resume-flow-end-to-end
   - branch:1ixy/1kpm6e.integration-test-pause-resume-flow-end-to-end

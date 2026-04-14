@@ -3,8 +3,8 @@ title: Integration tests for HTTP protocol
 status: merged
 priority: 2
 dependencies:
-  - 1ikc
-  - 1in0
+  - 1ikcz
+  - 1in05
 tags:
   - pr:192
 reason: Integration tests verified passing with HTTP protocol - confirmed by PR CI.

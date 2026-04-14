@@ -3,7 +3,7 @@ title: "Sidecar: suppress gateway reporting for fan-in and fire-and-forget messa
 status: merged
 priority: 2
 dependencies:
-  - 1fci
+  - 1fci2
 ---
 
 ## Summary

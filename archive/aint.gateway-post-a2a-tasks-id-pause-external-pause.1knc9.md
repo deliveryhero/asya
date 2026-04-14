@@ -3,7 +3,7 @@ title: "Gateway: POST /a2a/tasks/{id}:pause external pause endpoint"
 status: merged
 priority: 2
 dependencies:
-  - 1kmp
+  - 1kmp9
 tags:
   - pr:217
 ---

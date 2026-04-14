@@ -3,7 +3,7 @@ title: Migrate credential env var mounting to asya-injector
 status: merged
 priority: 2
 dependencies:
-  - 1f1x
+  - 1f1xp
 ---
 
 Update asya-injector to mount transport credential secrets into the sidecar container it injects.

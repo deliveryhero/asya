@@ -3,7 +3,7 @@ title: Implement A2AStoreAdapter wrapping PgStore
 status: merged
 priority: 2
 dependencies:
-  - 1qcm
+  - 1qcm5
 tags:
   - pr:257
 ---

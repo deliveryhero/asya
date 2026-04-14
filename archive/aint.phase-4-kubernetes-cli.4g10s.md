@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - 5ifn
+  - 5ifnq
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/4g10.phase-4-kubernetes-cli
   - branch:asya-lab/4g10.phase-4-kubernetes-cli

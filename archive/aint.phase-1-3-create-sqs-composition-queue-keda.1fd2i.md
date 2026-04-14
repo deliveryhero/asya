@@ -3,8 +3,8 @@ title: "Phase 1.3: Create SQS Composition (queue + KEDA + deployment)"
 status: merged
 priority: 1
 dependencies:
-  - 1f3z
-  - 1fe3
+  - 1f3zt
+  - 1fe38
 ---
 
 Create the Crossplane Composition that maps AsyncActor to AWS SQS resources.

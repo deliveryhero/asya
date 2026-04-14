@@ -3,8 +3,8 @@ title: "Phase 4.1: Write E2E tests for Crossplane-based deployment"
 status: merged
 priority: 2
 dependencies:
-  - 1fm4
-  - 1fj4
+  - 1fm4j
+  - 1fj4v
 ---
 
 Create comprehensive E2E test suite for the new Crossplane architecture.

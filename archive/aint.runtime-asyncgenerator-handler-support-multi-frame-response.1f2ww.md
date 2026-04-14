@@ -3,7 +3,7 @@ title: "Runtime: AsyncGenerator handler support"
 status: merged
 priority: 1
 dependencies:
-  - 1iof
+  - 1iofo
 tags:
   - type:feature
   - worktree:.worktrees/1ia4/1f2wwf.runtime-asyncgenerator-handler-support-multi-frame-response

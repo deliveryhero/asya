@@ -3,7 +3,7 @@ title: "Flow DSL: fan-out router code generator"
 status: merged
 priority: 2
 dependencies:
-  - 1ih5
+  - 1ih5b
 tags:
   - type:feature
 ---

@@ -4,7 +4,7 @@ status: merged
 priority: 1
 assignee: Artem Yushkovskiy
 dependencies:
-  - 7179
+  - 7179w
 tags:
   - worktree:.worktrees/.worktrees/compiler-simplify/dlad.phase-1-core-pipeline-rewrite-parser-codegen-analyzer
   - branch:compiler-simplify/dlad.phase-1-core-pipeline-rewrite-parser-codegen-analyzer

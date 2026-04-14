@@ -3,8 +3,8 @@ title: Runtime SSE streaming for generator handlers
 status: merged
 priority: 2
 dependencies:
-  - 1iof
-  - 1f2w
+  - 1iofo
+  - 1f2ww
 tags:
   - worktree:.worktrees/1ia4/1i6yzk.runtime-sse-streaming-generator-handlers
   - branch:1ia4/1i6yzk.runtime-sse-streaming-generator-handlers

@@ -3,7 +3,7 @@ title: "Flow DSL: Support for loops (requires local variable serialization)"
 status: open
 priority: 2
 dependencies:
-  - 1fij
+  - 1fij9
 tags:
   - type:feature
 ---

@@ -3,8 +3,8 @@ title: Wire a2a-go handler with Agent Card and endpoint layout
 status: merged
 priority: 2
 dependencies:
-  - 1qn6
-  - 1qx7
+  - 1qn6a
+  - 1qx71
 tags:
   - pr:257
 ---

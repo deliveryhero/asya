@@ -3,7 +3,7 @@ title: "Sidecar: detect x-asya-pause header and report paused phase"
 status: merged
 priority: 2
 dependencies:
-  - 1kit
+  - 1kitq
 tags:
   - pr:217
 ---

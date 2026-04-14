@@ -3,7 +3,7 @@ title: Add ScaledObject status patching to Composition
 status: merged
 priority: 2
 dependencies:
-  - 1fhr
+  - 1fhrg
 ---
 
 Patch KEDA ScaledObject status back to AsyncActor composite resource.

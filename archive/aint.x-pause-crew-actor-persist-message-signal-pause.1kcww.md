@@ -3,8 +3,8 @@ title: "x-pause crew actor: persist message and signal pause"
 status: merged
 priority: 2
 dependencies:
-  - 1kft
-  - 1k34
+  - 1kft9
+  - 1k34w
 tags:
   - pr:221
 ---

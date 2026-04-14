@@ -3,7 +3,7 @@ title: Support namespace-scoped flavors via ConfigMaps
 status: open
 priority: 3
 dependencies:
-  - u5pd
+  - u5pdc
 ---
 
 ## Summary

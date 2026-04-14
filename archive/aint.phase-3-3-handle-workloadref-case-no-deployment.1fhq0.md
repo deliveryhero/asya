@@ -3,7 +3,7 @@ title: "Phase 3.3: Handle workloadRef case (no Deployment creation)"
 status: merged
 priority: 2
 dependencies:
-  - 1fd2
+  - 1fd2i
 ---
 
 Support both workload and workloadRef in Composition for actor deployments.

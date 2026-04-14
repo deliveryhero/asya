@@ -3,13 +3,12 @@ title: "Phase 3.5: Manually test full actor lifecycle (create, scale, delete)"
 status: merged
 priority: 2
 dependencies:
-  - 1fms
-  - 1fgy
-  - 1f4k
-  - 1fhq
-  - 1fq4
-  - 1f8x
-  - 1fiw
+  - 1fmsr
+  - 1f4ke
+  - 1fhq0
+  - 1fq4b
+  - 1f8xf
+  - 1fiw5
 ---
 
 Comprehensive integration test for AsyncActor lifecycle.

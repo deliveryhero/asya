@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - lfcf
+  - lfcf6
 tags:
   - worktree:.worktrees/.worktrees/xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge
   - branch:xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge

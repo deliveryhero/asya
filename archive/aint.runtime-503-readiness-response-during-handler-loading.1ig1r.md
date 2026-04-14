@@ -3,7 +3,7 @@ title: "Runtime: 503 readiness response during handler loading"
 status: rejected
 priority: 2
 dependencies:
-  - 1iof
+  - 1iofo
 tags:
   - pr:192
 reason: "Late binding: HTTP server starts after handler load, so 503 guard is unnecessary. GET /healthz added for K8s probes instead."

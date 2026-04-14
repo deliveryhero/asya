@@ -3,8 +3,8 @@ title: "Gateway: accept paused phase and store pause metadata"
 status: merged
 priority: 2
 dependencies:
-  - 1kwi
-  - 1kx4
+  - 1kwi6
+  - 1kx4i
 tags:
   - pr:217
 ---

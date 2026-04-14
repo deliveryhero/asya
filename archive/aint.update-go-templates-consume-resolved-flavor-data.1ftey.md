@@ -3,7 +3,7 @@ title: Update Go templates to consume resolved flavor data
 status: merged
 priority: 2
 dependencies:
-  - 1fij
+  - 1fijg
 ---
 
 Update the existing function-go-templating templates in the Composition to read flavor-resolved spec from the context set by function-asya-flavors.

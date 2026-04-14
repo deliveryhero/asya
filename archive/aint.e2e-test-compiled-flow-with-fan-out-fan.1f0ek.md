@@ -3,10 +3,10 @@ title: "E2E test: compiled flow with fan-out/fan-in on Kind cluster"
 status: merged
 priority: 2
 dependencies:
-  - 1fr7
-  - 1fci
-  - 1i4x
-  - 1isz
+  - 1fr75
+  - 1fci2
+  - 1i4xr
+  - 1iszt
 tags:
   - pr:210
 ---

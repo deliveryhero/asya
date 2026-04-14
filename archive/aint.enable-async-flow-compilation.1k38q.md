@@ -3,7 +3,7 @@ title: Enable flow compilation for async actors
 status: rejected
 priority: 2
 dependencies:
-  - 1fwj
+  - 1fwjf
 ---
 
 Enable `react_*` and `fanout_*` flow compilation in `.pre-commit-hooks/compile-flows.sh`.

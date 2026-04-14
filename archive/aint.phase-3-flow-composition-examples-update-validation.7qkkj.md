@@ -4,7 +4,7 @@ status: merged
 priority: 2
 assignee: Artem Yushkovskiy
 dependencies:
-  - gml9
+  - gml9b
 tags:
   - worktree:.worktrees/compiler-simplify/7qkk.phase-3-flow-composition-examples-update-validation
   - branch:compiler-simplify/7qkk.phase-3-flow-composition-examples-update-validation
