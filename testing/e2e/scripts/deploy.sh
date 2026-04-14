@@ -565,24 +565,34 @@ echo
 # actor's poll timer to (annotation_time + poll-interval), spreading them
 # across different poll windows. 1s sleep between actors × 40 actors = 40s
 # of spread — more than enough to desynchronize the 10s poll cycles.
-echo "[.] Phase 7b: Staggering actor reconciliation..."
-time {
-  # Allow Crossplane a moment to create XRs from the claims we just deployed
-  sleep 5
+#
+# Skip staggering for profiles with heavier infra (rabbitmq-minio) because
+# 40+ annotation-triggered reconciliations can trip Crossplane's circuit
+# breaker on a resource-constrained Kind node, permanently blocking actors
+# that need multi-cycle reconciliation (e.g. flavors via Requirements API).
+if [[ "$PROFILE" == "rabbitmq-minio" ]]; then
+  echo "[.] Phase 7b: Skipping stagger (rabbitmq-minio: circuit breaker risk)"
+  # Allow Crossplane time to begin initial reconciliation
+  sleep 10 # polling sleep: allow XR creation before Phase 8 wait
+else
+  echo "[.] Phase 7b: Staggering actor reconciliation..."
+  time {
+    sleep 5 # polling sleep: allow Crossplane to create XRs from claims
 
-  STAGGER_COUNT=0
-  while IFS= read -r xr; do
-    [ -z "$xr" ] && continue
-    kubectl annotate "$xr" "asya.sh/stagger=$(date +%s%N)" \
-      --overwrite > /dev/null 2>&1
-    sleep 1
-    STAGGER_COUNT=$((STAGGER_COUNT + 1))
-  done < <(kubectl get xasyncactors \
-    -l "crossplane.io/claim-namespace=$NAMESPACE" \
-    --no-headers -o name 2> /dev/null | sort)
+    STAGGER_COUNT=0
+    while IFS= read -r xr; do
+      [ -z "$xr" ] && continue
+      kubectl annotate "$xr" "asya.sh/stagger=$(date +%s%N)" \
+        --overwrite > /dev/null 2>&1
+      sleep 1
+      STAGGER_COUNT=$((STAGGER_COUNT + 1))
+    done < <(kubectl get xasyncactors \
+      -l "crossplane.io/claim-namespace=$NAMESPACE" \
+      --no-headers -o name 2> /dev/null | sort)
 
-  echo "[+] Staggered $STAGGER_COUNT actor XRs (1s apart)"
-}
+    echo "[+] Staggered $STAGGER_COUNT actor XRs (1s apart)"
+  }
+fi
 echo
 
 # Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
