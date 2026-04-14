@@ -15,7 +15,7 @@ jobs:
     if: github.event.release.prerelease == false
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         ref: main
         fetch-depth: 0
@@ -72,7 +72,7 @@ jobs:
         mv "$TEMP_FILE" CHANGELOG.md
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v7
+      uses: peter-evans/create-pull-request@v8
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "Update CHANGELOG.md for ${{ steps.release.outputs.tag }}"
