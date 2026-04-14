@@ -2,7 +2,6 @@
 title: "Flow composition: compile-time inlining of inner flows with visual grouping"
 status: rejected
 priority: 2
-parent: pj0fo
 dependencies:
   - o8ql
 ---

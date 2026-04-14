@@ -2,7 +2,6 @@
 title: "Runtime: AsyncGenerator handler support"
 status: merged
 priority: 1
-parent: nlg57
 dependencies:
   - 1iof
 tags:

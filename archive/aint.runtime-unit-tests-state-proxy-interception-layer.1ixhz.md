@@ -2,7 +2,6 @@
 title: "Runtime: Unit tests for state proxy interception layer"
 status: merged
 priority: 2
-parent: g5bkc
 tags:
   - pr:195
 ---

@@ -2,7 +2,6 @@
 title: Aggregator crew actor with RocksDB
 status: rejected
 priority: 2
-parent: 00000
 tags:
   - type:feature
 reason: virtual actors
@@ -67,5 +66,4 @@ Implement the aggregator crew actor in `src/asya-crew/asya_crew/aggregator.py`. 
 - ADR-1: Embedded RocksDB per Replica
 
 
----
 _Migrated from beads `asya-fi6u`_

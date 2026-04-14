@@ -2,7 +2,6 @@
 title: "Phase 4.2: Create Helm charts for new architecture"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fm4
 ---
@@ -43,9 +42,7 @@ Create Helm charts for deploying the Crossplane-based Asya system.
 See docs/rfc/rfc-crossplane.md Section 9 (Phase 4)
 
 
----
 **Close reason**: Both asya-crossplane and asya-injector Helm charts fully implemented with templates, values, labels, customization, and README docs
 
 
----
 _Migrated from beads `asya-bs4`_

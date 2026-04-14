@@ -2,7 +2,6 @@
 title: "Sidecar: multi-frame streaming protocol (runtime <-> sidecar)"
 status: rejected
 priority: 1
-parent: nlg57
 tags:
   - type:feature
 ---
@@ -64,5 +63,4 @@ The sidecar currently uses json.RawMessage to avoid double JSON parsing. The mul
 - RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 11.1
 
 
----
 _Migrated from beads `asya-qrsp`_

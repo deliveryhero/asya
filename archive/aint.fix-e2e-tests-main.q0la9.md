@@ -3,7 +3,6 @@ title: Fix e2e tests on main
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00000
 tags:
   - worktree:.worktrees/misc/q0la.fix-e2e-tests-main
   - branch:misc/q0la.fix-e2e-tests-main

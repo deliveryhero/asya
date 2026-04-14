@@ -2,7 +2,6 @@
 title: "Phase 1.3: Create SQS Composition (queue + KEDA + deployment)"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1f3z
   - 1fe3
@@ -42,9 +41,7 @@ Create the Crossplane Composition that maps AsyncActor to AWS SQS resources.
 See docs/rfc/rfc-crossplane.md Section 7 (Crossplane Composition)
 
 
----
 **Close reason**: Phase 1 Foundation complete: SQS Composition working with LocalStack
 
 
----
 _Migrated from beads `asya-24d`_

@@ -2,13 +2,6 @@
 title: xrd-v2
 status: merged
 priority: 2
-children:
-  - 36cks
-  - 8gc6l
-  - 8nhy0
-  - af25i
-  - ai6ok
-  - lfcf6
 ---
 
 # Restructure XRD: flatten spec, simplify flavor merge to ~30 LOC

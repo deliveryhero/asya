@@ -2,7 +2,6 @@
 title: Support import/from-import for handler module references
 status: merged
 priority: 1
-parent: drsjr
 reason: "Implemented: module-level imports allowed, body-level rejected with clear message"
 ---
 

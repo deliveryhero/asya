@@ -2,15 +2,6 @@
 title: "Streaming Protocol: Upstream Events to Gateway"
 status: merged
 priority: 2
-children:
-  - 1f2ww
-  - 1fpgd
-  - 1i6yq
-  - 1in05
-  - 1khyi
-  - 1kyur
-  - 1osiq
-  - 1fw74
 ---
 
 Upstream event streaming from generator handlers to the gateway for real-time UI

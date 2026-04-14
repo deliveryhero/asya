@@ -2,7 +2,6 @@
 title: "Phase 4: Enterprise auth (OAuth2 + OIDC for both protocols)"
 status: open
 priority: 3
-parent: kchkv
 ---
 
 OAuth2 and OIDC support for both A2A and MCP protocols. See rfc.md section 7, Phase 4.

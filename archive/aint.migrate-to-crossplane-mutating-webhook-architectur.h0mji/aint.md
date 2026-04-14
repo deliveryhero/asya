@@ -2,45 +2,6 @@
 title: Migrate to Crossplane + Mutating Webhook Architecture
 status: merged
 priority: 2
-children:
-  - 1f1xp
-  - 1f20h
-  - 1f2u2
-  - 1f3pm
-  - 1f3zt
-  - 1f4ke
-  - 1f4ns
-  - 1f4o3
-  - 1f6ft
-  - 1f7o0
-  - 1f7x7
-  - 1f9u3
-  - 1fav6
-  - 1fd2i
-  - 1fdib
-  - 1fdmc
-  - 1fdp3
-  - 1fe38
-  - 1fea4
-  - 1fgc9
-  - 1fgy7
-  - 1fhq0
-  - 1fhrg
-  - 1fj4v
-  - 1fjuy
-  - 1fkci
-  - 1fld6
-  - 1fm4j
-  - 1fm7v
-  - 1fmbc
-  - 1fmqr
-  - 1fmsr
-  - 1fq4b
-  - 1fsqz
-  - 1ft4z
-  - 1fwye
-  - 1fywd
-  - 1fze7
 ---
 
 Replace the custom ~16K LOC asya-operator with a Crossplane-based declarative control plane and a lightweight mutating webhook for sidecar injection.
@@ -75,7 +36,6 @@ Replace the custom ~16K LOC asya-operator with a Crossplane-based declarative co
 
 Evolve Asya from a custom ~16K LOC Go operator into a declarative, cloud-native control plane using **Crossplane** for infrastructure orchestration and a **Mutating Webhook** for workload injection. This reduces maintenance burden, increases stability through battle-tested components, and provides built-in drift detection.
 
----
 
 ### 2. Problem Statement
 
@@ -101,7 +61,6 @@ The `asya-operator` is a monolithic Kubebuilder-based controller with significan
 3. **Drift Ignorance**: Manual changes to cloud resources (e.g., SQS queue settings) are not automatically corrected
 4. **GitOps Conflicts**: Patching Deployments after creation causes pod restarts and sync-fights with ArgoCD/Flux
 
----
 
 ### 3. Proposed Architecture
 
@@ -158,7 +117,6 @@ The `asya-operator` is a monolithic Kubebuilder-based controller with significan
 | **provider-kubernetes** | Manage Deployment, KEDA, ConfigMap | Crossplane provider-kubernetes |
 | **asya-injector** | Sidecar injection at pod creation | Go Mutating Admission Webhook |
 
----
 
 ### 4. The AsyncActor XRD (API Design)
 
@@ -253,7 +211,6 @@ status:
 | **Degraded** | Partially healthy | 0 < ready < desired, some pods failing |
 | **Failed** | Completely broken | ready = 0 AND (failing > 0 OR infra error) |
 
----
 
 ### 5. Label Taxonomy
 
@@ -288,7 +245,6 @@ status:
 - `asya.sh/actor` label MUST match the queue suffix - this is the primary routing key
 - Example: `asya.sh/actor=text-analyzer` → queue `asya-prod-text-analyzer`
 
----
 
 ### 6. The Mutating Webhook (asya-injector)
 
@@ -343,7 +299,6 @@ For `workloadRef` (user-managed workloads):
 3. Webhook injects sidecar on new pod creation
 4. Existing pods are NOT modified (admission webhooks are create-time only)
 
----
 
 ### 7. Crossplane Composition (SQS)
 
@@ -435,7 +390,6 @@ DLQ (Dead Letter Queue) is created **per namespace** when the first actor is cre
 - NOT deleted when actors are deleted (preserves failed messages for debugging)
 - Managed by separate concern (see error handling flow documentation)
 
----
 
 ### 8. Transport Roadmap
 
@@ -448,7 +402,6 @@ DLQ (Dead Letter Queue) is created **per namespace** when the first actor is cre
 | P3 | Azure Service Bus | `provider-azure` (native) | Future |
 | P3 | NATS Streaming | `provider-kubernetes` + NATS Operator | Future |
 
----
 
 ### 9. Implementation Phases
 
@@ -485,7 +438,6 @@ DLQ (Dead Letter Queue) is created **per namespace** when the first actor is cre
 4. Remove old asya-operator code
 5. Clean up old CRD definitions
 
----
 
 ### 10. Expected Benefits
 
@@ -498,7 +450,6 @@ DLQ (Dead Letter Queue) is created **per namespace** when the first actor is cre
 | **Extensibility** | New transports = new Composition YAML, not new Go code |
 | **Separation of Concerns** | Infrastructure (Crossplane) vs Injection (Webhook) clearly separated |
 
----
 
 ### 11. Open Questions
 
@@ -527,7 +478,6 @@ DLQ (Dead Letter Queue) is created **per namespace** when the first actor is cre
 - **Q: Runtime ConfigMap management?**
   Currently operator creates shared ConfigMap. With Crossplane, should each actor have its own, or continue sharing per namespace?
 
----
 
 ### 12. Related Documents
 
@@ -535,7 +485,6 @@ DLQ (Dead Letter Queue) is created **per namespace** when the first actor is cre
 - `docs/architecture/` - Existing architecture documentation
 - `src/asya-operator/` - Current operator implementation (to be replaced)
 
----
 
 ### 13. References
 
@@ -545,5 +494,4 @@ DLQ (Dead Letter Queue) is created **per namespace** when the first actor is cre
 - [KEDA SQS Scaler](https://keda.sh/docs/scalers/aws-sqs/)
 - [Kubernetes Mutating Admission Webhooks](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
 
----
 _Migrated from beads `asya-vab`_

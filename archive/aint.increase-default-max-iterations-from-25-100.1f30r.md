@@ -2,7 +2,6 @@
 title: Increase default max_iterations from 25 to 100
 status: merged
 priority: 2
-parent: 00000
 ---
 
 The current DEFAULT_MAX_LOOP_ITERATIONS is 25, which is too aggressive for
@@ -21,9 +20,7 @@ Change:
 This is a one-line code change + test updates.
 
 
----
 **Close reason**: Default increased from 25 to 100 in PR #176
 
 
----
 _Migrated from beads `asya-zffb`_

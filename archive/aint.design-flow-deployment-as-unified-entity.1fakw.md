@@ -2,7 +2,6 @@
 title: Design Flow deployment as unified entity
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -95,9 +94,7 @@ spec:
 4. **Migration path**: How to evolve from MVP to full implementation
 
 
----
 **Close reason**: Decision made: Labels + CLI approach (not CRD). 1:M actor-flow with asya.sh/flow label. CLI manages lifecycle via asya flow deploy/undeploy. See asya-qyzk closure for full rationale.
 
 
----
 _Migrated from beads `asya-5av`_

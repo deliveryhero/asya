@@ -2,7 +2,6 @@
 title: "Integration tests: SLA enforcement across sidecar, runtime, and gateway"
 status: merged
 priority: 2
-parent: 34xba
 dependencies:
   - 1k1p
   - 1kz8

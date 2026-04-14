@@ -2,7 +2,6 @@
 title: Map Asya events to AG-UI event types
 status: open
 priority: 2
-parent: 7b55c
 ---
 
 Create mapping layer between Asya internal events and AG-UI protocol events.
@@ -50,7 +49,6 @@ Create mapping layer between Asya internal events and AG-UI protocol events.
 - Verify JSON format compliance
 
 
----
 ## Notes
 
 ## AG-UI Event Mapping Research (2026-01-28)
@@ -127,5 +125,4 @@ type AGUIEvent struct {
 - https://www.copilotkit.ai/blog/master-the-17-ag-ui-event-types-for-building-agents-the-right-way
 
 
----
 _Migrated from beads `asya-qyu`_

@@ -2,7 +2,6 @@
 title: Remove list-return fan-out, use yield exclusively
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -64,9 +63,7 @@ New:
 No backward compatibility. This is a breaking change. All existing fan-out handlers must be converted from list-return to yield before this lands.
 
 
----
 **Close reason**: Streaming wire protocol implemented: runtime uses yield for fan-out, sidecar reads per-frame. All unit tests pass (Go + Python). Integration tests need Docker.
 
 
----
 _Migrated from beads `asya-51j1`_

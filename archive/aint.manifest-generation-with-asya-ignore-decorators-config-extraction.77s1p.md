@@ -2,7 +2,6 @@
 title: Manifest generation with ASYA_IGNORE_DECORATORS and config extraction
 status: rejected
 priority: 2
-parent: pj0fo
 dependencies:
   - o8ql
 ---

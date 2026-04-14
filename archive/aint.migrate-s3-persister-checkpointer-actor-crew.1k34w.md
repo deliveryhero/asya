@@ -2,7 +2,6 @@
 title: Migrate s3 persister to checkpointer actor crew
 status: merged
 priority: 2
-parent: 00001
 tags:
   - worktree:.worktrees/debt/1k34nz.migrate-s3-persister-checkpointer-actor-crew
   - branch:debt/1k34nz.migrate-s3-persister-checkpointer-actor-crew

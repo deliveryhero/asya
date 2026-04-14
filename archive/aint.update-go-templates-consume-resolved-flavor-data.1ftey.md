@@ -2,7 +2,6 @@
 title: Update Go templates to consume resolved flavor data
 status: merged
 priority: 2
-parent: kbh83
 dependencies:
   - 1fij
 ---
@@ -30,5 +29,4 @@ Testing:
 - Verify actor inline overrides win over flavor values
 
 
----
 _Migrated from beads `asya-aeko`_

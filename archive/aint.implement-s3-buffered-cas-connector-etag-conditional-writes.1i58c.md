@@ -2,7 +2,6 @@
 title: Implement s3-buffered-cas connector (ETag conditional writes)
 status: merged
 priority: 2
-parent: g5bkc
 dependencies:
   - 1iph
 tags:

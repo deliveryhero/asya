@@ -2,7 +2,6 @@
 title: "x-pause: auto-preserve remaining route.next when actor overwrites with x-pause"
 status: open
 priority: 2
-parent: emmc5
 ---
 
 When an actor does `yield "SET", ".route.next", ["x-pause"]`, the remaining actors in route.next are lost. x-pause auto-prepends x-resume (RFC line 138) but doesn't preserve whatever was originally after the current actor.

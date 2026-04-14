@@ -2,7 +2,6 @@
 title: "External secrets integration: Vault, ESO, cloud secret managers (post-v0)"
 status: open
 priority: 3
-parent: kchkv
 dependencies:
   - agentic-security/wcnw
 tags:
@@ -115,7 +114,6 @@ spec:
   keys:
     - remoteKey: api_key
       localName: OPENAI_API_KEY
----
 # Actor references it
 spec:
   secretRefs:
@@ -183,7 +181,6 @@ Operator generates ExternalSecret from inline config.
 - SPIFFE/SPIRE: https://spiffe.io/
 
 
----
 ## Notes
 
 ## Initial Thoughts (from creation)
@@ -236,5 +233,4 @@ spec:
 - asya-tix (CLI): `asya secrets list`, `asya secrets validate`
 
 
----
 _Migrated from beads `asya-n93`_

@@ -2,7 +2,6 @@
 title: "Runtime: migrate route validation to prev/curr/next"
 status: merged
 priority: 1
-parent: l9v6p
 ---
 
 Migrate the runtime's route validation, shift logic, and helper functions from `{actors, current}` to `{prev, curr, next}`.

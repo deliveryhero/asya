@@ -2,7 +2,6 @@
 title: Add Helm chart version constraint validation
 status: merged
 priority: 2
-parent: 00000
 ---
 
 ## Problem
@@ -168,9 +167,7 @@ Do not mix versions across components.
 - Chart version constraints: https://helm.sh/docs/topics/charts/#chart-dependencies
 
 
----
 **Close reason**: Implemented version validation across all Helm charts. PR: https://github.com/deliveryhero/asya/pull/121
 
 
----
 _Migrated from beads `asya-74o`_

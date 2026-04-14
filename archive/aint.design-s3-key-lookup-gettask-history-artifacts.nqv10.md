@@ -3,7 +3,6 @@ title: "Design: S3 key lookup for GetTask history/artifacts"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: emmc5
 tags:
   - worktree:.worktrees/a2a-protocol-compliance-gateway/nqv1.design-s3-key-lookup-gettask-history-artifacts
   - branch:a2a-protocol-compliance-gateway/nqv1.design-s3-key-lookup-gettask-history-artifacts

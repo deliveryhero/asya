@@ -2,7 +2,6 @@
 title: Add optional zlib compression for large envelopes
 status: open
 priority: 3
-parent: 9v62d
 tags:
   - type:feature
 ---
@@ -36,5 +35,4 @@ Add optional zlib compression layer for envelope payloads to maximize effective 
 **Related:** asya-6j2 (binary protocol RFC), asya-866 (RawMessage optimization)
 
 
----
 _Migrated from beads `asya-vfx`_

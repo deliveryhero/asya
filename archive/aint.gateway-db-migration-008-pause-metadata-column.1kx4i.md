@@ -2,7 +2,6 @@
 title: "Gateway: DB migration 008 for pause_metadata column"
 status: merged
 priority: 2
-parent: hwek2
 tags:
   - pr:217
 ---

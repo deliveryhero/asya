@@ -2,7 +2,6 @@
 title: "Research: HolmesGPT for AI-assisted Asya debugging"
 status: open
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -137,7 +136,6 @@ HolmesGPT could use A2A to:
 - A2A spec: https://google.github.io/A2A/
 
 
----
 ## Notes
 
 ## Initial Thoughts (from creation)
@@ -181,5 +179,4 @@ describe_flow(name) → {actors, routes, diagram}
 - Incident response: AI-assisted RCA with full context
 
 
----
 _Migrated from beads `asya-an2`_

@@ -2,7 +2,6 @@
 title: "Restructure examples: teaser in asya, full samples in asya-samples"
 status: pushed
 priority: 2
-parent: n6g6h
 tags:
   - pr:413
   - pr:asya-samples/1

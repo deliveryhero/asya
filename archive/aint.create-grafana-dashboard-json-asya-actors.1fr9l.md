@@ -2,7 +2,6 @@
 title: Create Grafana dashboard JSON for Asya actors
 status: merged
 priority: 2
-parent: 00000
 tags:
   - beads:epic:asya-ln2
 ---
@@ -18,7 +17,6 @@ Store in deploy/grafana-dashboards/ directory. Dashboard should work with the me
 Reference existing metrics from src/asya-sidecar/internal/metrics/metrics.go and docs/architecture/observability.md.
 
 
----
 ## Notes
 
 ## Work Completed
@@ -50,9 +48,7 @@ Reference existing metrics from src/asya-sidecar/internal/metrics/metrics.go and
 - Commits: dashboard JSON + quickstart docs
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-lwt`_

@@ -2,7 +2,6 @@
 title: "Phase 3.3: Handle workloadRef case (no Deployment creation)"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fd2
 ---
@@ -44,9 +43,7 @@ Support both workload and workloadRef in Composition for actor deployments.
 See docs/rfc/rfc-crossplane.md Section 6 (workloadRef Behavior)
 
 
----
 **Close reason**: Implemented workload and workloadRef support in SQS Composition with Deployment and ScaledObject creation
 
 
----
 _Migrated from beads `asya-xl9`_

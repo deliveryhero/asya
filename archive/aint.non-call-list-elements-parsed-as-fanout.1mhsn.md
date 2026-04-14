@@ -2,7 +2,6 @@
 title: "Parser: non-call list elements wrongly parsed as fan-out actors"
 status: merged
 priority: 2
-parent: drsjr
 tags:
   - type:bug
   - component:compiler

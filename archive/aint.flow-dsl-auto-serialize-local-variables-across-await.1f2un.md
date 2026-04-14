@@ -2,7 +2,6 @@
 title: "Flow DSL: auto-serialize local variables across await boundaries"
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -81,5 +80,4 @@ async def flow(state: dict) -> dict:
 - RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 2.3
 
 
----
 _Migrated from beads `asya-8j0b`_

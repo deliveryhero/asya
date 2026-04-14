@@ -2,7 +2,6 @@
 title: "Sidecar: detect x-asya-pause header and report paused phase"
 status: merged
 priority: 2
-parent: hwek2
 dependencies:
   - 1kit
 tags:

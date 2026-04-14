@@ -3,7 +3,6 @@ title: Fix flaky SLA integration test (sidecar-runtime rabbitmq)
 status: merged
 priority: 2
 assignee: Claude
-parent: 00000
 tags:
   - pr:263
 ---

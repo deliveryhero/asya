@@ -2,7 +2,6 @@
 title: Auto-detect runtime container instead of requiring asya-runtime name
 status: open
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -49,5 +48,4 @@ Detection and validation should happen in the **injector** (mutating webhook), n
 A container named `asya-runtime` would still work (case 2: single container after filtering sidecar, or case 3: only one with ASYA_HANDLER). No breaking change.
 
 
----
 _Migrated from beads `asya-9u8`_

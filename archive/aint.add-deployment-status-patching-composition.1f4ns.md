@@ -2,7 +2,6 @@
 title: Add Deployment status patching to Composition
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fav
 ---
@@ -29,9 +28,7 @@ Patch Deployment status back to AsyncActor composite resource.
 - .status.readyReplicas and .status.replicas for counts
 
 
----
 **Close reason**: Implemented in PR #140
 
 
----
 _Migrated from beads `asya-bzv`_

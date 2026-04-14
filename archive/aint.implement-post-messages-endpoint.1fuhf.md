@@ -2,7 +2,6 @@
 title: Implement POST /messages endpoint
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -50,5 +49,4 @@ Add A2A-compliant message endpoint to create or continue tasks.
 - Test continuation flow (task_id provided)
 
 
----
 _Migrated from beads `asya-u76`_

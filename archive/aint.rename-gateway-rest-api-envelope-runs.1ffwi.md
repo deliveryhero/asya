@@ -2,7 +2,6 @@
 title: "Rename Gateway REST API: /envelope/* → /runs/*"
 status: merged
 priority: 2
-parent: 00000
 ---
 
 Rename Gateway REST API endpoints for better alignment with standards:
@@ -20,9 +19,7 @@ Update:
 This aligns with A2A (Agent-to-Agent) and A2UI patterns where 'runs' is standard terminology.
 
 
----
 **Close reason**: Completed as part of the envelope→message/task rename PR
 
 
----
 _Migrated from beads `asya-w4j`_

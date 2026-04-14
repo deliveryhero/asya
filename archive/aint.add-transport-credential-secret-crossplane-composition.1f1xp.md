@@ -2,7 +2,6 @@
 title: Add transport credential Secret to Crossplane Composition
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fm4
 ---
@@ -40,9 +39,7 @@ Operator source: src/asya-operator/internal/controller/asya_controller.go
 Composition: deploy/helm-charts/asya-crossplane/templates/composition-sqs.yaml
 
 
----
 **Close reason**: Per-actor secrets not needed in Crossplane model. Shared aws-creds secret referenced via injector config.awsCredsSecret. Validated end-to-end in Kind cluster.
 
 
----
 _Migrated from beads `asya-kp6`_

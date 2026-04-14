@@ -2,7 +2,6 @@
 title: Add Deployment to SQS Composition (workload case)
 status: merged
 priority: 2
-parent: h0mji
 ---
 
 Add Deployment resource to the SQS Composition for the spec.workload case (Crossplane-managed workload).
@@ -29,9 +28,7 @@ Add Deployment resource to the SQS Composition for the spec.workload case (Cross
 - Labels are critical for asya-injector webhook to inject sidecar
 
 
----
 **Close reason**: Already implemented in commit 6fb9a1a
 
 
----
 _Migrated from beads `asya-hm3`_

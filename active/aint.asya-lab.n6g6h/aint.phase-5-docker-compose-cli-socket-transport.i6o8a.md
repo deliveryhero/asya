@@ -3,7 +3,6 @@ title: "Phase 5: Docker Compose CLI + socket transport"
 status: working
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 dependencies:
   - 5ifn
   - cavw

@@ -2,7 +2,6 @@
 title: "Design: Binary protocol for sidecar-runtime communication"
 status: rejected
 priority: 2
-parent: jp7cz
 tags:
   - beads:needs-spec
 reason: will better implement http over unix
@@ -34,7 +33,6 @@ Design binary messaging protocol between Go sidecar and Python runtime.
 RFC: docs/rfc/asya-6j2-binary-protocol.md
 
 
----
 ## Notes
 
 ## Related Issues
@@ -46,5 +44,4 @@ RFC: docs/rfc/asya-6j2-binary-protocol.md
   - Binary protocol still valuable for future if we need even more efficiency
 
 
----
 _Migrated from beads `asya-6j2`_

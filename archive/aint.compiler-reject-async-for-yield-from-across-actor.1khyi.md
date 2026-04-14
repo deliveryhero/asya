@@ -2,7 +2,6 @@
 title: "Compiler: improve error messages for async-for / yield-from rejection"
 status: merged
 priority: 3
-parent: nlg57
 reason: "Implemented: explicit AsyncFor rejection + improved yield/yield-from error messages with ABI context"
 ---
 

@@ -2,7 +2,6 @@
 title: Merge asya-dlq-worker image into asya-crew (multi-stage build, shared image with command override)
 status: open
 priority: 2
-parent: 00001
 ---
 
 ## Motivation

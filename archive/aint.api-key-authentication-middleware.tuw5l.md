@@ -2,7 +2,6 @@
 title: API Key authentication middleware
 status: merged
 priority: 2
-parent: emmc5
 ---
 
 ## Objective

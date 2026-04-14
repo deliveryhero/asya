@@ -2,7 +2,6 @@
 title: "Phase 2: Semi-active AsyncFlow via function-extra-resources"
 status: open
 priority: 3
-parent: enren
 tags:
   - type:feature
 ---
@@ -46,5 +45,4 @@ Status fields added to AsyncFlow XRD:
         message: 'Actor process-payment not found'
 
 
----
 _Migrated from beads `asya-qdlq`_

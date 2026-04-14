@@ -2,7 +2,6 @@
 title: Fix operator ↔ KEDA race condition in deployment reconciliation
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:bug
 ---
@@ -83,7 +82,6 @@ Post-fix verification:
 
 
 
----
 ## Notes
 
 Implementation completed successfully. All PR review comments addressed.
@@ -122,9 +120,7 @@ Next steps:
 3. Monitor deployment generation and conflict errors in production
 
 
----
 **Close reason**: PR closed; worktree cleaned up
 
 
----
 _Migrated from beads `asya-puk`_

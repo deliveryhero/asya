@@ -2,7 +2,6 @@
 title: "Gateway: use MCP structuredContent and A2A DataPart for final payload"
 status: open
 priority: 3
-parent: 00001
 tags:
   - pr:392
 ---

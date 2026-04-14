@@ -2,7 +2,6 @@
 title: "Sidecar: add retryableErrors whitelist alongside nonRetryableErrors blacklist"
 status: merged
 priority: 2
-parent: 00001
 tags:
   - superseded-by:7179
 ---

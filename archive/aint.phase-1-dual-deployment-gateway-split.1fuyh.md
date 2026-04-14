@@ -3,7 +3,6 @@ title: "Phase 1: Dual-deployment gateway split"
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: kchkv
 tags:
   - phase:1
   - worktree:.worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split
@@ -98,7 +97,6 @@ Mesh service is always ClusterIP.
 - **E2E profiles**: `ASYA_GATEWAY_URL` updated to `<release>-mesh.<ns>.svc.cluster.local:8080`;
   injector `gatewayURL` updated to mesh service name
 
----
 
 # Implementation Plan
 
@@ -110,7 +108,6 @@ Mesh service is always ClusterIP.
 
 **Tech Stack:** Go 1.24, net/http ServeMux, Helm 3, Docker Compose, pytest
 
----
 
 ### Task 1: Extract route registration and add mode validation in main.go
 
@@ -263,7 +260,6 @@ git -C .worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split \
   commit -m "feat(gateway): add ASYA_GATEWAY_MODE with api/mesh/testing modes [1fuy]"
 ```
 
----
 
 ### Task 2: Add ASYA_GATEWAY_MODE=testing to all test gateway service definitions
 
@@ -309,7 +305,6 @@ git -C .worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split \
   commit -m "feat(tests): set ASYA_GATEWAY_MODE=testing in gateway test configs [1fuy]"
 ```
 
----
 
 ### Task 3: Add api/mesh naming helpers to Helm _helpers.tpl
 
@@ -368,7 +363,6 @@ git -C .worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split \
   commit -m "feat(helm/gateway): add api/mesh naming helpers [1fuy]"
 ```
 
----
 
 ### Task 4: Split deployment.yaml into deployment-api.yaml + deployment-mesh.yaml
 
@@ -434,7 +428,6 @@ git -C .worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split \
   commit -m "feat(helm/gateway): split into api and mesh deployments [1fuy]"
 ```
 
----
 
 ### Task 5: Split service.yaml into service-api.yaml + service-mesh.yaml
 
@@ -519,7 +512,6 @@ git -C .worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split \
   commit -m "feat(helm/gateway): split into api and mesh services [1fuy]"
 ```
 
----
 
 ### Task 6: Update e2e profiles to use mesh service name
 
@@ -566,7 +558,6 @@ git -C .worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split \
   commit -m "feat(e2e): update ASYA_GATEWAY_URL to mesh service name [1fuy]"
 ```
 
----
 
 ### Task 7: Final verification — unit + lint + component + integration tests
 

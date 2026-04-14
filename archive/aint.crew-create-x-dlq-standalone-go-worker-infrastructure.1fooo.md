@@ -2,7 +2,6 @@
 title: "Crew: create x-dlq standalone Go worker for infrastructure DLQ"
 status: merged
 priority: 2
-parent: s62ja
 dependencies:
   - 1fez
 ---
@@ -36,9 +35,7 @@ RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (x-dlq Worker s
 
 
 
----
 **Close reason**: Implemented in PR #184: standalone Go DLQ worker with SQS support, S3 persistence, gateway reporting
 
 
----
 _Migrated from beads `asya-gin6`_

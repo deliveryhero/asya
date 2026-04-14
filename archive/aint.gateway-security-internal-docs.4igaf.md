@@ -3,7 +3,6 @@ title: Document gateway security model in docs/internal/
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: kchkv
 tags:
   - worktree:.worktrees/agentic-security/4iga.gateway-security-internal-docs
   - branch:agentic-security/4iga.gateway-security-internal-docs

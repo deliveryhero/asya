@@ -2,7 +2,6 @@
 title: "Gateway: POST /a2a/tasks/{id}:cancel endpoint"
 status: merged
 priority: 3
-parent: hwek2
 dependencies:
   - 1kwi
 tags:

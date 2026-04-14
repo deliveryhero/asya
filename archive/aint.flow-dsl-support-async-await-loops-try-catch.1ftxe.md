@@ -2,7 +2,6 @@
 title: "Flow DSL: Support async/await, loops, and try-catch"
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -16,9 +15,7 @@ Extend Flow DSL compiler to support additional control flow constructs:
 This enables more complex flow patterns while maintaining the Flow DSL's simplicity.
 
 
----
 **Close reason**: Superseded by epic asya-4ozl which decomposes async/await, loops, and try-catch into separate beads
 
 
----
 _Migrated from beads `asya-ugj`_

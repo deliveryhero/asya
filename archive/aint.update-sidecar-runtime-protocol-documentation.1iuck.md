@@ -2,7 +2,6 @@
 title: Update sidecar-runtime protocol documentation
 status: merged
 priority: 3
-parent: jp7cz
 dependencies:
   - 1in0
 tags:

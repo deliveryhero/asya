@@ -3,7 +3,6 @@ title: "Crossplane E2E tech debt: DLQ support, drift detection tests, cold-start
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: u96px
 tags:
   - worktree:.worktrees/tech-debt-crossplane-e2e-tests/1f2y.fix-scaling-performance-e2e-tests-cold-start-backlog
   - branch:tech-debt-crossplane-e2e-tests/1f2y.fix-scaling-performance-e2e-tests-cold-start-backlog

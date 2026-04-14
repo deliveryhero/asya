@@ -2,7 +2,6 @@
 title: Support async-for fan-in from multi-yield actors
 status: rejected
 priority: 2
-parent: drsjr
 reason: async for forbidden in flows — streaming cannot cross actor boundaries. Fan-in from multi-yield actors needs separate design if ever needed.
 ---
 

@@ -2,7 +2,6 @@
 title: "XRD: Add stateProxy field to AsyncActor schema"
 status: merged
 priority: 1
-parent: g5bkc
 dependencies:
   - 1ipg
 tags:

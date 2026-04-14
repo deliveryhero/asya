@@ -2,26 +2,6 @@
 title: Support more compiler constructs
 status: merged
 priority: 2
-children:
-  - 1fmik
-  - 1mhsr
-  - 1mhs8
-  - 1mhsi
-  - 1mhsn
-  - 1ob9s
-  - 1oj43
-  - 1opdl
-  - 2t1q3
-  - 36g4o
-  - kd2iq
-  - n67c9
-  - pyn38
-  - srn2x
-  - xx8tk
-  - 1oimd
-  - 20c9j
-  - mm2u7
-  - w1brx
 ---
 
 Expand the Flow DSL compiler to handle additional Python constructs that map

@@ -2,7 +2,6 @@
 title: "Phase 2.2: Implement pod mutation logic (sidecar injection)"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1fm7
 ---
@@ -43,9 +42,7 @@ Implement the core sidecar injection logic that mutates pods.
 See docs/rfc/rfc-crossplane.md Section 6 (Injected Resources)
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-1d8`_

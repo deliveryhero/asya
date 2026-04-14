@@ -2,7 +2,6 @@
 title: "XRD: Add spec.flavors field to AsyncActor"
 status: merged
 priority: 2
-parent: 00000
 ---
 
 Add an optional 'flavors' field to the AsyncActor XRD schema.
@@ -27,9 +26,7 @@ Testing:
 - Verify an AsyncActor with flavors: [test] is accepted by the XRD validation
 
 
----
 **Close reason**: Implemented in PR #175. Added spec.flavors array field to AsyncActor XRD.
 
 
----
 _Migrated from beads `asya-cewp`_

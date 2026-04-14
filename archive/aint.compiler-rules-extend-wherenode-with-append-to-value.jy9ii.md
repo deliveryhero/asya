@@ -2,7 +2,6 @@
 title: "Compiler rules: extend WhereNode with append-to and value for policies+rules XR fields"
 status: rejected
 priority: 2
-parent: pj0fo
 tags:
   - integrate-into:gml9
   - absorbed-into:gml9

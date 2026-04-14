@@ -3,7 +3,6 @@ title: "Phase 1.5: Remove injector, render full Deployment in compositions"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: ip3ls
 dependencies:
   - 8gc6
 tags:

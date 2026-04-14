@@ -2,7 +2,6 @@
 title: Adapt existing E2E tests for Crossplane architecture
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fm4
   - 1fj4
@@ -49,9 +48,7 @@ This task should ONLY begin after ALL existing functionality is confirmed workin
 - Consider running old and new E2E tests in parallel during transition period
 
 
----
 **Close reason**: E2E tests migrated to Crossplane architecture
 
 
----
 _Migrated from beads `asya-rl0`_

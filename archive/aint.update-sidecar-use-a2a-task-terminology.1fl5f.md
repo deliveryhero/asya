@@ -2,7 +2,6 @@
 title: Update sidecar to use A2A task terminology
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - worktree:.worktrees/1c0d/1fl5rf.update-sidecar-use-a2a-task-terminology
   - branch:1c0d/1fl5rf.update-sidecar-use-a2a-task-terminology
@@ -37,5 +36,4 @@ Sidecar uses:
 - Verify sidecar-gateway communication
 
 
----
 _Migrated from beads `asya-57s`_

@@ -2,7 +2,6 @@
 title: "Component test: aggregator actor with RocksDB"
 status: rejected
 priority: 2
-parent: 00000
 dependencies:
   - 1fo5
 reason: decided to go with virtual actors
@@ -46,5 +45,4 @@ testing/component/aggregator/
 - RFC: docs/rfc/fan-in/rfc-fan-in.md (Aggregator Actor Design)
 
 
----
 _Migrated from beads `asya-8g3x`_

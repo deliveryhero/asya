@@ -2,7 +2,6 @@
 title: "Test: Actor flavor composition and merge in integration tests"
 status: merged
 priority: 2
-parent: kbh83
 tags:
   - pr:197
 reason: "PR #197 merged: EnvironmentConfigs created, actors migrated to spec.flavors, test_asyncactor_flavors_resolved added (xfail pending function publication)"
@@ -47,5 +46,4 @@ backward compat (actors without flavors) in one pass.
 RFC: ./rfc.md
 
 
----
 _Migrated from beads `asya-voc4`_

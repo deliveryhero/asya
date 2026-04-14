@@ -2,7 +2,6 @@
 title: "Research: event compaction and context window management for long-running agents"
 status: open
 priority: 3
-parent: 7b55c
 tags:
   - type:research
 ---

@@ -2,7 +2,6 @@
 title: "Phase 3.5: Manually test full actor lifecycle (create, scale, delete)"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fms
   - 1fgy
@@ -59,9 +58,7 @@ Comprehensive integration test for AsyncActor lifecycle.
 See docs/rfc/rfc-crossplane.md Section 9 (Phase 3)
 
 
----
 **Close reason**: Full lifecycle tested: create->scale-up->process->scale-to-zero->delete. All Crossplane-managed resources cleaned up. Quickstart doc written. Chart and injector bugs fixed. PRs: #141 (chart fixes), crossplane-phase2 pushed.
 
 
----
 _Migrated from beads `asya-qtk`_

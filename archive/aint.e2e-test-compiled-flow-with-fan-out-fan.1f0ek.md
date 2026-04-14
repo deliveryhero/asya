@@ -2,7 +2,6 @@
 title: "E2E test: compiled flow with fan-out/fan-in on Kind cluster"
 status: merged
 priority: 2
-parent: 4e5zh
 dependencies:
   - 1fr7
   - 1fci
@@ -50,5 +49,4 @@ Compiled to:
 - Fan-in RFC: `.aint/epics/1c7i.stateful-fan-fan-out/rfc.md` (Deployment)
 
 
----
 _Migrated from beads `asya-1mqw`_

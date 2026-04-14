@@ -2,7 +2,6 @@
 title: "Phase 1: Passive AsyncFlow XRD with mixed ownership model"
 status: open
 priority: 1
-parent: enren
 tags:
   - type:feature
 ---
@@ -37,5 +36,4 @@ Design and implement AsyncFlow as a Crossplane XRD that:
 Dependencies: Requires spec.actor field on AsyncActor XRD (asya-v2hs)
 
 
----
 _Migrated from beads `asya-qyzk`_

@@ -2,7 +2,6 @@
 title: Support match statement as conditional routing
 status: open
 priority: 3
-parent: 00001
 ---
 
 Add `ast.Match` (Python 3.10+) handling as an alternative to if/elif chains

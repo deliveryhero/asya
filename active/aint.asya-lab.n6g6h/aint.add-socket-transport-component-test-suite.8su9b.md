@@ -3,7 +3,6 @@ title: Add socket transport component test suite
 status: open
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 dependencies:
   - cavw
 tags:

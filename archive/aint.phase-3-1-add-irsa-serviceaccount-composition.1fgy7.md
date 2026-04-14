@@ -2,7 +2,6 @@
 title: "Phase 3.1: Add IRSA ServiceAccount to Composition"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fd2
 ---
@@ -35,9 +34,7 @@ Configure ServiceAccount with IAM Roles for Service Accounts (IRSA) in the Cross
 See docs/rfc/rfc-crossplane.md Section 7 (ServiceAccount)
 
 
----
 **Close reason**: Implemented in feature/crossplane-phase3-1
 
 
----
 _Migrated from beads `asya-ymb`_

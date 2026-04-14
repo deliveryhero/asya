@@ -2,7 +2,6 @@
 title: "Phase 2.4: Add readiness check (reject if infrastructure not ready)"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1f4o
 ---
@@ -39,9 +38,7 @@ Implement readiness check to prevent pod creation before infrastructure is ready
 See docs/rfc/rfc-crossplane.md Section 6 (Injection Flow step 4)
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-euj`_

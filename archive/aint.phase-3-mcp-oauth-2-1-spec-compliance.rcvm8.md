@@ -3,7 +3,6 @@ title: "Phase 3: MCP OAuth 2.1 spec compliance"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: kchkv
 tags:
   - pr:271
 ---

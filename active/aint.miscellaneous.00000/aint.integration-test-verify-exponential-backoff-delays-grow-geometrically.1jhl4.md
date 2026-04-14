@@ -2,7 +2,6 @@
 title: "Integration test: verify exponential backoff delays grow geometrically"
 status: open
 priority: 3
-parent: 00000
 ---
 
 ## Context

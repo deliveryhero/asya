@@ -2,15 +2,6 @@
 title: Agentic - Umbrella
 status: open
 priority: 2
-children:
-  - 1flmt
-  - 1m0dv
-  - amn1d
-  - 1f7my
-  - 1faqh
-  - 1m0e2
-  - 1m0f8
-  - 1m0gs
 ---
 
 Enable Asya framework to natively support agentic use-cases, facilitating migration from orchestrator-based frameworks (Google ADK, CrewAI, DSPy, Agno, BeeAI, Strands SDK, OpenAI Agents) to choreography-based Asya.
@@ -56,7 +47,6 @@ This document proposes a compilation strategy to transform Google's Agent Develo
 - **A2A protocol compliance**: Gateway implements the [Agent2Agent (A2A) Protocol](https://a2a-protocol.org/) for agent interoperability, enabling external agents to interact with Asya actor networks
 - **Human-in-the-loop support**: Native support for interactive workflows via A2A's `input_required` task state
 
----
 
 ### Table of Contents
 
@@ -74,7 +64,6 @@ This document proposes a compilation strategy to transform Google's Agent Develo
 12. [Open Questions](#open-questions-1)
 13. [References](#references)
 
----
 
 ### 1. Background
 
@@ -115,7 +104,6 @@ Transform ADK's centralized orchestration into Asya's distributed choreography w
 - Session continuity across actor boundaries
 - Tool execution and agent transfers
 
----
 
 ### 2. Architecture Overview
 
@@ -177,7 +165,6 @@ Transform ADK's centralized orchestration into Asya's distributed choreography w
    - Compression strategies for large sessions
    - Artifact references instead of inline data
 
----
 
 ### 3. A2A Protocol Compliance
 
@@ -506,7 +493,6 @@ A2A supports OpenAPI-compatible auth schemes. Gateway will implement:
 
 Auth configuration flows from Gateway's existing auth middleware, extended with A2A's security scheme advertisement. Both A2A and MCP endpoints share the same auth layer.
 
----
 
 ### 4. Event Classification & Routing
 
@@ -706,7 +692,6 @@ func handleEventFromRuntime(eventMsg EventMessage) {
 }
 ```
 
----
 
 ### 5. Session State Management
 
@@ -830,7 +815,6 @@ Keep only recent events in message, rest in shared store:
 3. **If message > 200 KB**: Use sliding window
 4. **If still too large**: Switch to MessagePack
 
----
 
 ### 6. Service Reconstruction
 
@@ -1014,7 +998,6 @@ async def handle_llm_agent(message: dict):
     )
 ```
 
----
 
 ### 7. Streaming Architecture
 
@@ -1183,7 +1166,6 @@ async def send_streaming_event(event: dict):
 
 **Key insight**: User sees **all** events (streaming + control), but actors only process **control** events.
 
----
 
 ### 8. Human-in-the-Loop Architecture
 
@@ -1365,7 +1347,6 @@ For long-running agent turns (not just human waits), periodic checkpointing to S
 
 This is out of scope for initial implementation but the architecture supports it.
 
----
 
 ### 9. Agent Compilation Strategy
 
@@ -1562,7 +1543,6 @@ class MyCustomAgent(BaseAgent):
                 yield event
 ```
 
----
 
 ### 10. Implementation Examples
 
@@ -1711,7 +1691,6 @@ async def handle_reviewer(message: dict):
     }
 ```
 
----
 
 ### 11. Trade-offs & Design Decisions
 
@@ -1782,7 +1761,6 @@ async def handle_reviewer(message: dict):
 
 **Rationale**: Start simple with stateful gateway. Add Redis pub/sub when scaling beyond single gateway instance.
 
----
 
 ### 12. RFC Open Questions
 
@@ -1891,7 +1869,6 @@ Actor yields:
 - Expensive, shared tools (LLM calls, embeddings, search) are separate actors
 - Tool classification defined in agent configuration
 
----
 
 ### 13. References
 
@@ -1960,7 +1937,6 @@ Feasibility research tracked in beads:
 - **AGNTCY**: https://agntcy.org/
 - **Agent Skills**: https://github.com/anthropics/anthropic-cookbook/tree/main/skills
 
----
 
 ### Next Steps
 
@@ -1976,7 +1952,6 @@ Feasibility research tracked in beads:
 10. **Documentation**: User guide for deploying ADK agents on Asya via A2A
 
 
----
 ## Notes
 
 ## Session State Strategy (Concluded 2026-01-28)
@@ -2008,5 +1983,4 @@ Feasibility research tracked in beads:
 - asya-z1o: Media storage abstraction (fsspec)
 
 
----
 _Migrated from beads `asya-bi8`_

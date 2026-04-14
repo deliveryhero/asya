@@ -2,7 +2,6 @@
 title: "Flow DSL: fan-out router code generator"
 status: merged
 priority: 2
-parent: 4e5zh
 dependencies:
   - 1ih5
 tags:
@@ -107,5 +106,4 @@ def fanout_<flow>_L<line>(message):
 - Fan-in RFC: `.aint/epics/1c7i.stateful-fan-fan-out/rfc.md` (Code Generation Strategy, ADR-2)
 
 
----
 _Migrated from beads `asya-q2kp`_

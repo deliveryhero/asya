@@ -2,7 +2,6 @@
 title: Define StateProxyConnector Python interface and HTTP protocol spec
 status: merged
 priority: 1
-parent: g5bkc
 tags:
   - pr:195
 ---

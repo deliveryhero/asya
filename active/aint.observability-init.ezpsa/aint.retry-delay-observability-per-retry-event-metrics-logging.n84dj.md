@@ -2,7 +2,6 @@
 title: "Retry delay observability: per-retry-event metrics and logging"
 status: open
 priority: 3
-parent: ezpsa
 ---
 
 ## Context

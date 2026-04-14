@@ -2,7 +2,6 @@
 title: Implement redis-buffered-cas connector
 status: merged
 priority: 1
-parent: g5bkc
 tags:
   - worktree:.worktrees/1dmf/1ig161.implement-redis-buffered-cas-connector
   - branch:1dmf/1ig161.implement-redis-buffered-cas-connector

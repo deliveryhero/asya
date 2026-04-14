@@ -3,7 +3,6 @@ title: "dlq-worker: add GCS storage + Pub/Sub consumer for native GKE"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/y6xv.dlq-worker-add-gcs-storage-pub-sub-consumer
   - branch:debt/y6xv.dlq-worker-add-gcs-storage-pub-sub-consumer

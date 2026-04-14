@@ -3,7 +3,6 @@ title: Pre-commit hook doesn't recompile agentic flows (examples/flows/agentic/)
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: drsjr
 tags:
   - worktree:.worktrees/.worktrees/support-more-compiler-constructs/36g4.pre-commit-hook-doesn-t-recompile-agentic-flows
   - branch:support-more-compiler-constructs/36g4.pre-commit-hook-doesn-t-recompile-agentic-flows

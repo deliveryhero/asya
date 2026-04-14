@@ -1,6 +1,5 @@
 ---
 status: merged
-parent: 00001
 ---
 
 j---
@@ -11,7 +10,6 @@ tags:
   - worktree:.worktrees/.worktrees/debt/u5pd.fix-composition-assymetry-stateproxy
   - branch:debt/u5pd.fix-composition-assymetry-stateproxy
   - pr:290
----
 
 
 

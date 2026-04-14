@@ -2,7 +2,6 @@
 title: "Gateway: listen on _sink queue and support status.phase for result reporting"
 status: merged
 priority: 2
-parent: s62ja
 dependencies:
   - 1ffm
 tags:
@@ -23,5 +22,4 @@ Migration: listen on all three queues (_sink, happy-end, error-end) during trans
 RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (Migration Path section)
 
 
----
 _Migrated from beads `asya-9lhh`_

@@ -3,7 +3,6 @@ title: "Sidecar error logging: log runtime error content and distinguish success
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/msic.sidecar-does-not-log-runtime-error-content-before
   - branch:debt/msic.sidecar-does-not-log-runtime-error-content-before

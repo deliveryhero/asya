@@ -2,7 +2,6 @@
 title: "Phase 3.4: Add status patching to Composition"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fd2
 ---
@@ -38,9 +37,7 @@ KEDA and Deployment status patching deferred to:
 - Complex phase logic (Running/Napping/Degraded) deferred to asya-kdu
 
 
----
 **Close reason**: Implemented queue-only status patching. XRD updated with infrastructure.queue.ready field and Status printer column. Composition derives phase (Ready/Creating) from SQS Queue conditions.
 
 
----
 _Migrated from beads `asya-74f`_

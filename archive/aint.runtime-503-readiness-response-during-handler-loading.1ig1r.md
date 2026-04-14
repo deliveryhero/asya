@@ -2,7 +2,6 @@
 title: "Runtime: 503 readiness response during handler loading"
 status: rejected
 priority: 2
-parent: jp7cz
 dependencies:
   - 1iof
 tags:

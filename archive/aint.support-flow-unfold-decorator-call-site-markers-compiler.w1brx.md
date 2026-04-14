@@ -2,7 +2,6 @@
 title: "Support @flow and @unfold decorator/call-site markers in compiler"
 status: rejected
 priority: 2
-parent: drsjr
 tags:
   - superseded-by:7qkk
 ---

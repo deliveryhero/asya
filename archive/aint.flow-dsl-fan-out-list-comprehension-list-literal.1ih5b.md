@@ -2,7 +2,6 @@
 title: "Flow DSL: fan-out list comprehension and list literal parser"
 status: merged
 priority: 2
-parent: 4e5zh
 ---
 
 ## Summary

@@ -2,7 +2,6 @@
 title: Research ANP/OASF decentralized protocols for Asya Gateway
 status: rejected
 priority: 4
-parent: 00000
 reason: low fit
 ---
 
@@ -30,5 +29,4 @@ Evaluate emerging decentralized agent protocols for future Asya Gateway capabili
 **Related:** docs/rfc/asya-bi8-agentic-asya.md
 
 
----
 _Migrated from beads `asya-e5s`_

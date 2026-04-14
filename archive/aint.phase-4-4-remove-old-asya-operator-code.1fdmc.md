@@ -2,7 +2,6 @@
 title: "Phase 4.4: Remove old asya-operator code"
 status: merged
 priority: 2
-parent: h0mji
 ---
 
 Delete the old asya-operator source code and Helm chart after all functionality has been migrated to Crossplane + asya-injector.
@@ -56,5 +55,4 @@ Delete the old asya-operator source code and Helm chart after all functionality 
 - Spec validation → XRD validation rules
 
 
----
 _Migrated from beads `asya-pb5`_

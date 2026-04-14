@@ -2,7 +2,6 @@
 title: Check GetTasks Implementation
 status: open
 priority: 2
-parent: emmc5
 ---
 
 See gateway's `main.go`:

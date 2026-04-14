@@ -2,7 +2,6 @@
 title: Support del statement as payload mutation
 status: open
 priority: 3
-parent: 00001
 ---
 
 Add `ast.Delete` handling in `parser.py:_parse_statement()`. Only `del p["key"]`

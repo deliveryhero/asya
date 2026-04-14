@@ -2,16 +2,6 @@
 title: Agentic security
 status: open
 priority: 2
-children:
-  - 1fuyh
-  - 4igaf
-  - b51iy
-  - rcvm8
-  - wcnwl
-  - 1f63e
-  - 1fdfm
-  - iu978
-  - euanq
 ---
 
 Gateway security model: dual-deployment split (api + mesh), protocol-native

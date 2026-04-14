@@ -2,12 +2,10 @@
 title: Fix Helm chart sidecar image version to match operator version
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:bug
 ---
 
----
 **Close reason**: Completed and merged in PR #112: https://github.com/deliveryhero/asya/pull/112
 
 Changes:
@@ -19,5 +17,4 @@ Changes:
 - Manually tested in fresh Kind cluster - sidecar injection working correctly
 
 
----
 _Migrated from beads `asya-ca0`_

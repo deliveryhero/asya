@@ -2,7 +2,6 @@
 title: Add Asya-level runtime metrics via response JSON
 status: open
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -46,5 +45,4 @@ Add optional `_metrics` field to runtime response:
 - `src/asya-sidecar/METRICS.md` - document new metrics
 
 
----
 _Migrated from beads `asya-nj9`_

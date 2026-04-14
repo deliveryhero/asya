@@ -2,7 +2,6 @@
 title: "Research: kubectl-asya via Krew vs custom CLI wrapper"
 status: rejected
 priority: 3
-parent: 00000
 tags:
   - type:feature
 ---
@@ -140,7 +139,6 @@ Maybe the real question: **Should data scientists interact with K8s at all, or s
 4. **Recommendation** with maintenance cost analysis
 
 
----
 ## Notes
 
 ## Initial Thoughts (from creation)
@@ -175,5 +173,4 @@ Maybe the real question: **Should data scientists interact with K8s at all, or s
 - Any binary named `kubectl-foo` becomes `kubectl foo` automatically
 
 
----
 _Migrated from beads `asya-tix`_

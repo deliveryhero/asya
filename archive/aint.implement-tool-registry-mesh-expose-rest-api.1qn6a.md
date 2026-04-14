@@ -2,7 +2,6 @@
 title: Implement tool registry and /mesh/expose REST API
 status: merged
 priority: 2
-parent: emmc5
 dependencies:
   - 1qtb
 tags:

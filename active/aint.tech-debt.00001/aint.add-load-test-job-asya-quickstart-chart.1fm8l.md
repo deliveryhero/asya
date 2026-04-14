@@ -2,12 +2,10 @@
 title: Add load test Job to asya-quickstart chart
 status: open
 priority: 2
-parent: 00001
 tags:
   - type:feature
 ---
 
----
 ## Notes
 
 Add Kubernetes Job template to asya-quickstart chart that:
@@ -35,5 +33,4 @@ Benefits:
 - Provides realistic demo scenario for evaluations
 
 
----
 _Migrated from beads `asya-l6x`_

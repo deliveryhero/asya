@@ -3,7 +3,6 @@ title: "Phase 2: Manifests, error handling, rules, and CLI"
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: pj0fo
 dependencies:
   - dlad
 tags:

@@ -2,7 +2,6 @@
 title: Explore single central asya-gateway vs per-namespace gateways
 status: merged
 priority: 3
-parent: 00000
 tags:
   - type:feature
 reason: "Decided: per-namespace gateway for simplicity, security isolation, and throughput guarantees. ADR added to 1fc44c."
@@ -63,5 +62,4 @@ If implementing central gateway:
 **See also**: `1frksi` (duplicate research task, also closed)
 
 
----
 _Migrated from beads `asya-55z`_

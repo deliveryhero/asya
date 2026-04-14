@@ -2,7 +2,6 @@
 title: "Message schema: add status top-level field with lifecycle phases"
 status: merged
 priority: 1
-parent: s62ja
 ---
 
 Add 'status' as a 5th top-level field to the Asya message schema. Currently messages have: id, route, headers, payload. Add status with lifecycle phases.
@@ -29,9 +28,7 @@ Backward compatibility: messages without status field should be handled graceful
 RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (Message Schema section)
 
 
----
 **Close reason**: Implemented status field across sidecar, runtime, and gateway
 
 
----
 _Migrated from beads `asya-l6jw`_

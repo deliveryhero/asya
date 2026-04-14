@@ -3,7 +3,6 @@ title: "Phase 1: Core pipeline rewrite (parser + codegen + analyzer + graphgen)"
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: pj0fo
 dependencies:
   - 7179
 tags:

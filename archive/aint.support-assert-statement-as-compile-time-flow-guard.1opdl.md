@@ -2,7 +2,6 @@
 title: Support assert statement as compile-time flow guard
 status: merged
 priority: 1
-parent: drsjr
 reason: "Implemented: ast.Assert compiles to Mutation IR node"
 ---
 

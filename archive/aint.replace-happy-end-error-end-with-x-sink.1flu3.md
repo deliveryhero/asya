@@ -2,7 +2,6 @@
 title: Replace happy-end/error-end with x-sink/x-sump across code, tests, and docs
 status: merged
 priority: 3
-parent: 00000
 dependencies:
   - 1fo5
   - 1ffm
@@ -17,9 +16,7 @@ Remove legacy happy-end and error-end actor names in favor of x-sink and x-sump.
 - asya-crew: Rename happy-end/error-end actors to x-sink/x-sump
 
 
----
 **Close reason**: Renamed all happy-end/error-end references to x-sink/x-sump across 89 files (Go, Python, YAML, JSON, docs). All unit tests and integration tests pass.
 
 
----
 _Migrated from beads `asya-302b`_

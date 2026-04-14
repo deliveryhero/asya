@@ -2,7 +2,6 @@
 title: "Sidecar: x-asya-root-id header for nested fan-out tracing"
 status: rejected
 priority: 3
-parent: 4e5zh
 tags:
   - type:feature
 reason: Decided to go with virtual actors for simplicity
@@ -41,5 +40,4 @@ root_id = root_id or parent_id
 - RFC: docs/rfc/rfc-actor-states.md (root_id for Nested Fan-Out Tracing)
 
 
----
 _Migrated from beads `asya-9n0r`_

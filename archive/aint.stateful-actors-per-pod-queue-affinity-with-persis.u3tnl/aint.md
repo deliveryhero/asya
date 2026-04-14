@@ -44,7 +44,6 @@ Asya's current actor model is stateless: all pods of an actor compete for messag
 - **K8s-native**: Leverage StatefulSet, volumeClaimTemplates, downward API (?), existing integration with Crossplane, KEDA
 - **Explicit configuration and composition**: XRD `AsyncActor` should define stateful set configuration explicitly, and we'll leverage existing mechanism of *flavors* and *asya-crew* pre-built actors to make it less verbose and offer re-usable actors.
 
----
 
 ## Design
 
@@ -265,7 +264,6 @@ Requirements for safe scale-down:
 
 This requires a stateful-actor-aware controller sitting between KEDA's scaling decision and the actual pod removal. Deferred to a future RFC.
 
----
 
 ## Examples
 
@@ -394,7 +392,6 @@ spec:
                 value: "envelope"
               - name: ASYA_FANIN_SHARDS
                 value: "3"
----
 # 2. Sub-agent (stateless, user-provided)
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -413,7 +410,6 @@ spec:
             env:
               - name: ASYA_HANDLER
                 value: "agents.research"
----
 # 3. Aggregator (stateful)
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -445,7 +441,6 @@ spec:
 4. Sub-agent results carry the override header, sidecar routes to `aggregator-{shard}` queue
 5. Aggregator pod `{shard}` accumulates slices in RocksDB, emits merged envelope on completeness
 
----
 
 ## Architecture Decision Records
 
@@ -592,7 +587,6 @@ The `fan-in-rocksdb` flavor sets `scaling.minReplicas: 1` as a sensible default 
 
 **Rationale**: The composition already handles workload rendering, KEDA configuration, and status aggregation. Adding conditional branches for queue loops and StatefulSet rendering avoids duplicating these shared steps. The conditionals are standard Go template patterns.
 
----
 
 ## Sidecar Changes Summary
 
@@ -603,7 +597,6 @@ The `fan-in-rocksdb` flavor sets `scaling.minReplicas: 1` as a sensible default 
 
 The sidecar currently derives its consumption queue name internally via `fmt.Sprintf("asya-%s-%s", namespace, actorName)`. The change is: read `ASYA_QUEUE_NAME` from env (set by the injector for all actors, stateful and stateless). This is a ~5-line change in the sidecar's startup code.
 
----
 
 ## Injector Changes Summary
 
@@ -614,7 +607,6 @@ The injector detects `spec.stateful` on the AsyncActor CRD and adjusts sidecar e
 | Stateless  | `asya-$(ASYA_NAMESPACE)-$(ASYA_ACTOR_NAME)` | Not set |
 | Stateful   | `asya-$(ASYA_NAMESPACE)-$(ASYA_ACTOR_NAME)-$(ASYA_POD_INDEX)` | Downward API: `metadata.labels['apps.kubernetes.io/pod-index']` |
 
----
 
 ## Use Cases Beyond Fan-In
 
@@ -628,7 +620,6 @@ The injector detects `spec.stateful` on the AsyncActor CRD and adjusts sidecar e
 
 All use cases share the same infrastructure (StatefulSet, per-pod queues, optional PVC). The sender stamps `x-asya-route-override` with the concrete shard based on its chosen key. The stateful actor's handler implements the application-level logic.
 
----
 
 ## Open Questions
 
@@ -638,7 +629,6 @@ All use cases share the same infrastructure (StatefulSet, per-pod queues, option
 
 3. **Rolling update strategy**: StatefulSet supports `RollingUpdate` (default, reverse ordinal order) and `OnDelete` (manual). For stateful actors with in-flight state, `OnDelete` may be safer to prevent state loss during upgrades. This should be configurable or have a sensible default.
 
----
 
 ## References
 

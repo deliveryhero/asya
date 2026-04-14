@@ -2,7 +2,6 @@
 title: "Fix octocov coverage reporting showing false 0% baseline"
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:bug
 ---
@@ -48,7 +47,6 @@ Need to determine if:
 
 
 
----
 ## Notes
 
 ## Work Done (PR #129)
@@ -81,9 +79,7 @@ Need to determine if:
 - Use a separate private repo for storage
 
 
----
 **Close reason**: Fixed in PRs #164, #167, #170, #179. Root causes: (1) artifact:// datastore was ephemeral, switched to github:// datastore on octocov branch (PR #164). (2) fs.Sub(fsys, "") crashed with 'sub : invalid argument', fixed by appending /. to URL (PR #167). (3) diff.path: report.json silently overwrote loaded baseline with empty Report (time.Now() timestamp always newer), fixed by removing it (PR #179). (4) DEBUG logging enabled for future diagnostics (PR #170).
 
 
----
 _Migrated from beads `asya-3zy`_

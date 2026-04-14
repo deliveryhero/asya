@@ -2,7 +2,6 @@
 title: Rename Envelope→Message in Go code (sidecar, gateway, operator)
 status: merged
 priority: 2
-parent: 00000
 ---
 
 Rename all Envelope structs, variables, functions, and types to Message in Go components:
@@ -13,9 +12,7 @@ Rename all Envelope structs, variables, functions, and types to Message in Go co
 This is a breaking change for internal APIs but not for external consumers.
 
 
----
 **Close reason**: Completed as part of the envelope→message/task rename PR
 
 
----
 _Migrated from beads `asya-58u`_

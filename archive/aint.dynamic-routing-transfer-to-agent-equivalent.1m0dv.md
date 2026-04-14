@@ -2,7 +2,6 @@
 title: "Dynamic routing: transfer_to_agent equivalent for LLM-decided actor selection"
 status: merged
 priority: 2
-parent: 7b55c
 tags:
   - type:feature
 ---

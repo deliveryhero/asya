@@ -2,7 +2,6 @@
 title: "Runtime: add fully qualified error type + MRO to error responses"
 status: merged
 priority: 1
-parent: s62ja
 ---
 
 Modify _error_response() in src/asya-runtime/asya_runtime.py to include fully qualified exception type and MRO chain.
@@ -25,9 +24,7 @@ Backward compatible: sidecar currently ignores unknown fields in error response.
 RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (Runtime Changes section)
 
 
----
 **Close reason**: Implemented FQN error type and MRO chain in _error_response()
 
 
----
 _Migrated from beads `asya-u5rm`_

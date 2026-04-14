@@ -3,7 +3,6 @@ title: Create transport EnvironmentConfig
 status: rejected
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/qh2y.create-transport-environmentconfi
   - branch:debt/qh2y.create-transport-environmentconfi

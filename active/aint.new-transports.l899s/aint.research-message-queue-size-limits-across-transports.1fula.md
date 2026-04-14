@@ -2,7 +2,6 @@
 title: "Research: Message queue size limits across transports"
 status: open
 priority: 2
-parent: l899s
 tags:
   - beads:needs-spec
 ---
@@ -18,7 +17,6 @@ Research and document maximum message sizes for all supported and potential tran
 Document findings in a table format. Update RFC with correct limits.
 
 
----
 ## Notes
 
 ## Session Discussion Takeaways (2026-01-28)
@@ -35,5 +33,4 @@ Document findings in a table format. Update RFC with correct limits.
 - This makes message-truth viable as default strategy
 
 
----
 _Migrated from beads `asya-o42`_

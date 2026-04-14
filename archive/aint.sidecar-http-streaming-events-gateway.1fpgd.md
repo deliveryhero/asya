@@ -2,7 +2,6 @@
 title: "Sidecar: forward upstream events to gateway"
 status: merged
 priority: 2
-parent: nlg57
 dependencies:
   - 1in0
 tags:

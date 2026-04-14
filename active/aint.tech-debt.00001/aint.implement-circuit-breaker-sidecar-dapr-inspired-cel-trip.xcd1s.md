@@ -2,7 +2,6 @@
 title: Implement circuit breaker in sidecar (Dapr-inspired, CEL trip expressions)
 status: open
 priority: 2
-parent: 00001
 ---
 
 ## Context

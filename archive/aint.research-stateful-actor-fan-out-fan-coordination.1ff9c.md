@@ -2,7 +2,6 @@
 title: "Research: Stateful actor for fan-out/fan-in coordination"
 status: merged
 priority: 2
-parent: 00000
 dependencies:
   - 1ffm
 tags:
@@ -27,7 +26,6 @@ Considerations:
 Goal: Minimal external state while supporting true parallel execution.
 
 
----
 ## Notes
 
 ## Session Discussion Takeaways (2026-01-28)
@@ -44,5 +42,4 @@ Goal: Minimal external state while supporting true parallel execution.
 - User preference: merge results (not last-write-wins, not isolated branches)
 
 
----
 _Migrated from beads `asya-zpl`_

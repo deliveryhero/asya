@@ -2,7 +2,6 @@
 title: Support namespace-scoped flavors via ConfigMaps
 status: open
 priority: 3
-parent: 00001
 dependencies:
   - u5pd
 ---

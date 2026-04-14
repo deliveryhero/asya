@@ -2,7 +2,6 @@
 title: CI gateway (sqs) component tests fail with disk space exhaustion
 status: open
 priority: 3
-parent: 00001
 ---
 
 ## Problem

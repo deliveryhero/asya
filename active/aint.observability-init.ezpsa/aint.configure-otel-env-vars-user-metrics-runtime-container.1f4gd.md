@@ -2,7 +2,6 @@
 title: Configure OTEL env vars for user metrics in runtime container
 status: open
 priority: 2
-parent: ezpsa
 ---
 
 ## Summary
@@ -44,5 +43,4 @@ Set these in the runtime container (via operator):
 - `examples/` - add OTEL metrics example
 
 
----
 _Migrated from beads `asya-8mi`_

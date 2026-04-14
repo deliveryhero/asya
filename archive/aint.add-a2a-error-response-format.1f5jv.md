@@ -2,7 +2,6 @@
 title: Add A2A error response format
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -45,5 +44,4 @@ Implement A2A-compliant error responses.
 - Integration test for error responses
 
 
----
 _Migrated from beads `asya-71m`_

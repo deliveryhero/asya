@@ -3,7 +3,6 @@ title: "Phase 3: Flow composition, examples update, and validation"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: pj0fo
 dependencies:
   - gml9
 tags:

@@ -2,7 +2,6 @@
 title: "Gateway: stamp status.deadline_at in message protocol"
 status: merged
 priority: 2
-parent: 34xba
 dependencies:
   - 1kjf
 tags:

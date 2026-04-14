@@ -2,7 +2,6 @@
 title: Decorator detection and rule-based resolution in flow compiler
 status: merged
 priority: 2
-parent: drsjr
 tags:
   - pr:280
   - pr:329

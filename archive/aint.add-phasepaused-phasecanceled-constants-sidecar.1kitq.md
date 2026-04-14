@@ -2,7 +2,6 @@
 title: Add PhasePaused and PhaseCanceled constants to sidecar
 status: merged
 priority: 2
-parent: hwek2
 tags:
   - pr:217
 ---

@@ -2,7 +2,6 @@
 title: Add context_id support for conversation grouping
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -36,5 +35,4 @@ CREATE INDEX idx_tasks_context ON a2a_tasks(context_id);
 - Integration test for filtering
 
 
----
 _Migrated from beads `asya-r52`_

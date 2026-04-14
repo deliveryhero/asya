@@ -2,7 +2,6 @@
 title: Add A2UI payload support (optional)
 status: open
 priority: 4
-parent: emmc5
 ---
 
 Support A2UI declarative UI payloads in task artifacts.
@@ -54,7 +53,6 @@ A2UI is Google's declarative UI format that allows agents to generate rich, inte
 - https://github.com/google/A2UI
 
 
----
 ## Notes
 
 ## A2UI Protocol Research (2026-01-28)
@@ -160,5 +158,4 @@ A2UI is OPTIONAL for Asya Gateway because:
 - https://developers.googleblog.com/introducing-a2ui-an-open-project-for-agent-driven-interfaces/
 
 
----
 _Migrated from beads `asya-53w`_

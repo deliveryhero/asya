@@ -2,7 +2,6 @@
 title: Clean up build system, CI pipelines, and documentation after operator removal
 status: merged
 priority: 3
-parent: h0mji
 dependencies:
   - 1fdm
 ---
@@ -34,5 +33,4 @@ Clean up all references to the old asya-operator after its code and Helm chart h
 - Testing infrastructure in testing/shared/ may reference operator — check compose files
 
 
----
 _Migrated from beads `asya-6x5`_

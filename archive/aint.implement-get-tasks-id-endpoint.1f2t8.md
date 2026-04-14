@@ -2,7 +2,6 @@
 title: "Implement GET /tasks/{id} endpoint"
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -51,5 +50,4 @@ Add A2A-compliant task status endpoint.
 - Test 404 handling
 
 
----
 _Migrated from beads `asya-2n8`_

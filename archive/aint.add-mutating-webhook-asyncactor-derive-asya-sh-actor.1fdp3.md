@@ -2,7 +2,6 @@
 title: Add mutating webhook for AsyncActor to derive asya.sh/actor label from spec.actor
 status: merged
 priority: 2
-parent: h0mji
 tags:
   - type:feature
   - worktree:1cph/1fdphv.add-mutating-webhook-asyncactor-derive-asya-sh-actor
@@ -21,5 +20,4 @@ Implementation:
 Depends on: spec.actor field being added to XRD (asya-v2hs)
 
 
----
 _Migrated from beads `asya-6nva`_

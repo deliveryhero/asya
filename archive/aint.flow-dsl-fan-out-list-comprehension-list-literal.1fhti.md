@@ -2,7 +2,6 @@
 title: "Flow DSL: fan-out list comprehension and list literal parser"
 status: merged
 priority: 2
-parent: 00000
 ---
 
 ## Summary
@@ -66,5 +65,4 @@ class FanOutCall:
 - RFC: docs/rfc/fan-in/rfc-fan-in.md (All Supported Patterns)
 
 
----
 _Migrated from beads `asya-pmor`_

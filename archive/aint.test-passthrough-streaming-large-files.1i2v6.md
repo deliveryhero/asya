@@ -2,7 +2,6 @@
 title: Test passthrough streaming for large files
 status: merged
 priority: 2
-parent: g5bkc
 ---
 
 Test passthrough connectors with large file streaming:

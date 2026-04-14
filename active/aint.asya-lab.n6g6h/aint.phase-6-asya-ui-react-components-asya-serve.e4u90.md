@@ -3,7 +3,6 @@ title: "Phase 6: @asya/ui React components + asya serve + Jupyter widget"
 status: working
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 dependencies:
   - 5ifn
   - 4g10

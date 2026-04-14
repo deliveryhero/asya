@@ -2,7 +2,6 @@
 title: Add fsnotify file watcher to asya-gateway for config hot-reload
 status: merged
 priority: 2
-parent: enren
 tags:
   - type:feature
 reason: "resolved by polling watcher (toolstore.Watch, 5s interval) in PR #277"
@@ -22,5 +21,4 @@ Implementation:
 Enables the GatewayConfig XRD pattern where Crossplane updates the ConfigMap and kubelet refreshes the volume mount.
 
 
----
 _Migrated from beads `asya-j2vk`_

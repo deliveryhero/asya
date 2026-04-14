@@ -2,18 +2,6 @@
 title: Error Handling with Automatic Retry
 status: merged
 priority: 2
-children:
-  - 1f1gq
-  - 1f4zi
-  - 1f6fd
-  - 1feq9
-  - 1fezq
-  - 1ffmx
-  - 1fj66
-  - 1fooo
-  - 1fsyl
-  - 1fu2k
-  - 1fzum
 ---
 
 Implement native automatic error recovery for Asya. RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md

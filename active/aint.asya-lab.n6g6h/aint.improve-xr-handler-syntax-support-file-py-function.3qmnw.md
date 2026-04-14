@@ -2,7 +2,6 @@
 title: "Improve XR handler syntax: support file.py:function format for explicit handler resolution"
 status: open
 priority: 2
-parent: n6g6h
 ---
 
 ## Problem

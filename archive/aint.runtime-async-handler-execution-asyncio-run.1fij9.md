@@ -2,7 +2,6 @@
 title: "Runtime: async handler execution (asyncio.run)"
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:feature
 ---
@@ -37,9 +36,7 @@ Async handlers are needed for:
 - RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 10.1
 
 
----
 **Close reason**: Implemented transparent async handler support via _call_handler() with asyncio.run(). All unit tests (133), component tests, and linting pass.
 
 
----
 _Migrated from beads `asya-ajeq`_

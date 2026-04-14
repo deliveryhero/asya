@@ -2,7 +2,6 @@
 title: Implement xattr-based metadata API for state proxy (getxattr/listxattr/setxattr)
 status: merged
 priority: 1
-parent: g5bkc
 tags:
   - topic:state-proxy
   - topic:a2a

@@ -2,7 +2,6 @@
 title: "E2E: Enable function-asya-flavors once ghcr.io image is public"
 status: merged
 priority: 2
-parent: 00001
 ---
 
 ## Context

@@ -2,7 +2,6 @@
 title: Bearer/JWT authentication
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:262
 ---

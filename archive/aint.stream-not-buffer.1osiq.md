@@ -2,7 +2,6 @@
 title: Stream events instead of buffer
 status: merged
 priority: 2
-parent: nlg57
 tags:
   - component:sidecar
   - component:runtime

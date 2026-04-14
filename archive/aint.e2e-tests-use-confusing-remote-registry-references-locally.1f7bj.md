@@ -2,7 +2,6 @@
 title: E2E tests use confusing remote registry references for locally-built images
 status: merged
 priority: 2
-parent: 00000
 ---
 
 ## Problem
@@ -84,9 +83,7 @@ Then consider **Option A** for clarity in image naming.
 - Affects all E2E test images, not just sidecar
 
 
----
 **Close reason**: Implemented Option C: Changed all E2E test image pull policies from IfNotPresent to Never. This makes it explicit that E2E tests only use pre-loaded local images and fail fast if images aren't loaded into Kind cluster.
 
 
----
 _Migrated from beads `asya-9iu`_

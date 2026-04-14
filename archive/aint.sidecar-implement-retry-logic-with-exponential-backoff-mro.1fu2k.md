@@ -2,7 +2,6 @@
 title: "Sidecar: implement retry logic with exponential backoff and MRO-based error classification"
 status: merged
 priority: 1
-parent: s62ja
 dependencies:
   - 1f4z
   - 1fj6
@@ -30,9 +29,7 @@ Depends on: transport SendWithDelay, message status field, runtime MRO.
 RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (Sidecar Error Handling Contract section)
 
 
----
 **Close reason**: Implemented in PR #181
 
 
----
 _Migrated from beads `asya-t4kc`_

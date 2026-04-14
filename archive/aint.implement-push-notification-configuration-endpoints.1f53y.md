@@ -2,7 +2,6 @@
 title: Implement push notification configuration endpoints
 status: open
 priority: 4
-parent: emmc5
 ---
 
 Add A2A push notification configuration CRUD endpoints.
@@ -48,5 +47,4 @@ Add A2A push notification configuration CRUD endpoints.
 - Test retry logic
 
 
----
 _Migrated from beads `asya-ly9`_

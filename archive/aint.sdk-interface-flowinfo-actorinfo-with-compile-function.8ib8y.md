@@ -2,7 +2,6 @@
 title: "SDK interface: FlowInfo + ActorInfo with compile() function"
 status: rejected
 priority: 2
-parent: pj0fo
 dependencies:
   - o8ql
 ---

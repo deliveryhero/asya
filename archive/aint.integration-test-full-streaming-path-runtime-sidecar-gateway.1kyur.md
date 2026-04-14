@@ -2,7 +2,6 @@
 title: "Integration test: full streaming path (runtime -> sidecar -> gateway -> SSE client)"
 status: merged
 priority: 2
-parent: nlg57
 tags:
   - pr:209
 ---

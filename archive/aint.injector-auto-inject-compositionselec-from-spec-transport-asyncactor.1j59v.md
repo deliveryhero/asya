@@ -2,7 +2,6 @@
 title: "Injector: auto-inject compositionSelector from spec.transport for AsyncActor"
 status: merged
 priority: 2
-parent: kbh83
 ---
 
 ## Problem

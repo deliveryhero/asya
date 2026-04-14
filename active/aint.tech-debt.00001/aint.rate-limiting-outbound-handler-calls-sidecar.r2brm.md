@@ -2,7 +2,6 @@
 title: Rate limiting for outbound handler calls in sidecar
 status: open
 priority: 3
-parent: 00001
 ---
 
 ## Context

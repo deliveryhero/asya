@@ -2,7 +2,6 @@
 title: "Runtime: Read/write file wrappers (_StateFile, _BufferedWriteFile, _PassthroughWriteFile)"
 status: merged
 priority: 1
-parent: g5bkc
 dependencies:
   - 1ipg
 tags:

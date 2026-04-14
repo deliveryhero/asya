@@ -2,7 +2,6 @@
 title: "Component tests: runtime <-> connector over Unix socket"
 status: merged
 priority: 2
-parent: g5bkc
 tags:
   - worktree:.worktrees/1dmf/1ihv8x.component-tests-runtime-connector-over-unix-socket
   - branch:1dmf/1ihv8x.component-tests-runtime-connector-over-unix-socket

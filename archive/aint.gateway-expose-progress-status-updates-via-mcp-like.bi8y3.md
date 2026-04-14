@@ -2,7 +2,6 @@
 title: "Gateway: expose progress/status updates via MCP (like A2A blocking wait)"
 status: rejected
 priority: 1
-parent: ezpsa
 ---
 
 Won't do - not a bug.

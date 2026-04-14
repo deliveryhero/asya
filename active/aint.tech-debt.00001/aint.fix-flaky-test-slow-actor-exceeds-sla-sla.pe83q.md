@@ -2,7 +2,6 @@
 title: Fix flaky test_slow_actor_exceeds_sla SLA test in CI
 status: open
 priority: 3
-parent: 00001
 ---
 
 ## Problem

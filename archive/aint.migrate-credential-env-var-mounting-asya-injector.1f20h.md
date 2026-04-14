@@ -2,7 +2,6 @@
 title: Migrate credential env var mounting to asya-injector
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1f1x
 ---
@@ -42,9 +41,7 @@ Injector codebase: .worktrees/crossplane-phase2/src/asya-injector/
 Operator reference: src/asya-operator/internal/controller/asya_controller.go
 
 
----
 **Close reason**: Already implemented: config.AWSCredsSecret → envFrom secretRef. Added unit tests (TestInjector_InjectAWSCredentials, TestInjector_InjectNoAWSCredentials). Validated credentials resolve in sidecar container in Kind cluster.
 
 
----
 _Migrated from beads `asya-k7n`_

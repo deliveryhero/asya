@@ -2,7 +2,6 @@
 title: "Implement POST /messages:stream endpoint"
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -45,5 +44,4 @@ data: {"task_id": "...", "artifact": {"artifact_id": "...", "parts": [...]}}
 - Test stream termination on completion
 
 
----
 _Migrated from beads `asya-ey0`_

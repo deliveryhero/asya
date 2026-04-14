@@ -2,7 +2,6 @@
 title: "Phase 2.3: Add AsyncActor XR querying for configuration"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1fmq
   - 1f3z
@@ -42,9 +41,7 @@ Enhance the webhook to query AsyncActor XR for injection configuration.
 See docs/rfc/rfc-crossplane.md Section 6 (Injection Flow steps 3-5)
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-9jk`_

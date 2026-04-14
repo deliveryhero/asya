@@ -2,7 +2,6 @@
 title: "Phase 4.1: Write E2E tests for Crossplane-based deployment"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fm4
   - 1fj4
@@ -42,9 +41,7 @@ Create comprehensive E2E test suite for the new Crossplane architecture.
 See docs/rfc/rfc-crossplane.md Section 9 (Phase 4)
 
 
----
 **Close reason**: Completed in commits 5f55c37 (feat(e2e): Migrate E2E tests to Crossplane architecture #149) and fbebc33 (fix(e2e): Add warm-up to concurrent envelope test #155). All E2E tests migrated to Crossplane + Injector architecture with adapted test infrastructure, chaos tests, and flaky test fixes.
 
 
----
 _Migrated from beads `asya-rp7`_

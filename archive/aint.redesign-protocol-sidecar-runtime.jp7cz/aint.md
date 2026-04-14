@@ -2,13 +2,6 @@
 title: Redesign Protocol Sidecar-Runtime
 status: merged
 priority: 2
-children:
-  - 1igop
-  - 1ikcz
-  - 1iofo
-  - 1iuck
-  - 1fqlf
-  - 1ig1r
 ---
 
 Replace the custom binary framing protocol between sidecar (Go) and runtime (Python) with **HTTP over Unix socket**. This enables streaming responses for generator handlers, standard error semantics, debuggability with curl, and future TCP mode for local testing.

@@ -2,12 +2,6 @@
 title: Actor Flavors
 status: merged
 priority: 2
-children:
-  - 1f122
-  - 1f76v
-  - 1fjpv
-  - 1ftey
-  - 1j59v
 ---
 
 Implement actor flavors as composable configuration presets using Crossplane EnvironmentConfigs and a custom Composition Function (function-asya-flavors). See RFC: docs/rfc/actor-flavors/rfc-actor-flavors.md

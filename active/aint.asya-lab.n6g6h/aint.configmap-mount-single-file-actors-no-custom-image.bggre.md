@@ -2,7 +2,6 @@
 title: ConfigMap-mount single-file actors (no custom image)
 status: open
 priority: 2
-parent: n6g6h
 ---
 
 ## Context

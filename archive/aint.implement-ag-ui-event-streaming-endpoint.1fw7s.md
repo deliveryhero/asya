@@ -2,7 +2,6 @@
 title: Implement AG-UI event streaming endpoint
 status: open
 priority: 2
-parent: emmc5
 ---
 
 Add AG-UI compatible event streaming for frontend integration.
@@ -59,7 +58,6 @@ data: {"message_id": "msg-1", "delta": "Hello world"}
 - https://github.com/ag-ui-protocol/ag-ui
 
 
----
 ## Notes
 
 ## AG-UI Protocol Research (2026-01-28)
@@ -168,5 +166,4 @@ RUN_STARTED
 - https://docs.copilotkit.ai/ag-ui-protocol
 
 
----
 _Migrated from beads `asya-0wr`_

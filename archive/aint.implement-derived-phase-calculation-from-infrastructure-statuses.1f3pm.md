@@ -2,7 +2,6 @@
 title: Implement derived phase calculation from infrastructure statuses
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fq4
   - 1fkc
@@ -54,9 +53,7 @@ Requires all infrastructure components to be added to Composition:
 - asya-74f: Basic status patching
 
 
----
 **Close reason**: Fixed in commit d2198ae: watch:true on Objects, DeploymentRuntimeConfig, Ready/Napping phases, label propagation, scale-to-N and resilience test sections in quickstart
 
 
----
 _Migrated from beads `asya-kdu`_

@@ -2,7 +2,6 @@
 title: Don't generate empty start/end routers
 status: rejected
 priority: 2
-parent: drsjr
 tags:
   - superseded-by:gml9
 ---

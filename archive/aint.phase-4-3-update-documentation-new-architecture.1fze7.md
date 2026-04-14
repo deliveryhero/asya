@@ -2,7 +2,6 @@
 title: "Phase 4.3: Update documentation for new architecture"
 status: merged
 priority: 3
-parent: h0mji
 dependencies:
   - 1fea
   - 1ft4
@@ -38,9 +37,7 @@ Update all documentation to reflect the new Crossplane architecture.
 See docs/rfc/rfc-crossplane.md
 
 
----
 **Close reason**: Branch merged into main; worktree cleaned up
 
 
----
 _Migrated from beads `asya-1f5`_

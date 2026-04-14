@@ -2,7 +2,6 @@
 title: "Research: SigNoz as alternative to Prometheus/Grafana for observability"
 status: rejected
 priority: 3
-parent: 00000
 tags:
   - type:feature
 reason: not cncf-native
@@ -92,7 +91,6 @@ If adopting SigNoz:
 NOTE: SigNoz is not CNCF-incubated (only CNCF golden sponsor), for asya it's best to use CNCF stack.
 
 
----
 ## Notes
 
 ## Observability 2.0 angle
@@ -139,5 +137,4 @@ def sentiment_analysis(p: dict) -> dict:
 - Can we auto-generate dashboards from flow metric annotations?
 
 
----
 _Migrated from beads `asya-sut`_

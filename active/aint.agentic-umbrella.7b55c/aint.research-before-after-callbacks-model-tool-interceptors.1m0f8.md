@@ -2,7 +2,6 @@
 title: "Research: before/after callbacks for model and tool interceptors"
 status: open
 priority: 3
-parent: 7b55c
 tags:
   - type:research
 ---

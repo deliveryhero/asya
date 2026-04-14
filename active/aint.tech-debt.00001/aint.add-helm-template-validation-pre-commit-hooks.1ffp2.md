@@ -2,7 +2,6 @@
 title: Add helm template validation to pre-commit hooks
 status: open
 priority: 3
-parent: 00001
 ---
 
 Add 'helm template test' for all Helm charts as part of pre-commit hooks to catch template rendering errors early.
@@ -20,5 +19,4 @@ Add 'helm template test' for all Helm charts as part of pre-commit hooks to catc
 - Works with both default and LocalStack values files
 
 
----
 _Migrated from beads `asya-dqe`_

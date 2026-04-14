@@ -2,11 +2,9 @@
 title: Integrate asya-quickstart into E2E tests
 status: rejected
 priority: 2
-parent: 00000
 reason: overkill
 ---
 
----
 ## Notes
 
 Replace individual chart deployments with asya-quickstart in E2E tests.
@@ -47,5 +45,4 @@ Benefits:
 - Easier maintenance with fewer local charts
 
 
----
 _Migrated from beads `asya-dag`_

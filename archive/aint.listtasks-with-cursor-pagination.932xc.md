@@ -2,7 +2,6 @@
 title: ListTasks with cursor pagination
 status: merged
 priority: 2
-parent: emmc5
 ---
 
 ## Objective

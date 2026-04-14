@@ -2,7 +2,6 @@
 title: "Analyze and fix E2E tests: sqs-s3 failure in PR #92 (keda 2.17.3 bump)"
 status: merged
 priority: 2
-parent: 00000
 ---
 
 E2E test failure: test_operator_recreates_deleted_actor_queue_e2e timeout on sqs-s3 profile after KEDA 2.17.3 upgrade
@@ -96,15 +95,12 @@ This breaking change in KEDA 2.17.0 causes:
 - Expected queue recreation time: ~1-2 minutes (well within 6-minute test window)
 
 
----
 ## Notes
 
 Previous fix attempt pushed to rfc0 instead of PR branches. Need to redo with correct git worktree branches.
 
 
----
 **Close reason**: All E2E test failures fixed and verified passing on remote CI
 
 
----
 _Migrated from beads `asya-z8g`_

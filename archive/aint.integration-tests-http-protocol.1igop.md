@@ -2,7 +2,6 @@
 title: Integration tests for HTTP protocol
 status: merged
 priority: 2
-parent: jp7cz
 dependencies:
   - 1ikc
   - 1in0

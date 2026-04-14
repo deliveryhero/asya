@@ -2,7 +2,6 @@
 title: Implement input_required state for human-in-the-loop
 status: open
 priority: 2
-parent: emmc5
 ---
 
 Add support for A2A input_required task state.
@@ -49,5 +48,4 @@ ALTER TABLE a2a_tasks ADD COLUMN s3_path TEXT;
 - Test timeout handling
 
 
----
 _Migrated from beads `asya-r7d`_

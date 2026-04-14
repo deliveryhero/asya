@@ -2,7 +2,6 @@
 title: Refactor asya-gateway Helm chart to operator's transport pattern
 status: merged
 priority: 2
-parent: 00000
 ---
 
 Refactor asya-gateway Helm chart to match operator's transport configuration pattern.
@@ -44,9 +43,7 @@ Refactor asya-gateway Helm chart to match operator's transport configuration pat
 - README updated with examples and alignment constraints
 
 
----
 **Close reason**: Implemented gateway Helm chart refactor to use operator's nested transport pattern. Created PR and merged to main.
 
 
----
 _Migrated from beads `asya-caq`_

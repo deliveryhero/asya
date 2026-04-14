@@ -2,7 +2,6 @@
 title: "Research: Adapt Gateway API to A2A/ACP/A2UI standards"
 status: open
 priority: 3
-parent: emmc5
 tags:
   - type:feature
 ---
@@ -29,5 +28,4 @@ Research and design how to adapt asya-gateway API to align with emerging agentic
 This is a research/design task - implementation will be separate issues.
 
 
----
 _Migrated from beads `asya-n5u`_

@@ -2,7 +2,6 @@
 title: Fix KEDA desired replica calculation anomaly during load bursts
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:bug
 ---
@@ -96,7 +95,6 @@ done
 P1 (high) - This breaks autoscaling entirely. Actors don't scale up during load bursts, defeating the core value proposition.
 
 
----
 ## Notes
 
 
@@ -107,9 +105,7 @@ Fix ready for review and merge.
 
 
 
----
 **Close reason**: Fixed KEDA autoscaling bug. Operator now explicitly clears deployment.Spec.Replicas when KEDA enabled, giving HPA full control. Verified in asya-local cluster - pods now scale correctly based on queue depth. PR #125 created.
 
 
----
 _Migrated from beads `asya-hbk`_

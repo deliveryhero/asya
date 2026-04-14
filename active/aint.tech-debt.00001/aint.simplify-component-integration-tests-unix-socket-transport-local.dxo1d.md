@@ -2,7 +2,6 @@
 title: "Simplify component/integration tests: unix socket transport + local FS storage"
 status: open
 priority: 3
-parent: 00001
 ---
 
 Rework all component and integration tests that do not test specific transport/storage backends to use unix socket transport (`ASYA_TRANSPORT=socket`) and local filesystem as storage (shared Docker volume, no MinIO/SQS/RabbitMQ needed).

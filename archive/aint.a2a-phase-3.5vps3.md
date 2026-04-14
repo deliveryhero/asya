@@ -3,7 +3,6 @@ title: "A2A Phase 2: Tool Registry"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: emmc5
 tags:
   - pr:262
 ---

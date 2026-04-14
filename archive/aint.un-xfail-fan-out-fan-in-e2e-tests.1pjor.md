@@ -2,7 +2,6 @@
 title: "Un-xfail fan-out/fan-in E2E tests: add spec.stateProxy to aggregator and migrate VFS reads to ABI"
 status: merged
 priority: 2
-parent: g3g4i
 tags:
   - worktree:.worktrees/1l01/1pjo6p.un-xfail-fan-out-fan-in-e2e-tests
   - branch:1l01/1pjo6p.un-xfail-fan-out-fan-in-e2e-tests

@@ -2,7 +2,6 @@
 title: Add StatefulSet workload support (operator + Crossplane)
 status: rejected
 priority: 3
-parent: 00000
 tags:
   - type:feature
 reason: virtual actors only
@@ -19,5 +18,4 @@ Deliverables:
 This is a likely prerequisite for fan-in (asya-7qh) where aggregator actors need stable identity and persistent state (e.g., Postgres-backed merge buffers).
 
 
----
 _Migrated from beads `asya-altb`_

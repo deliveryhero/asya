@@ -2,7 +2,6 @@
 title: Teach XRD to propagate user labels from AsyncActor down to owned resources
 status: merged
 priority: 2
-parent: 00000
 tags:
   - worktree:.worktrees/misc/1o9t98.xrd-propagate-labels
   - branch:misc/1o9t98.xrd-propagate-labels
@@ -18,7 +17,6 @@ tags:
 
 **Tech Stack:** Crossplane Compositions (function-go-templating), Helm templates, pytest (E2E)
 
----
 
 ## Task 1: Add label validation step to both compositions
 

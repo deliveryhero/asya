@@ -2,7 +2,6 @@
 title: "Fix Crossplane chart: missing function-go-templating + hardcoded serviceAccountName"
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:bug
 ---
@@ -31,9 +30,7 @@ Two bugs discovered during Phase 3.5 lifecycle testing:
   {{- end }}
 
 
----
 **Close reason**: Fixed: Added function-go-templating Function resource to providers.yaml and goTemplatingVersion to values.yaml. Wrapped serviceAccountName in IRSA conditional.
 
 
----
 _Migrated from beads `asya-w1l`_

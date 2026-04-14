@@ -2,7 +2,6 @@
 title: Optimize sidecar JSON parsing with json.RawMessage for payload
 status: merged
 priority: 3
-parent: 00000
 ---
 
 Use json.RawMessage for payload field in Go sidecar to avoid deserializing payload into Go objects. Sidecar only needs id, route, headers - payload can stay as raw bytes and be forwarded directly to runtime.
@@ -20,7 +19,6 @@ Use json.RawMessage for payload field in Go sidecar to avoid deserializing paylo
 **Context:** This is a low-risk incremental optimization before implementing full binary protocol (asya-6j2).
 
 
----
 ## Notes
 
 ## Implementation Status
@@ -40,9 +38,7 @@ Added regression tests to ensure the optimization remains in place:
 `feature/asya-866-rawmessage` - commit ff60bb0
 
 
----
 **Close reason**: Already implemented. Added regression tests to verify json.RawMessage optimization remains in place.
 
 
----
 _Migrated from beads `asya-866`_

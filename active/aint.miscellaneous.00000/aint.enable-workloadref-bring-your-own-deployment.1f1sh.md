@@ -2,7 +2,6 @@
 title: "(EPIC) Enable workloadRef: Bring Your Own Deployment"
 status: open
 priority: 3
-parent: 00000
 tags:
   - type:feature
 ---
@@ -123,5 +122,4 @@ For annotation-based injection (asya.sh/handler → ASYA_HANDLER), same rule: sk
 7. Documentation: workloadRef user guide for Data Scientists
 
 
----
 _Migrated from beads `asya-f9dd`_

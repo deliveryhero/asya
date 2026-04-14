@@ -2,7 +2,6 @@
 title: Implement nats-kv-buffered-cas connector
 status: open
 priority: 2
-parent: 00000
 ---
 
 NATS KV connector with buffered writes and revision-based CAS.

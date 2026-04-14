@@ -2,7 +2,6 @@
 title: Implement GET /tasks endpoint (list tasks)
 status: open
 priority: 3
-parent: emmc5
 ---
 
 Add A2A-compliant task listing endpoint.
@@ -40,5 +39,4 @@ Add A2A-compliant task listing endpoint.
 - Test empty results
 
 
----
 _Migrated from beads `asya-ahb`_

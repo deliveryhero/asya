@@ -2,7 +2,6 @@
 title: "Research: SOCI/Stargz lazy image loading for scale-to-zero with large ML images"
 status: open
 priority: 3
-parent: 00000
 ---
 
 Research availability of lazy image loading (SOCI, Stargz) on major cloud K8s providers for KEDA scale-to-zero with large ML images.

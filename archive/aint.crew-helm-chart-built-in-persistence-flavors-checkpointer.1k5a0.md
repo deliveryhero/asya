@@ -2,7 +2,6 @@
 title: "Crew Helm chart: built-in persistence flavors for checkpointer"
 status: merged
 priority: 2
-parent: 00001
 dependencies:
   - 1k34
 tags:

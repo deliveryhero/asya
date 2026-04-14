@@ -2,7 +2,6 @@
 title: Fix missing charts/ folder on gh-pages branch
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:bug
 ---
@@ -26,9 +25,7 @@ tags:
   3. Consider: should asya-playground be packaged in a separate step after other charts are published?
 
 
----
 **Close reason**: Fixed in PR #127: https://github.com/deliveryhero/asya/pull/127
 
 
----
 _Migrated from beads `asya-b0e`_

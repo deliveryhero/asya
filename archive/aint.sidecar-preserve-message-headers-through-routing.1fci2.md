@@ -2,7 +2,6 @@
 title: "Sidecar: preserve message headers through routing"
 status: merged
 priority: 1
-parent: 4e5zh
 tags:
   - type:feature
 ---
@@ -70,5 +69,4 @@ Without this, NO header-based feature works:
 - Fan-in RFC: `.aint/epics/1c7i.stateful-fan-fan-out/rfc.md` (entire protocol depends on headers)
 
 
----
 _Migrated from beads `asya-nduw`_

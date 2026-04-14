@@ -3,7 +3,6 @@ title: "Phase 1.6: Harmonize AsyncActor scaling spec with KEDA ScaledObject"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: ip3ls
 dependencies:
   - af25
 tags:

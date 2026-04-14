@@ -2,7 +2,6 @@
 title: "Composition: Add function-asya-flavors to pipeline"
 status: merged
 priority: 2
-parent: kbh83
 tags:
   - worktree:.worktrees/1c4w/1f76vf.composition-add-function-asya-flavors-pipeline
   - branch:1c4w/1f76vf.composition-add-function-asya-flavors-pipeline
@@ -32,5 +31,4 @@ Testing:
 - Helm template renders valid Composition with the new pipeline step
 
 
----
 _Migrated from beads `asya-ej6i`_

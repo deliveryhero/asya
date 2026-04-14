@@ -2,7 +2,6 @@
 title: "Flow compiler: emit prev/curr/next route format"
 status: merged
 priority: 2
-parent: l9v6p
 dependencies:
   - 1iqk
 ---

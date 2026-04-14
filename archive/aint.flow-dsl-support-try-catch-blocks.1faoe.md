@@ -2,7 +2,6 @@
 title: "Flow DSL: Support try-catch blocks"
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -45,9 +44,7 @@ def with_cleanup(p: dict) -> dict:
 Based on DSPy ReAct error handling: https://github.com/stanfordnlp/dspy/blob/631085c/dspy/predict/react.py#L121-L144
 
 
----
 **Close reason**: Implemented in PR #185. Full try-except-finally support across compiler pipeline (parser, grouper, codegen, dotgen) and sidecar _on_error routing. 64 new tests, 4 example flows.
 
 
----
 _Migrated from beads `asya-ync`_

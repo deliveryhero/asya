@@ -2,7 +2,6 @@
 title: "Flow DSL: support local variable assignments from state accessors"
 status: open
 priority: 3
-parent: 00000
 tags:
   - component:compiler
   - component:flow-dsl

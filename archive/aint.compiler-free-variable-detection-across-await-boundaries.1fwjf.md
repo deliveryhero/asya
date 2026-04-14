@@ -2,7 +2,6 @@
 title: "Compiler: free variable detection across await boundaries"
 status: rejected
 priority: 1
-parent: mxzgo
 tags:
   - type:feature
 reason: All state lives in p dict by design. Parser already prevents local variable assignments — free variables cannot exist by construction.
@@ -70,5 +69,4 @@ See survey-adk-data-flow.md Section 8.2 (Gap 1) for full ADK mapping analysis.
 - task 1k38vs (enable react_* flow compilation -- blocked on this)
 
 
----
 _Migrated from beads `asya-cv4g`_

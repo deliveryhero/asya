@@ -2,7 +2,6 @@
 title: "Integration tests: full actor pipeline with state access"
 status: merged
 priority: 2
-parent: g5bkc
 ---
 
 Integration tests validating stateful actors in a full pipeline context.

@@ -2,7 +2,6 @@
 title: "Sidecar: suppress gateway reporting for fan-in and fire-and-forget messages"
 status: merged
 priority: 2
-parent: 4e5zh
 dependencies:
   - 1fci
 ---

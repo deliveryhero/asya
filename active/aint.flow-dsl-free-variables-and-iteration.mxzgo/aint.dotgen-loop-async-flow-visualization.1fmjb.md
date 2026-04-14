@@ -2,7 +2,6 @@
 title: "DotGen: loop and async flow visualization"
 status: open
 priority: 2
-parent: mxzgo
 tags:
   - type:feature
 ---
@@ -36,5 +35,4 @@ The ReAct loop should render as:
 - Current dotgen.py: src/asya-cli/asya_cli/flow/dotgen.py (181 lines)
 
 
----
 _Migrated from beads `asya-asp7`_

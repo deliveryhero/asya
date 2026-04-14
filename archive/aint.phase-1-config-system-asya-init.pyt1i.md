@@ -3,7 +3,6 @@ title: "Phase 1: Config system + asya init"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/pyt1.phase-1-config-system-asya-init
   - branch:asya-lab/pyt1.phase-1-config-system-asya-init

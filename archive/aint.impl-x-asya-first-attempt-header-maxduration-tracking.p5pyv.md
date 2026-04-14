@@ -3,7 +3,6 @@ title: "impl: x-asya-first-attempt header for maxDuration tracking"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: v89t8
 dependencies:
   - nqf5
 tags:

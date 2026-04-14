@@ -3,7 +3,6 @@ title: "Phase 3: Local CLI (compile, expose, show, status)"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 dependencies:
   - hox4
 tags:

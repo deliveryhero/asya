@@ -2,22 +2,11 @@
 title: "Timeouts: per-actor and per-flow"
 status: open
 priority: 2
-children:
-  - 1k1pt
-  - 1k80v
-  - 1kbuy
-  - 1kjf3
-  - 1kkr6
-  - 1kqfd
-  - 1kz8j
-  - 1kowt
-  - zjt4h
 ---
 
 Design and implement a comprehensive timeout system that supports: (1) per-actor processing and graceful shutdown timeouts, (2) per-N-actors (flow or partial flow) end-to-end timeouts, (3) SQS visibility timeout coordination - actor processing timeout must align with SQS visibilityTimeout to prevent duplicate processing, (4) error handling edge cases - what happens when a timeout fires mid-processing, how retries interact with timeouts, (5) DLQ implications - messages that timeout vs messages that error, (6) multi-hop timeout budgets - a flow-level timeout that decrements as messages pass through actors. This is an epic that needs design before implementation.
 
 
----
 ## Notes
 
 [Error Handling RFC context] [[misc]] The per-message SLA timeout connects directly to error retry flow:
@@ -36,5 +25,4 @@ Key interaction with retry: total timeout takes precedence over max_attempts. Ev
 Related: asya-y4kr (error handling RFC), status.created_at field in message schema.
 
 
----
 _Migrated from beads `asya-ize`_

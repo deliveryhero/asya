@@ -2,7 +2,6 @@
 title: Document TLS/mTLS deployment guidance
 status: open
 priority: 4
-parent: kchkv
 ---
 
 Documentation-only task. Asya does NOT implement mTLS itself — it's a

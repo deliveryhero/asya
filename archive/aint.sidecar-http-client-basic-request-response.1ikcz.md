@@ -2,7 +2,6 @@
 title: Sidecar HTTP client — basic request/response
 status: merged
 priority: 2
-parent: jp7cz
 dependencies:
   - 1iof
   - 1ig1

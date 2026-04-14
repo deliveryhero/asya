@@ -3,7 +3,6 @@ title: "fix(crew): x-sump must always be reached via x-sink (enforce two-layer t
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/nqf5.fix-crew-x-sump-must-always-be-reached
   - branch:debt/nqf5.fix-crew-x-sump-must-always-be-reached
@@ -54,7 +53,6 @@ fan-out filtering, not for routing.
 - see also: design aint for nonRetryableErrors → errorRoutes redesign
 
 
----
 
 ## Reference:
 
@@ -79,7 +77,6 @@ Any terminal envelope
 x-sink first.** x-sump is the second layer only. It has no checkpointing or
 hook logic of its own beyond logging.
 
----
 
 ## x-sink
 
@@ -112,7 +109,6 @@ Responsibilities:
 
 x-sump has no configurable hooks. It is the absolute end of every message path.
 
----
 
 ## Routing paths
 
@@ -124,7 +120,6 @@ x-sump has no configurable hooks. It is the absolute end of every message path.
 | Non-retryable error (`nonRetryableErrors`) | `sendRetryFailure` | ⚠️ x-sump directly (bug, see below) |
 | Max retries exhausted | `sendRetryFailure` | ⚠️ x-sump directly (bug, see below) |
 
----
 
 ## Known bug: sendRetryFailure bypasses x-sink
 
@@ -145,7 +140,6 @@ envelopes are not checkpointed at x-sink.
 handles `phase=failed` — it inspects phase only for fan-out filtering, not
 for its hook routing logic.
 
----
 
 ## Design rationale
 
@@ -162,7 +156,6 @@ x-sink's output to x-sump via the normal route mechanism, so x-sink errors
 would themselves be caught and eventually reach x-sump via `sendRetryFailure`
 (modulo the bug above).
 
----
 
 ## Error phase vs. success phase
 
@@ -179,7 +172,6 @@ if status.get("phase") != "failed":
 yield payload
 ```
 
----
 
 ## Related docs
 

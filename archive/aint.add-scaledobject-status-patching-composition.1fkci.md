@@ -2,7 +2,6 @@
 title: Add ScaledObject status patching to Composition
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fhr
 ---
@@ -27,9 +26,7 @@ Patch KEDA ScaledObject status back to AsyncActor composite resource.
 - May need to extract from conditions array
 
 
----
 **Close reason**: Implemented in PR #140
 
 
----
 _Migrated from beads `asya-6y2`_

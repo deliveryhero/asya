@@ -2,7 +2,6 @@
 title: Fix unprefixed labels in Helm charts to use asya.sh/ domain
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:bug
 ---
@@ -17,9 +16,7 @@ Files to fix:
 - testing/e2e/charts/asya-test-actors/templates/actor-multihop.yaml: test-type → asya.sh/test-type, hop-index → asya.sh/hop-index
 
 
----
 **Close reason**: Fixed all unprefixed labels in Helm charts (crew, test-flows, test-actors) and removed asya.sh/ from operator reserved prefix list
 
 
----
 _Migrated from beads `asya-3ba`_

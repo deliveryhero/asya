@@ -2,7 +2,6 @@
 title: Add effectiveTimeout and SLA pre-check to router
 status: merged
 priority: 2
-parent: 34xba
 dependencies:
   - 1kjf
   - 1kbu

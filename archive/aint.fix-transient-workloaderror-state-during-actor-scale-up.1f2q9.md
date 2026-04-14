@@ -2,7 +2,6 @@
 title: Fix transient WorkloadError state during actor scale-up
 status: rejected
 priority: 2
-parent: 00000
 reason: Not present after migration to Crossplane
 ---
 
@@ -45,5 +44,4 @@ The actor transitions from:
 - Document expected behavior for rapid scaling scenarios
 
 
----
 _Migrated from beads `asya-4js`_

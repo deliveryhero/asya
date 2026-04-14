@@ -2,7 +2,6 @@
 title: "Transport: add SendWithDelay() and rename Nack() to Requeue()"
 status: merged
 priority: 1
-parent: s62ja
 ---
 
 Extend the transport interface in src/asya-sidecar/pkg/transport/transport.go.
@@ -23,5 +22,4 @@ Unit tests: test SendWithDelay for each transport, test Requeue behavior, test E
 RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (Transport Interface Changes section)
 
 
----
 _Migrated from beads `asya-7xqz`_

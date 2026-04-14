@@ -3,7 +3,6 @@ title: "Remove transport from XRD spec: use defaultCompositionRef instead of per
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/wozv.remove-transport-from-xrd-spec-use-defaultcompositi-instead
   - branch:debt/wozv.remove-transport-from-xrd-spec-use-defaultcompositi-instead

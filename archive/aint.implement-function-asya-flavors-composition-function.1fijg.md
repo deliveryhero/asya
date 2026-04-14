@@ -2,7 +2,6 @@
 title: Implement function-asya-flavors Composition Function
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -57,9 +56,7 @@ Testing:
 - Test that actor inline spec always wins over flavor values
 
 
----
 **Close reason**: Implemented in PR #177. Function resolves flavor EnvironmentConfigs via strategic merge patch using K8s PodSpec annotations. 17 unit tests covering merge logic, RunFunction flow, edge cases.
 
 
----
 _Migrated from beads `asya-v2pa`_

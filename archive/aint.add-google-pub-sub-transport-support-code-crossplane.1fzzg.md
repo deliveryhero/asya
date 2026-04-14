@@ -2,7 +2,6 @@
 title: Add Google Pub/Sub transport support (code + Crossplane)
 status: merged
 priority: 3
-parent: l899s
 tags:
   - type:feature
   - pr:251

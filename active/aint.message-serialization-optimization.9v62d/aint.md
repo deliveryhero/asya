@@ -2,8 +2,6 @@
 title: Message Serialization Optimization
 status: open
 priority: 2
-children:
-  - 1f9av
 ---
 
 ## Context

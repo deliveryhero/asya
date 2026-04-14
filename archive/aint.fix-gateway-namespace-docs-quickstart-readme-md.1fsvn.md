@@ -2,7 +2,6 @@
 title: Fix gateway namespace in docs/quickstart/README.md
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:bug
 ---
@@ -112,9 +111,7 @@ After changes, verify quickstart still works:
 - Related issue: asya-u8y (bundle chart with correct namespace strategy)
 
 
----
 **Close reason**: Fixed gateway namespace in quickstart. Created PR #120.
 
 
----
 _Migrated from beads `asya-3dn`_

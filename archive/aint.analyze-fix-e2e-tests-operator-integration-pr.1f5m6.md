@@ -2,7 +2,6 @@
 title: Analyze and fix E2E tests + operator integration in PR
 status: merged
 priority: 2
-parent: 00000
 ---
 
 ## PR #74: Analyze E2E tests + operator integration failures (expr 1.17.7 bump)
@@ -30,7 +29,6 @@ make: *** [Makefile:26: test] Error 1
 
 **Impact**: Integration tests fail immediately during module resolution before any test code runs
 
----
 
 ## 2. E2E TEST TIMEOUT FAILURE (OPERATOR-SPECIFIC ISSUE)
 
@@ -71,7 +69,6 @@ Timeout after 120s waiting for queue recreation
 
 **Impact**: Queue health monitoring feature completely broken in E2E environment
 
----
 
 ## 3. E2E TEST SUITE CASCADING FAILURES
 
@@ -112,7 +109,6 @@ Timeout after 120s waiting for queue recreation
 - test_route_a_y: PASSED
 - test_route_b_x: PASSED
 
----
 
 ## SUMMARY: TWO INDEPENDENT ISSUES
 
@@ -129,7 +125,6 @@ Timeout after 120s waiting for queue recreation
 - **Symptom**: Queue deletion not triggering operator reconciliation
 - **Fix Area**: `src/asya-operator/internal/controller/` queue health monitoring logic
 
----
 
 ## COMPARISON WITH OTHER EXPR PRs
 
@@ -140,15 +135,12 @@ Status: READY FOR INVESTIGATION - both issues identified and isolated
 
 
 
----
 ## Notes
 
 Previous fix attempt pushed to rfc0 instead of PR branches. Need to redo with correct git worktree branches.
 
 
----
 **Close reason**: All E2E test failures fixed and verified passing on remote CI
 
 
----
 _Migrated from beads `asya-w5z`_

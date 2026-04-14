@@ -3,7 +3,6 @@ title: Enable Observability for KubeCon Demo
 status: working
 priority: 1
 assignee: Artem Yushkovskiy
-parent: ezpsa
 tags:
   - type:feature
   - kubecon-demo
@@ -48,7 +47,6 @@ and dashboard ConfigMap templates, but:
 2. The PodMonitor template uses `port: metrics` which won't work (same issue above)
 3. The chart may have other broken dependencies (needs testing)
 
----
 
 ## Phase 2: Per-Flow Observability (Spec)
 

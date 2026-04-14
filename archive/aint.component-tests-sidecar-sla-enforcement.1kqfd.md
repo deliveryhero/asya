@@ -2,7 +2,6 @@
 title: Component tests for sidecar SLA enforcement
 status: merged
 priority: 2
-parent: 34xba
 dependencies:
   - 1k1p
 tags:

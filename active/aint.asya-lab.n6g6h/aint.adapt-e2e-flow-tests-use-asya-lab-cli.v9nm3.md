@@ -2,7 +2,6 @@
 title: Adapt e2e flow tests to use asya-lab CLI for compilation instead of hand-crafted Helm charts
 status: open
 priority: 2
-parent: n6g6h
 ---
 
 ## Problem

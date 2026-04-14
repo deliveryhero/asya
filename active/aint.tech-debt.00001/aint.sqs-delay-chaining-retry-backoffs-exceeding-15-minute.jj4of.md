@@ -2,7 +2,6 @@
 title: SQS delay chaining for retry backoffs exceeding 15-minute cap
 status: open
 priority: 3
-parent: 00001
 ---
 
 ## Context

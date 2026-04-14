@@ -3,7 +3,6 @@ title: "Compiler: adapter generation for @tool-decorated functions"
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: n6g6h
 dependencies:
   - hppv
 tags:

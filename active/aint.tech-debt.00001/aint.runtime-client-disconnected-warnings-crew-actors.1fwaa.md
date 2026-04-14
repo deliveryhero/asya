@@ -2,7 +2,6 @@
 title: Runtime 'Client disconnected' warnings in crew actors
 status: open
 priority: 2
-parent: 00001
 tags:
   - type:bug
 ---
@@ -38,5 +37,4 @@ Crew actors (happy-end, error-end) showing repeated "Client disconnected" warnin
 - Similar issue likely in error-end pod
 
 
----
 _Migrated from beads `asya-csp`_

@@ -2,7 +2,6 @@
 title: "Gateway: accept paused phase and store pause metadata"
 status: merged
 priority: 2
-parent: hwek2
 dependencies:
   - 1kwi
   - 1kx4

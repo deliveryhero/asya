@@ -3,7 +3,6 @@ title: "Unify compiler rules: move hardcoded context manager and default rules t
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 tags:
   - worktree:.worktrees/asya-lab/hppv.unify-compiler-rules-move-hardcoded-context-manager-default
   - branch:asya-lab/hppv.unify-compiler-rules-move-hardcoded-context-manager-default

@@ -2,7 +2,6 @@
 title: OAuth 2.1 scope enforcement per MCP endpoint (post-v0)
 status: open
 priority: 3
-parent: 00000
 ---
 
 OAuth tokens carry mcp:invoke / mcp:read scope claims but MCPAuthMiddleware does

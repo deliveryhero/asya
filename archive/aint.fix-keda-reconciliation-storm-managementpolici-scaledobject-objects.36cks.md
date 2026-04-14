@@ -2,7 +2,6 @@
 title: "Fix KEDA reconciliation storm: managementPolicies on ScaledObject Objects"
 status: merged
 priority: 2
-parent: ip3ls
 tags:
   - pr:293
 ---

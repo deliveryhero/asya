@@ -2,7 +2,6 @@
 title: "design+impl: replace nonRetryableErrors with errorRoutes in resiliency config"
 status: rejected
 priority: 2
-parent: 00001
 ---
 
 superseeded by [7179]

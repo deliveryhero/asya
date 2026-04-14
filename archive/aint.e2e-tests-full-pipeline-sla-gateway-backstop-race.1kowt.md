@@ -3,7 +3,6 @@ title: "E2E tests: full pipeline SLA and gateway backstop race"
 status: pushed
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 34xba
 tags:
   - worktree:.worktrees/timeout-handling/1kow.e2e-tests-full-pipeline-sla-gateway-backstop-race
   - branch:timeout-handling/1kow.e2e-tests-full-pipeline-sla-gateway-backstop-race

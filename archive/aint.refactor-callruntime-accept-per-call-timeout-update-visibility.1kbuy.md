@@ -2,7 +2,6 @@
 title: Refactor CallRuntime to accept per-call timeout and update visibility timeout formula
 status: merged
 priority: 2
-parent: 34xba
 dependencies:
   - 1kjf
 tags:

@@ -3,7 +3,6 @@ title: "Phase 4: Kubernetes CLI (apply, delete, status, logs) + asya build"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 dependencies:
   - 5ifn
 tags:

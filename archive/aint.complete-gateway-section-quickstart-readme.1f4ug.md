@@ -2,7 +2,6 @@
 title: Complete Gateway section in quickstart README
 status: merged
 priority: 2
-parent: 00000
 tags:
   - beads:epic:asya-ln2
 ---
@@ -17,9 +16,7 @@ The Gateway section (starting line 369) is marked TODO. Complete it with:
 This unblocks the Prometheus section since metrics from gateway calls will be visible in Grafana.
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-dqy`_

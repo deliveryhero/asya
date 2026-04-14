@@ -2,7 +2,6 @@
 title: "Compiler: max_iterations guard for while loops"
 status: rejected
 priority: 3
-parent: mxzgo
 tags:
   - type:feature
 ---
@@ -41,9 +40,7 @@ If the LLM never stops calling tools, the while True loop runs forever, consumin
 - RFC Section 14 Open Question 4
 
 
----
 **Close reason**: Implemented max_iterations guard for while-True loops in the flow compiler
 
 
----
 _Migrated from beads `asya-mhuz`_

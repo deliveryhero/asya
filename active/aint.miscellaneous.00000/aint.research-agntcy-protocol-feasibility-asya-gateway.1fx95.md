@@ -2,7 +2,6 @@
 title: Research AGNTCY protocol feasibility for Asya Gateway
 status: open
 priority: 4
-parent: 00000
 ---
 
 Evaluate AGNTCY (Cisco/Linux Foundation) protocol components for Asya Gateway integration.
@@ -25,5 +24,4 @@ Evaluate AGNTCY (Cisco/Linux Foundation) protocol components for Asya Gateway in
 **Related:** docs/rfc/asya-bi8-agentic-asya.md
 
 
----
 _Migrated from beads `asya-8sa`_

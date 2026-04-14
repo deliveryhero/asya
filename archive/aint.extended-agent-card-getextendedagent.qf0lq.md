@@ -2,7 +2,6 @@
 title: Extended Agent Card (GetExtendedAgentCard)
 status: merged
 priority: 3
-parent: emmc5
 tags:
   - pr:262
 ---

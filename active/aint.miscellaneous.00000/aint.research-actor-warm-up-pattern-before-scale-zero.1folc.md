@@ -2,7 +2,6 @@
 title: "Research: Actor warm-up pattern before scale-to-zero"
 status: open
 priority: 3
-parent: 00000
 ---
 
 Research and design a warm-up pattern that ensures actors are validated as healthy before allowing KEDA to scale them to zero.
@@ -54,5 +53,4 @@ Actor must successfully start at least once (pods healthy, probes OK) before it 
 See docs/rfc/thoughts-actor-warm-up.md for initial exploration notes.
 
 
----
 _Migrated from beads `asya-z31`_

@@ -3,7 +3,6 @@ title: "GKE demo cluster + docs: KubeCon GCP Pub/Sub deployment"
 status: working
 priority: 1
 assignee: Artem Yushkovskiy
-parent: 00000
 tags:
   - worktree:.worktrees/misc/gvqc.gke-demo-cluster-docs-kubecon-gcp-pub-sub
   - branch:misc/gvqc.gke-demo-cluster-docs-kubecon-gcp-pub-sub
@@ -18,7 +17,6 @@ as transport. Produce a new install guide (`docs/install/gke.md`) modelled on
 
 **Blocked on**: merging `docs-demo` branch first (fixes tests WIP).
 
----
 
 ## Context
 
@@ -30,7 +28,6 @@ as transport. Produce a new install guide (`docs/install/gke.md`) modelled on
 - Demo: `examples/demo-kubecon` — text-improver flow (generator -> evaluator loop -> polisher)
 - Helm install strategy: `asya-playground` chart for all infrastructure, demo actors on top
 
----
 
 ## Execution Plan
 
@@ -46,7 +43,6 @@ export NS=asya-demo
 export REGISTRY=${REGION}-docker.pkg.dev/${PROJECT}/asya-demo
 ```
 
----
 
 ### Phase 1 - GKE Cluster
 
@@ -77,7 +73,6 @@ Notes:
 - `--logging=NONE --monitoring=NONE` disables Cloud Logging/Monitoring to cut demo costs
 - `--workload-pool` enables GKE Workload Identity (no SA key files stored in cluster)
 
----
 
 ### Phase 2 - Cloud NAT (egress for Pub/Sub API, GHCR image pulls, Vertex AI)
 
@@ -95,7 +90,6 @@ gcloud compute routers nats create asya-demo-nat \
   --nat-all-subnet-ip-ranges
 ```
 
----
 
 ### Phase 3 - Artifact Registry (demo actor image)
 
@@ -109,7 +103,6 @@ gcloud artifacts repositories create asya-demo \
 gcloud auth configure-docker ${REGION}-docker.pkg.dev
 ```
 
----
 
 ### Phase 4 - Workload Identity: GCP service accounts
 
@@ -180,7 +173,6 @@ kubectl create secret generic gcp-keda-secret \
   --from-file=credentials.json=/tmp/keda-gcp-sa.json
 ```
 
----
 
 ### Phase 5 - Crossplane (prerequisite: must exist before asya-playground)
 
@@ -195,7 +187,6 @@ helm install crossplane crossplane-stable/crossplane \
   --wait
 ```
 
----
 
 ### Phase 6 - asya-playground step 1: install providers, not yet ProviderConfigs
 
@@ -309,7 +300,6 @@ kubectl wait provider.pkg.crossplane.io/crossplane-provider-gcp-pubsub \
   --timeout=300s
 ```
 
----
 
 ### Phase 7 - asya-playground step 2: install ProviderConfigs
 
@@ -326,7 +316,6 @@ kubectl annotate serviceaccount crossplane-gcp-provider \
   iam.gke.io/gcp-service-account=crossplane-gcp@${PROJECT}.iam.gserviceaccount.com
 ```
 
----
 
 ### Phase 8 - Demo actor image: build and push
 
@@ -348,7 +337,6 @@ kubectl annotate serviceaccount asya-actor \
   iam.gke.io/gcp-service-account=asya-actor@${PROJECT}.iam.gserviceaccount.com
 ```
 
----
 
 ### Phase 9 - Demo config changes (two files to update in examples/demo-kubecon/)
 
@@ -376,7 +364,6 @@ asya compile src/demo_flows/text_improver.py
 asya k apply src/demo_flows/text_improver.py
 ```
 
----
 
 ### Phase 10 - Docs
 
@@ -408,7 +395,6 @@ Mirror structure of `aws-eks.md` but for GKE + Pub/Sub:
 | 9 | `kubectl get asyncactor` should be `kubectl get asyncactors` | minor |
 | 10 | x-pause / x-resume crew actors not mentioned | minor |
 
----
 
 ## Verification checklist (demo-day readiness)
 

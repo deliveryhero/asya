@@ -2,7 +2,6 @@
 title: Add Makefile enhancement targets (help, dev, watch, docs-watch)
 status: merged
 priority: 2
-parent: 00000
 ---
 
 # Add Makefile Enhancement Targets
@@ -126,5 +125,4 @@ Add targets to help discovery:
 Marked ready when all 4 targets are implemented and tested.
 
 
----
 _Migrated from beads `asya-jeb`_

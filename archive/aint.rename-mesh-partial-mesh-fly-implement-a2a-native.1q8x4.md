@@ -2,7 +2,6 @@
 title: Rename /mesh/partial to /mesh/fly and implement A2A-native FLY format
 status: merged
 priority: 2
-parent: emmc5
 dependencies:
   - 1qdv
 tags:

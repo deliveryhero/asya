@@ -2,7 +2,6 @@
 title: Implement sidecar 410 Gone handling for task cancellation
 status: merged
 priority: 2
-parent: emmc5
 ---
 
 ## Summary

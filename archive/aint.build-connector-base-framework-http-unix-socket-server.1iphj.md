@@ -2,7 +2,6 @@
 title: Build connector base framework (HTTP/Unix-socket server, health, shutdown)
 status: merged
 priority: 1
-parent: g5bkc
 tags:
   - pr:195
 ---

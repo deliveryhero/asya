@@ -2,7 +2,6 @@
 title: Create asya-bundle umbrella Helm chart for quick installation
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:feature
 ---
@@ -204,7 +203,6 @@ Tests should be runnable with: `helm test asya-bundle`
 - E2E test setup: testing/e2e/ (for infrastructure examples)
 
 
----
 ## Notes
 
 ## Design Decisions
@@ -379,5 +377,4 @@ helloActor:
 ~~4. Namespace strategy?~~ **RESOLVED**: Operator in asya-system, gateway+actors in target namespace
 
 
----
 _Migrated from beads `asya-u8y`_

@@ -2,7 +2,6 @@
 title: Fix success rate metric to include error status
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:bug
 ---
@@ -20,9 +19,7 @@ Fix: Add RecordMessageProcessed(queue, "error") calls in all error handling path
 This ensures the metric total includes both successes and errors for accurate success rate calculation.
 
 
----
 **Close reason**: Fixed in PR #130. Added RecordMessageProcessed(queue, 'error') calls in all error handling paths to ensure accurate success rate metrics in Grafana.
 
 
----
 _Migrated from beads `asya-h9z`_

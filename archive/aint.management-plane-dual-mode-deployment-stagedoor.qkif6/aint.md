@@ -221,7 +221,6 @@ The key insight: **stagedoor is a facade over `kubectl` with a web UI**. The fac
 | `batch-processing` | High-volume batch jobs | minReplicas: 0, maxReplicas: 100, scale-to-zero |
 | `gpu-inference` | GPU-accelerated models | GPU request, node affinity for GPU nodes |
 
----
 
 ### 2. Goals and Non-Goals
 
@@ -244,7 +243,6 @@ The key insight: **stagedoor is a facade over `kubectl` with a web UI**. The fac
 - **NG5:** Provide observability dashboards — delegate to SigNoz/Grafana
 - **NG6:** Implement custom authentication — use standard kubeconfig/OIDC
 
----
 
 ### 3. Architecture
 
@@ -338,7 +336,6 @@ rules:
   - apiGroups: ["asya.sh"]
     resources: ["asyncactors"]
     verbs: ["get", "list", "create", "update", "delete"]
----
 # Lab namespace: full access
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -351,7 +348,6 @@ subjects:
 roleRef:
   kind: ClusterRole
   name: asya-ds-role
----
 # Prod namespace: read-only
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -366,7 +362,6 @@ roleRef:
   name: asya-ds-readonly  # verbs: [get, list] only
 ```
 
----
 
 ### 4. UX Flows
 
@@ -499,7 +494,6 @@ The VSCode extension provides visualization that `kubectl` cannot:
 
 The extension is a **local VS Code extension** — it runs in the DS's editor, not in a remote container. It can optionally be used in devcontainers for team standardization.
 
----
 
 ### 5. Security Model
 
@@ -537,7 +531,6 @@ Standard K8s RBAC controls who can do what in which namespace. See Section 3.4 f
 | **Privilege escalation** | Compromise stagedoor = cluster-wide AsyncActor access | Compromise DS laptop = only that DS's RBAC scope |
 | **Auth bypass** | Custom auth code may have bugs | K8s auth is battle-tested |
 
----
 
 ### 6. GitOps Integration
 
@@ -569,7 +562,6 @@ Standard K8s RBAC controls who can do what in which namespace. See Section 3.4 f
 - **Flux** (recommended): Lightweight, modular
 - **ArgoCD**: Richer UI, heavier installation
 
----
 
 ### 7. In-Cluster Actor Spawning (Future)
 
@@ -640,7 +632,6 @@ Rather than giving every actor pod K8s API access, use a **single trusted crew a
 - Audits: logs all creation/deletion requests
 - Priority: P4 — implement only when agentic actor spawning is needed
 
----
 
 ### 8. Crossplane Integration
 
@@ -674,7 +665,6 @@ Asya does not build observability tooling. DS uses their organization's stack:
 | **Metrics** | Prometheus + Grafana | Sidecar and gateway expose /metrics |
 | **Dashboards** | Grafana | Pre-built Asya dashboards (future) |
 
----
 
 ### 9. Open Questions and Future Work
 
@@ -708,7 +698,6 @@ Asya does not build observability tooling. DS uses their organization's stack:
 | **Phase 3: VSCode** | Extension MVP | Flow visualization, actor status |
 | **Phase 4: Agentic** | Deployer crew actor | In-cluster actor spawning |
 
----
 
 ### 10. References
 
@@ -718,7 +707,6 @@ Asya does not build observability tooling. DS uses their organization's stack:
 - Kubernetes RBAC documentation
 - MCP Protocol specification
 
----
 
 ### Appendix A: Related Beads
 

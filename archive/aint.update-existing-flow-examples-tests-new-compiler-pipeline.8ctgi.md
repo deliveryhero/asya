@@ -2,7 +2,6 @@
 title: Update existing flow examples and tests for new compiler pipeline
 status: rejected
 priority: 2
-parent: pj0fo
 dependencies:
   - o8ql
 ---

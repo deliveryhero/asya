@@ -3,7 +3,6 @@ title: "Implement RFC flavor overlap rules: type-aware merge with conflict detec
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: ip3ls
 dependencies:
   - lfcf
 tags:

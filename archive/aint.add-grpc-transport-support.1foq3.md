@@ -2,7 +2,6 @@
 title: Add gRPC transport support
 status: open
 priority: 3
-parent: emmc5
 ---
 
 Add gRPC as alternative transport for A2A protocol.
@@ -46,5 +45,4 @@ service A2AService {
 This is lower priority than HTTP implementation. Can be deferred to v2.
 
 
----
 _Migrated from beads `asya-ybm`_

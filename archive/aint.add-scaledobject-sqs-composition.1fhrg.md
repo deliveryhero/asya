@@ -2,7 +2,6 @@
 title: Add ScaledObject to SQS Composition
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fav
 ---
@@ -34,9 +33,7 @@ Add KEDA ScaledObject resource to the SQS Composition to enable autoscaling.
 - Requires Deployment to be added to Composition first (or use workloadRef)
 
 
----
 **Close reason**: Already implemented in commits 6fb9a1a and d2e1790
 
 
----
 _Migrated from beads `asya-pvh`_

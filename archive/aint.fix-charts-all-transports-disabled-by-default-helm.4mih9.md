@@ -3,7 +3,6 @@ title: "fix(charts): all transports disabled by default in Helm values"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00000
 tags:
   - worktree:.worktrees/misc/4mih.fix-charts-all-transports-disabled-by-default-helm
   - branch:misc/4mih.fix-charts-all-transports-disabled-by-default-helm

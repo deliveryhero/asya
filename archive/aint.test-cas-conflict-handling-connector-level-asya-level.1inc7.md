@@ -2,7 +2,6 @@
 title: Test CAS conflict handling (connector-level and asya-level retries)
 status: merged
 priority: 2
-parent: g5bkc
 ---
 
 Test the two-layer retry strategy for CAS conflicts:

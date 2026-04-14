@@ -2,7 +2,6 @@
 title: "Phase 2.5: Deploy webhook with cert-manager"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1fmq
 ---
@@ -39,9 +38,7 @@ Set up TLS certificates and deploy the webhook to Kubernetes.
 See docs/rfc/rfc-crossplane.md Section 9 (Phase 2)
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-4rb`_

@@ -2,7 +2,6 @@
 title: "Phase 3.2: Add TriggerAuthentication for KEDA"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fd2
 ---
@@ -34,9 +33,7 @@ Configure KEDA TriggerAuthentication for AWS authentication.
 See docs/rfc/rfc-crossplane.md Section 7 (KEDA TriggerAuthentication)
 
 
----
 **Close reason**: Fixed in PR https://github.com/deliveryhero/asya/pull/138
 
 
----
 _Migrated from beads `asya-5n8`_

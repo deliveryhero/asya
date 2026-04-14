@@ -2,7 +2,6 @@
 title: "Gateway: remove queue-name fallback once status.phase is stable"
 status: open
 priority: 3
-parent: 00000
 ---
 
 ## Context

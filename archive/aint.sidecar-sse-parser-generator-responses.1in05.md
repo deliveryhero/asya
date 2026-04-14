@@ -2,7 +2,6 @@
 title: Sidecar SSE parser for generator responses
 status: merged
 priority: 2
-parent: nlg57
 dependencies:
   - 1i6y
   - 1ikc

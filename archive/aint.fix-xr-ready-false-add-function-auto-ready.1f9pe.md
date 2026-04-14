@@ -2,7 +2,6 @@
 title: "Fix XR Ready=False: add function-auto-ready to Composition pipeline"
 status: merged
 priority: 2
-parent: 00000
 tags:
   - type:bug
 ---
@@ -116,7 +115,6 @@ to checking the XR Ready condition for basic readiness.
 - Current workaround: status.phase check in kubectl.py and deploy.sh (commit 961e562)
 
 
----
 ## Notes
 
 ## Tests to review/unmute after fix
@@ -163,9 +161,7 @@ minReplicaCount=1. Could be fixed by using a test actor with minReplicas=0:
 - tests/test_scaling_performance_e2e.py::test_queue_backlog_processing
 
 
----
 **Close reason**: Fixed by adding function-auto-ready (v0.6.0) to Composition pipeline. XR now correctly shows Ready=True. Reverted status.phase workarounds in kubectl.py and deploy.sh.
 
 
----
 _Migrated from beads `asya-zpz2`_

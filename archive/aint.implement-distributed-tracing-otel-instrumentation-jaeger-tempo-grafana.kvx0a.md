@@ -3,7 +3,6 @@ title: "Implement distributed tracing: OTEL instrumentation + Jaeger/Tempo in Gr
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: ezpsa
 tags:
   - worktree:.worktrees/observability-initial/kvx0.implement-distributed-tracing-otel-instrumentation-jaeger-tempo-grafana
   - branch:observability-initial/kvx0.implement-distributed-tracing-otel-instrumentation-jaeger-tempo-grafana
@@ -66,7 +65,6 @@ through the actor mesh — from gateway ingress through each sidecar/runtime hop
 
 **Spec:** `.aint/aints/observability-initial/rfc.md`
 
----
 
 ## File Structure
 
@@ -112,7 +110,6 @@ through the actor mesh — from gateway ingress through each sidecar/runtime hop
 | `docs/setup/ops-observability.md` | Add tracing setup guide, remove "Future" item |
 | `docs/reference/specs/envelope.md` | Document traceparent/tracestate as sidecar-managed headers |
 
----
 
 ## Task 1: Sidecar OTEL SDK Init + No-Op Detection
 
@@ -311,7 +308,6 @@ git add src/asya-sidecar/internal/tracing/ src/asya-sidecar/cmd/sidecar/main.go 
 git commit -m "feat(sidecar): add OTEL tracing init with no-op detection [kvx0]"
 ```
 
----
 
 ## Task 2: Sidecar Trace Context Propagation (Extract/Inject)
 
@@ -459,7 +455,6 @@ git add src/asya-sidecar/internal/tracing/
 git commit -m "feat(sidecar): trace context extract/inject via envelope headers [kvx0]"
 ```
 
----
 
 ## Task 3: Sidecar Router Span Instrumentation
 
@@ -713,7 +708,6 @@ git add src/asya-sidecar/internal/router/ src/asya-sidecar/internal/tracing/
 git commit -m "feat(sidecar): span instrumentation for process, send, retry, timeout [kvx0]"
 ```
 
----
 
 ## Task 4: Sidecar Runtime Call Span
 
@@ -775,7 +769,6 @@ git add src/asya-sidecar/internal/runtime/client.go
 git commit -m "feat(sidecar): span around runtime HTTP call [kvx0]"
 ```
 
----
 
 ## Task 5: Gateway OTEL SDK Init
 
@@ -913,7 +906,6 @@ git add src/asya-gateway/internal/tracing/ src/asya-gateway/cmd/gateway/main.go 
 git commit -m "feat(gateway): add OTEL tracing init and otelhttp middleware [kvx0]"
 ```
 
----
 
 ## Task 6: Gateway Root Span + Traceparent Injection
 
@@ -1057,7 +1049,6 @@ git add src/asya-gateway/internal/a2a/
 git commit -m "feat(gateway): root span and traceparent injection in executor [kvx0]"
 ```
 
----
 
 ## Task 7: Helm Chart — XRD and Composition Changes
 
@@ -1113,7 +1104,6 @@ git add deploy/helm-charts/asya-crossplane/
 git commit -m "feat(crossplane-chart): add spec.tracing.endpoint XRD field and OTEL env injection [kvx0]"
 ```
 
----
 
 ## Task 8: Helm Chart — Gateway and Crew
 
@@ -1200,7 +1190,6 @@ git add deploy/helm-charts/asya-gateway/ deploy/helm-charts/asya-crew/values.yam
 git commit -m "feat(gateway-chart,crew-chart): add tracing.endpoint config [kvx0]"
 ```
 
----
 
 ## Task 9: Playground Chart — Tempo Subchart + Grafana Datasource
 
@@ -1324,7 +1313,6 @@ git add deploy/helm-charts/asya-playground/
 git commit -m "feat(playground-chart): add Tempo subchart with Grafana datasource [kvx0]"
 ```
 
----
 
 ## Task 10: Component Test — Multi-Hop Trace Verification
 
@@ -1426,7 +1414,6 @@ git add testing/component/tracing/ Makefile
 git commit -m "test(tracing): component test for multi-hop trace propagation [kvx0]"
 ```
 
----
 
 ## Task 11: Documentation Updates
 
@@ -1509,7 +1496,6 @@ git add docs/
 git commit -m "docs: update observability docs for distributed tracing [kvx0]"
 ```
 
----
 
 ## Task 12: Final Integration + Lint + Push
 

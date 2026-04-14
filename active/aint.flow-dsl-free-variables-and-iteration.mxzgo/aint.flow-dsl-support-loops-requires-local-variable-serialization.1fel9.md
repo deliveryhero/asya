@@ -2,7 +2,6 @@
 title: "Flow DSL: Support for loops (requires local variable serialization)"
 status: open
 priority: 2
-parent: mxzgo
 dependencies:
   - 1fij
 tags:
@@ -69,5 +68,4 @@ async def fan_out_sequential(state: dict) -> dict:
 - RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 14 Open Question 1
 
 
----
 _Migrated from beads `asya-xsfo`_

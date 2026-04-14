@@ -2,7 +2,6 @@
 title: "Crossplane: Update compositions for stateProxy"
 status: merged
 priority: 2
-parent: g5bkc
 ---
 
 Update Crossplane compositions to propagate stateProxy configuration:

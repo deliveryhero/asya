@@ -2,7 +2,6 @@
 title: "Unified CLI: replace 'asya flow compile' with 'asya compile' top-level command"
 status: rejected
 priority: 2
-parent: pj0fo
 dependencies:
   - o8ql
 ---

@@ -2,7 +2,6 @@
 title: "x-pause crew actor: persist message and signal pause"
 status: merged
 priority: 2
-parent: hwek2
 dependencies:
   - 1kft
   - 1k34

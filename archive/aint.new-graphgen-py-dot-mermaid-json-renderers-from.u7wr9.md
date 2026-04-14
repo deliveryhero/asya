@@ -2,7 +2,6 @@
 title: "New graphgen.py: DOT + Mermaid + JSON renderers from GraphData"
 status: rejected
 priority: 1
-parent: pj0fo
 dependencies:
   - h6gn
 ---

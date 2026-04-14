@@ -3,7 +3,6 @@ title: Composition status pipeline never updates infrastructure.keda.ready after
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/mqd9.composition-status-pipeline-never-updates-infrastructure-keda-ready
   - branch:debt/mqd9.composition-status-pipeline-never-updates-infrastructure-keda-ready

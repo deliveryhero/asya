@@ -3,7 +3,6 @@ title: "Smart JSON serialization: support pydantic, dataclasses, and typed struc
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: emmc5
 tags:
   - type:feature
   - runtime

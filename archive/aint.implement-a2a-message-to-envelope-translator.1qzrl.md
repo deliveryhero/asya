@@ -2,7 +2,6 @@
 title: Implement A2A message-to-envelope translator
 status: merged
 priority: 2
-parent: emmc5
 dependencies:
   - 1qcm
 tags:

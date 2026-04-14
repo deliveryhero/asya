@@ -2,7 +2,6 @@
 title: "Gateway: migrate progress tracking to prev/curr/next route"
 status: merged
 priority: 2
-parent: l9v6p
 dependencies:
   - 1ikd
 ---

@@ -2,7 +2,6 @@
 title: Smart entrypoint/exitpoint detection and flow_role labeling
 status: rejected
 priority: 2
-parent: pj0fo
 dependencies:
   - o8ql
 ---

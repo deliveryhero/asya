@@ -2,7 +2,6 @@
 title: "Rewrite codegen.py: direct code generation without grouper or Router dataclass"
 status: rejected
 priority: 1
-parent: pj0fo
 dependencies:
   - qnyz
 ---

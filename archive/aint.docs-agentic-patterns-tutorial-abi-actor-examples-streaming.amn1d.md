@@ -3,7 +3,6 @@ title: "docs: agentic patterns tutorial + ABI actor examples (streaming, dynamic
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 7b55c
 tags:
   - worktree:.worktrees/agentic-umbrella/amn1.docs-agentic-patterns-tutorial-abi-actor-examples-streaming
   - branch:agentic-umbrella/amn1.docs-agentic-patterns-tutorial-abi-actor-examples-streaming

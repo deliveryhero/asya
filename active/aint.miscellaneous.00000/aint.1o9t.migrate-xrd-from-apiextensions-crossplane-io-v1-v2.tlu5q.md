@@ -2,7 +2,6 @@
 title: Migrate XRD from apiextensions.crossplane.io/v1 to v2
 status: open
 priority: 2
-parent: 00000
 ---
 
 ## Context

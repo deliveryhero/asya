@@ -2,7 +2,6 @@
 title: "Crew: two-layer termination with x-sink, x-sump, and configurable hooks"
 status: merged
 priority: 3
-parent: s62ja
 dependencies:
   - 1fsy
 ---
@@ -40,9 +39,7 @@ RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md
 
 
 
----
 **Close reason**: Two-layer termination implemented: asya-sink + asya-sump + configurable hooks. PR #182
 
 
----
 _Migrated from beads `asya-5npu`_

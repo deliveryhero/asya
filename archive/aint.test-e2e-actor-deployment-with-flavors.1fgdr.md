@@ -2,7 +2,6 @@
 title: "Test: E2E actor deployment with flavors"
 status: merged
 priority: 2
-parent: 00000
 dependencies:
   - 1fzs
 ---
@@ -24,5 +23,4 @@ Test location: testing/e2e/
 Extend existing E2E test infrastructure, do not create a new Kind cluster.
 
 
----
 _Migrated from beads `asya-3j7r`_

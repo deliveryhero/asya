@@ -2,7 +2,6 @@
 title: "Phase 4.0b: Manual testing of Crossplane setup using quickstart"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fwy
 ---
@@ -51,9 +50,7 @@ Manually validate the new Crossplane + Webhook architecture by following the qui
 See docs/rfc/rfc-crossplane.md Section 9
 
 
----
 **Close reason**: Manual testing complete, 4 issues found and fixed in d2198ae
 
 
----
 _Migrated from beads `asya-7ap`_

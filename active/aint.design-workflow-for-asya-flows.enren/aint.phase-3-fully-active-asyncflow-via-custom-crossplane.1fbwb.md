@@ -2,7 +2,6 @@
 title: "Phase 3: Fully active AsyncFlow via custom Crossplane composition function"
 status: open
 priority: 3
-parent: enren
 tags:
   - type:feature
 ---
@@ -49,5 +48,4 @@ Status fields (extending Phase 2):
 Depends on Phase 2 completion to validate status schema and composition pipeline patterns.
 
 
----
 _Migrated from beads `asya-dbfm`_

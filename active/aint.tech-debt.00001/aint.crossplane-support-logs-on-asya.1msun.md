@@ -2,7 +2,6 @@
 title: Support kubectl logs asya/actor-name
 status: open
 priority: 2
-parent: 00001
 ---
 
 Support asyncactor resource for logs - exactly same behavior as for deployment but resolving it via label `asya.sh/actor`.

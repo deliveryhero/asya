@@ -2,7 +2,6 @@
 title: "Research: Gateway deployment model — per-namespace vs one-per-cluster"
 status: merged
 priority: 4
-parent: 00000
 tags:
   - type:feature
 reason: "Decided: per-namespace gateway for simplicity, security isolation, and throughput guarantees. ADR added to 1fc44c."
@@ -29,5 +28,4 @@ Research areas:
 Context: This came up during the asya-operator removal (PR #160) when reviewing namespace placement of components. The release-drafter template was incorrectly placing gateway in asya-system.
 
 
----
 _Migrated from beads `asya-ccqy`_

@@ -2,7 +2,6 @@
 title: Allow any status.phase in sink/sump; only report terminal phases to gateway
 status: merged
 priority: 2
-parent: s62ja
 tags:
   - type:feature
   - worktree:.worktrees/1c46/1ffmnb.allow-any-status-phase-sink-sump-only-report
@@ -64,7 +63,6 @@ This is too restrictive for upcoming patterns:
 3. **Human-in-the-loop**: Router sends message to x-sink with `phase="awaiting_approval"`. Sink acks, persists, runs hooks. An external system later approves and re-injects with `phase="succeeded"`.
 
 
----
 ## Notes
 
 ## Dependency Rationale
@@ -107,5 +105,4 @@ parent_id is NOT preserved through non-fan-out actors (routeResponse constructs 
 See also: docs/rfc/rfc-actor-states.md
 
 
----
 _Migrated from beads `asya-0bvg`_

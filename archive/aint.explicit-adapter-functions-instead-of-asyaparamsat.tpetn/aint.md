@@ -2,8 +2,6 @@
 title: Explicit adapter functions instead of ASYA_PARAMS_AT/ASYA_RESULT_AT
 status: merged
 priority: 2
-children:
-  - p5nrd
 ---
 
 ## Context

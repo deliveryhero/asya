@@ -2,7 +2,6 @@
 title: Implement load testing suite for operator reconciliation and actor autoscaling
 status: open
 priority: 2
-parent: 00000
 ---
 
 Create comprehensive load testing infrastructure to measure Asya operator performance and KEDA-based autoscaling under production-like workloads.
@@ -65,5 +64,4 @@ Create comprehensive load testing infrastructure to measure Asya operator perfor
 - Recommendations provided for achieving P99 < 200ms target
 
 
----
 _Migrated from beads `asya-si8`_

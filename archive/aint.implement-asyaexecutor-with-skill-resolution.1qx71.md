@@ -2,7 +2,6 @@
 title: Implement AsyaExecutor with skill resolution
 status: merged
 priority: 2
-parent: emmc5
 dependencies:
   - 1qn6
   - 1qzr

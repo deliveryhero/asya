@@ -2,7 +2,6 @@
 title: "Simplify parser.py: 12 IR types to 5 operation types (ActorCall, Mutation, Conditional, Loop, FanOut)"
 status: rejected
 priority: 1
-parent: pj0fo
 dependencies:
   - 7179
 ---

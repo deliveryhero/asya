@@ -2,7 +2,6 @@
 title: "Integration test: pause/resume flow end-to-end"
 status: merged
 priority: 2
-parent: hwek2
 dependencies:
   - 1kk0
   - 1knc

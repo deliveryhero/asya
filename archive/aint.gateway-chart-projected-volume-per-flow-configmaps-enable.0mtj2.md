@@ -3,7 +3,6 @@ title: "Gateway chart: projected volume for per-flow ConfigMaps (enable asya k a
 status: merged
 priority: 0
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/0mtj.gateway-chart-projected-volume-per-flow-configmaps-enable
   - branch:debt/0mtj.gateway-chart-projected-volume-per-flow-configmaps-enable

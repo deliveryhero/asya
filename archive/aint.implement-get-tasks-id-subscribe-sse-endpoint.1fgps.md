@@ -2,7 +2,6 @@
 title: "Implement GET /tasks/{id}:subscribe SSE endpoint"
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -43,5 +42,4 @@ data: {"task_id": "...", "artifact": {...}}
 - Test stream termination
 
 
----
 _Migrated from beads `asya-z80`_

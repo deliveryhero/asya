@@ -2,7 +2,6 @@
 title: "Integration tests: retry flow with exponential backoff"
 status: merged
 priority: 2
-parent: s62ja
 tags:
   - pr:193
 ---

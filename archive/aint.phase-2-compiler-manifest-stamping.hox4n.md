@@ -3,7 +3,6 @@ title: "Phase 2: Compiler manifest stamping (kustomize output)"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 dependencies:
   - pyt1
 tags:

@@ -2,7 +2,6 @@
 title: Design SendWithDelay crew actor for transports without native delay
 status: open
 priority: 2
-parent: 00001
 tags:
   - type:feature
 ---

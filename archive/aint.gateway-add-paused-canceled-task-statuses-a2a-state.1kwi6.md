@@ -2,7 +2,6 @@
 title: "Gateway: add paused/canceled task statuses and A2A state mapping"
 status: merged
 priority: 2
-parent: hwek2
 tags:
   - pr:217
 ---

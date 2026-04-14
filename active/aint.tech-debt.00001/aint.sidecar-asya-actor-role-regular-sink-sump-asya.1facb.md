@@ -2,7 +2,6 @@
 title: "Sidecar: ASYA_ACTOR_ROLE (regular|sink|sump) and ASYA_ACTOR_SINK unification"
 status: open
 priority: 2
-parent: 00001
 ---
 
 Refactor sidecar config to support the two-layer termination scheme:
@@ -33,5 +32,4 @@ RFC: docs/rfc/error-handing/rfc-error-handing.md (System Actors / Sidecar Actor 
 Depends on: PR #182 (crew handlers)
 
 
----
 _Migrated from beads `asya-8jnz`_

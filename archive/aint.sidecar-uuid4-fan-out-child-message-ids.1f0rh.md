@@ -2,7 +2,6 @@
 title: "Sidecar: uuid4() for fan-out child message IDs"
 status: merged
 priority: 2
-parent: 4e5zh
 tags:
   - type:feature
 ---
@@ -35,5 +34,4 @@ Actor C fans out 2:  msg, msg-1   <-- COLLISION
 - Fan-in RFC: `.aint/epics/1c7i.stateful-fan-fan-out/rfc.md` (Yield Order and ID Assignment)
 
 
----
 _Migrated from beads `asya-g69n`_

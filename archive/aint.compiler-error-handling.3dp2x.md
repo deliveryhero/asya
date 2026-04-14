@@ -3,7 +3,6 @@ title: Compiler error handling
 status: rejected
 priority: 2
 assignee: Artem Yushkovskiy
-parent: pj0fo
 dependencies:
   - 7179
 tags:

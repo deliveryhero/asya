@@ -2,7 +2,6 @@
 title: Minor code review comments
 status: open
 priority: 2
-parent: n6g6h
 ---
 
 `def find_git_root` -> git rev parse?

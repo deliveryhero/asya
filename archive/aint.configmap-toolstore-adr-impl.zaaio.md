@@ -3,7 +3,6 @@ title: "Implement ConfigMap-based flow registry: YAML toolstore + Helm chart + R
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: emmc5
 tags:
   - worktree:.worktrees/a2a-protocol-compliance-gateway/zaai.configmap-toolstore-adr-impl
   - branch:a2a-protocol-compliance-gateway/zaai.configmap-toolstore-adr-impl
@@ -113,7 +112,6 @@ rules:
     resources: ["configmaps"]
     resourceNames: ["gateway-flows"]
     verbs: ["get", "patch", "update"]
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:

@@ -2,7 +2,6 @@
 title: Runtime SSE streaming for generator handlers
 status: merged
 priority: 2
-parent: nlg57
 dependencies:
   - 1iof
   - 1f2w

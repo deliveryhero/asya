@@ -2,7 +2,6 @@
 title: Research compatibility with Kro
 status: rejected
 priority: 2
-parent: 00000
 reason: research done
 ---
 
@@ -29,7 +28,6 @@ uses compositions for inline sidecar injection (rendering full pod specs with Go
 typical use case. This is where much of the template complexity comes from.
 ─────────────────────────────────────────────────
 
----
 What kro Offers
 
 kro (Kube Resource Orchestrator) is a Kubernetes SIG subproject backed by Google, AWS, and Microsoft. It lets you define a
@@ -60,7 +58,6 @@ and dependencies are automatically inferred from expression references.
 │ Security model    │ Arbitrary code in functions             │ CEL-only (non-Turing-complete)         │
 └───────────────────┴─────────────────────────────────────────┴────────────────────────────────────────┘
 
----
 Would kro Work for Asya?
 
 Let me evaluate against Asya's specific requirements:
@@ -115,7 +112,6 @@ inheritance or parameterization.
 
 Verdict: Tie — both suffer from the same limitation.
 
----
 The Blockers
 
 Three issues make kro not viable for Asya today:
@@ -127,7 +123,6 @@ core Asya feature that can't be replicated in kro.
 3. CEL limitations for complex pod specs — Asya's sidecar injection involves iterating over variable-length lists, conditional
 container generation, JSON encoding, and nested map construction. CEL's non-Turing-completeness could block this.
 
----
 Where kro Could Be Interesting
 
 Despite the blockers, kro has appealing properties for a future evaluation:
@@ -145,7 +140,6 @@ function (function-asya-flavors), which firmly places it in Crossplane's sweet s
 CRDs together without custom merge logic), kro would be a much stronger contender.
 ─────────────────────────────────────────────────
 
----
 Recommendation
 
 Stay on Crossplane. The migration cost is high, the gain is marginal, and kro lacks the extensibility Asya needs (custom functions,

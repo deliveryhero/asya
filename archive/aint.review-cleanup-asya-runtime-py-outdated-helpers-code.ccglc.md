@@ -3,7 +3,6 @@ title: "Review + cleanup asya_runtime.py: outdated helpers, code duplication, mi
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00000
 tags:
   - worktree:misc/ccgl.cleanup-runtime
   - pr:324
@@ -14,7 +13,6 @@ tags:
 `src/asya-runtime/asya_runtime.py` is the single-file runtime — no external deps, must stay lean and correct.
 During review, several issues were identified across three categories.
 
----
 
 ## Issues Found
 
@@ -29,7 +27,6 @@ These module-level helpers build A2A-specific FLY payload dicts.
 
 **Action:** Audit against A2A spec. Either modernize signatures + add to ABI reference, or remove and update any examples/docs that reference them.
 
----
 
 ### 2. Code duplication — `_drive_generator` vs `_drive_async_generator` (lines 546–639)
 
@@ -37,7 +34,6 @@ The two functions are nearly identical — only the iteration primitives differ 
 
 **Action:** Extract the shared dispatch logic into a helper, or accept the duplication with a comment explaining why it cannot be unified.
 
----
 
 ### 3. Python version claim in module docstring (line 4)
 
@@ -47,7 +43,6 @@ The docstring says `Supported Python versions: 3.7+`, but the code uses:
 
 **Action:** Update the docstring to reflect actual minimum version (`3.10+` or `3.12+`).
 
----
 
 ### 4. `.status` writable path not in docs/spec
 
@@ -55,7 +50,6 @@ The docstring says `Supported Python versions: 3.7+`, but the code uses:
 
 **Action:** Either document `.status` as a writable path (with semantics), or remove it from `_check_set_access`/`_check_del_access` if it was added accidentally.
 
----
 
 ### 5. Missing corner-case tests
 
@@ -69,7 +63,6 @@ Current test suite (`test_asya_runtime.py`, ~3300 lines) has excellent coverage 
 
 **Action:** Add targeted tests for each gap above.
 
----
 
 ## Out of scope
 

@@ -2,7 +2,6 @@
 title: Compiler adapter generation from decorated handler call sites
 status: rejected
 priority: 2
-parent: pj0fo
 dependencies:
   - srn2
   - 1fmi

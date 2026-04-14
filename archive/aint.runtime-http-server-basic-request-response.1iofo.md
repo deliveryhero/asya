@@ -2,7 +2,6 @@
 title: Runtime HTTP server — basic request/response
 status: merged
 priority: 2
-parent: jp7cz
 tags:
   - worktree:1fbe.redesign-protocol-sidecar-runtime/1iof6x.1iof6x.runtime-http-server-basic-request-response
   - pr:189

@@ -2,7 +2,6 @@
 title: "Flow DSL: Support while loops (back-edge routers)"
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:feature
 ---
@@ -54,9 +53,7 @@ Compiled to: llm-call -> dispatch-router -> [tool] -> collect-router -> (loop ba
 - RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 5.3
 
 
----
 **Close reason**: Merged PR #163: while loop support in Flow DSL compiler
 
 
----
 _Migrated from beads `asya-bp6`_

@@ -2,7 +2,6 @@
 title: Implement s3-buffered-lww connector
 status: merged
 priority: 1
-parent: g5bkc
 tags:
   - pr:195
 ---

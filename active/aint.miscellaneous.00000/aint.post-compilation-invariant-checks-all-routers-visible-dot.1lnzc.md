@@ -2,7 +2,6 @@
 title: "Post-compilation invariant checks: all routers visible in DOT with proper connectivity"
 status: open
 priority: 2
-parent: 00000
 ---
 
 ## Context

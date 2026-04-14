@@ -3,7 +3,6 @@ title: "Phase 2: Flatten workload structure, promote handler, rewrite flavor mer
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: ip3ls
 dependencies:
   - af25
 tags:

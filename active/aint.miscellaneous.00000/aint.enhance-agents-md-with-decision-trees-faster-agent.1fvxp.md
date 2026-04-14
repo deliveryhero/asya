@@ -2,7 +2,6 @@
 title: Enhance AGENTS.md with decision trees for faster agent comprehension
 status: open
 priority: 2
-parent: 00000
 ---
 
 # Enhance AGENTS.md with Decision Trees for Agent Comprehension
@@ -158,5 +157,4 @@ Quickly determine the right approach for common development scenarios.
 Marked ready when all decision trees are added and formatted.
 
 
----
 _Migrated from beads `asya-pgj`_

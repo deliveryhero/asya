@@ -2,7 +2,6 @@
 title: "Gateway: GET /a2a/tasks list endpoint with filtering"
 status: merged
 priority: 3
-parent: hwek2
 dependencies:
   - 1kwi
   - 1kx4

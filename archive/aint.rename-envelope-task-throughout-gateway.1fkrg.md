@@ -2,7 +2,6 @@
 title: Rename envelope to task throughout gateway
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -41,5 +40,4 @@ Current → A2A:
 - Verify no breaking changes in sidecar communication
 
 
----
 _Migrated from beads `asya-uic`_

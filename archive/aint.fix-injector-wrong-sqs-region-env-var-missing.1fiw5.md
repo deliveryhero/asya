@@ -2,7 +2,6 @@
 title: "Fix injector: wrong SQS region env var + missing SQS endpoint"
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:bug
 ---
@@ -33,9 +32,7 @@ Two bugs in asya-injector (crossplane-phase2 worktree) discovered during Phase 3
 These fixes should be applied in the crossplane-phase2 worktree and submitted as a PR.
 
 
----
 **Close reason**: Fixed: Renamed ASYA_SQS_REGION to ASYA_AWS_REGION. Added SQSEndpoint config field, ASYA_SQS_ENDPOINT env var injection, and Helm chart support.
 
 
----
 _Migrated from beads `asya-6y8`_

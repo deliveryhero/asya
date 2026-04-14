@@ -2,7 +2,6 @@
 title: "New analyzer.py: yield analysis with _extract_yield_edges and merge algorithm"
 status: rejected
 priority: 1
-parent: pj0fo
 dependencies:
   - p2d0
 ---

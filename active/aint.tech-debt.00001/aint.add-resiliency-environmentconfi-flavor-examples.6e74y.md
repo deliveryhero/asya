@@ -2,7 +2,6 @@
 title: Add resiliency EnvironmentConfig flavor examples
 status: open
 priority: 2
-parent: 00001
 ---
 
 ## Context

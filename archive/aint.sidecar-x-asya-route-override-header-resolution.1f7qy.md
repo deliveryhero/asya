@@ -2,7 +2,6 @@
 title: "Sidecar: x-asya-route-override header resolution"
 status: merged
 priority: 2
-parent: 2w664
 tags:
   - type:feature
   - pr:201
@@ -63,5 +62,4 @@ After resolution, the sidecar stamps `x-asya-route-resolved` for audit trail:
 - RFC: docs/rfc/fan-in/rfc-fan-in.md (Integration with A/B Routing)
 
 
----
 _Migrated from beads `asya-2ozv`_

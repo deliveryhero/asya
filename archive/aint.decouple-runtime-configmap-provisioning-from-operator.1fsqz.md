@@ -2,7 +2,6 @@
 title: Decouple runtime ConfigMap provisioning from operator
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fm4
 ---
@@ -48,9 +47,7 @@ Operator source: src/asya-operator/internal/runtime/
 Runtime source: src/asya-runtime/asya_runtime.py
 
 
----
 **Close reason**: Resolved in PR #146 - runtime ConfigMap added to asya-crossplane Helm chart as template with symlinked asya_runtime.py
 
 
----
 _Migrated from beads `asya-57z`_

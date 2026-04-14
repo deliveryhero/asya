@@ -2,7 +2,6 @@
 title: "Runtime: open(path, x) exclusive create mode for state proxy"
 status: merged
 priority: 2
-parent: 4e5zh
 tags:
   - pr:206
 ---

@@ -2,7 +2,6 @@
 title: "feat(sidecar): support ASYA_BASE_PREFIX for single-gateway deployments with URL prefix"
 status: open
 priority: 2
-parent: 00000
 ---
 
 ## Problem

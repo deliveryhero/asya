@@ -2,7 +2,6 @@
 title: "fix(sidecar): strip trailing slash from gatewayURL in NewReporter"
 status: open
 priority: 3
-parent: 00000
 ---
 
 ## Problem

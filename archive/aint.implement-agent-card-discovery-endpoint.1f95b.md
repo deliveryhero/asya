@@ -2,7 +2,6 @@
 title: Implement Agent Card discovery endpoint
 status: merged
 priority: 2
-parent: emmc5
 tags:
   - pr:202
 ---
@@ -41,5 +40,4 @@ Add GET /.well-known/a2a/agent-card endpoint that returns the Agent Card JSON.
 - Integration test for endpoint accessibility
 
 
----
 _Migrated from beads `asya-4c1`_

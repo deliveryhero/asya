@@ -2,7 +2,6 @@
 title: "Crossplane + Injector: resiliency config in XRD and ASYA_RESILIENCY_* env injection"
 status: merged
 priority: 2
-parent: s62ja
 dependencies:
   - 1f6f
   - 1fez
@@ -26,9 +25,7 @@ Future: EnvironmentConfig flavors for reusable resiliency profiles.
 RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (Resiliency Configuration section)
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-ii5y`_

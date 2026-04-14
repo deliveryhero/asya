@@ -2,7 +2,6 @@
 title: "x-resume crew actor: load persisted message, merge input, continue route"
 status: merged
 priority: 2
-parent: hwek2
 dependencies:
   - 1kjv
 tags:

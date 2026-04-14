@@ -3,7 +3,6 @@ title: Policy-based error handling (timeout + policies + rules replaces nonRetry
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: v89t8
 dependencies:
   - p5py
 tags:

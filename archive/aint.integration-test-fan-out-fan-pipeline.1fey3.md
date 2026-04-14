@@ -2,7 +2,6 @@
 title: "Integration test: fan-out/fan-in pipeline"
 status: merged
 priority: 2
-parent: 4e5zh
 dependencies:
   - 1fci
   - 1i4x
@@ -60,5 +59,4 @@ Note: Aggregator compose service includes MinIO (S3-compatible) as the state bac
 - Fan-in RFC: `.aint/epics/1c7i.stateful-fan-fan-out/rfc.md`
 
 
----
 _Migrated from beads `asya-brq4`_

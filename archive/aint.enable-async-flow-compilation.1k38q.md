@@ -2,7 +2,6 @@
 title: Enable flow compilation for async actors
 status: rejected
 priority: 2
-parent: 00001
 dependencies:
   - 1fwj
 ---

@@ -2,7 +2,6 @@
 title: "Implement 01-single-agent: CrewAI"
 status: merged
 priority: 2
-parent: 00000
 ---
 
 Create minimal working single-agent example using CrewAI.
@@ -22,9 +21,7 @@ References:
 Epic: asya-6wv
 
 
----
 **Close reason**: Pattern 01 (Single Agent) implemented with working examples
 
 
----
 _Migrated from beads `asya-ohg`_

@@ -2,18 +2,6 @@
 title: Stateful Fan-In/Fan-Out
 status: merged
 priority: 2
-children:
-  - 1f0ek
-  - 1f0rh
-  - 1fci2
-  - 1fey3
-  - 1fr75
-  - 1frob
-  - 1i4xr
-  - 1i9ob
-  - 1ih5b
-  - 1iszt
-  - 1fely
 ---
 
 ## Summary

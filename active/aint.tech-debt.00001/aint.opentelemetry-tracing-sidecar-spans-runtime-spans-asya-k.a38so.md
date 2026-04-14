@@ -2,7 +2,6 @@
 title: "OpenTelemetry tracing: sidecar spans, runtime spans, asya k trace CLI"
 status: open
 priority: 1
-parent: 00001
 ---
 
 ## Problem

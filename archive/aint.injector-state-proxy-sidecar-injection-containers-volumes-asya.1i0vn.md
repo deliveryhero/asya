@@ -2,7 +2,6 @@
 title: "Injector: State proxy sidecar injection (containers, volumes, ASYA_STATE_PROXY_MOUNTS)"
 status: merged
 priority: 1
-parent: g5bkc
 tags:
   - pr:195
 ---

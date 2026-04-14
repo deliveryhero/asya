@@ -2,7 +2,6 @@
 title: "Test: create async flow example fixtures (ADK-based)"
 status: merged
 priority: 1
-parent: 00000
 ---
 
 Create example async flow .py files for testing the agentic flow compiler. All examples based on real ADK patterns.
@@ -59,9 +58,7 @@ Nested await in conditional branches:
 - RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 9.2
 
 
----
 **Close reason**: Implemented in PR #174 - 5 async flow fixtures + pre-commit exclusions
 
 
----
 _Migrated from beads `asya-fudp`_

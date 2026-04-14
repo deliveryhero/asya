@@ -2,7 +2,6 @@
 title: "Refactor: Unify injected mounts under /opt/asya directory"
 status: open
 priority: 2
-parent: 00001
 tags:
   - type:feature
 ---
@@ -92,5 +91,4 @@ Consolidate all operator-injected volumes and mounts under a single reserved dir
 - [ ] XRD validation updated
 
 
----
 _Migrated from beads `asya-kny`_

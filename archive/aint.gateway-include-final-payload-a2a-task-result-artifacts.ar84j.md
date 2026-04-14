@@ -3,7 +3,6 @@ title: "Gateway: include final payload in A2A task result (artifacts)"
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: ezpsa
 tags:
   - worktree:.worktrees/observability-initial/ar84.gateway-include-final-payload-a2a-task-result-artifacts
   - branch:observability-initial/ar84.gateway-include-final-payload-a2a-task-result-artifacts

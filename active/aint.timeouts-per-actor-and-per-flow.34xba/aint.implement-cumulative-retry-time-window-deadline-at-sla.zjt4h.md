@@ -2,7 +2,6 @@
 title: Implement cumulative retry time window (deadline_at SLA enforcement)
 status: open
 priority: 2
-parent: 34xba
 ---
 
 ## Problem

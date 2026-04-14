@@ -2,7 +2,6 @@
 title: Escalation action for actor-driven loop termination
 status: open
 priority: 3
-parent: 7b55c
 tags:
   - type:feature
 ---

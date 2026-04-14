@@ -2,7 +2,6 @@
 title: Wire a2a-go handler with Agent Card and endpoint layout
 status: merged
 priority: 2
-parent: emmc5
 dependencies:
   - 1qn6
   - 1qx7

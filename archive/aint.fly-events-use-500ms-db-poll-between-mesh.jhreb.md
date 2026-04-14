@@ -3,7 +3,6 @@ title: Ephemeral FLY streaming via PG LISTEN/NOTIFY with A2A artifact chunking
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/debt/jhre.fly-events-use-500ms-db-poll-between-mesh
   - branch:debt/jhre.fly-events-use-500ms-db-poll-between-mesh

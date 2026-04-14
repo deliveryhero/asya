@@ -2,7 +2,6 @@
 title: Refactor XRD status fields for transport-agnostic design
 status: merged
 priority: 3
-parent: h0mji
 dependencies:
   - 1fea
 ---
@@ -79,7 +78,6 @@ status:
 - [ ] Existing SQS users unaffected (backward compatible)
 
 
----
 ## Notes
 
 ## Scheduling Note
@@ -95,9 +93,7 @@ Date: 2026-02-05
 Rationale: YAGNI - Phase 1 only needs SQS. Adding abstraction now would delay stabilization without immediate benefit. The breaking change risk is manageable since we're still in v1alpha1.
 
 
----
 **Close reason**: PR #151 created: transport-agnostic status fields added to XRD
 
 
----
 _Migrated from beads `asya-mia`_

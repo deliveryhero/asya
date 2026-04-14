@@ -2,7 +2,6 @@
 title: "Phase 4.0: Update quickstart docs for Crossplane setup"
 status: merged
 priority: 2
-parent: h0mji
 dependencies:
   - 1fm4
 ---
@@ -43,9 +42,7 @@ Update the quickstart documentation to reflect the new Crossplane + Webhook arch
 See docs/rfc/rfc-crossplane.md Section 9
 
 
----
 **Close reason**: Quickstart docs created and validated in README_CROSSPLANE.md, fixes applied in d2198ae
 
 
----
 _Migrated from beads `asya-k3v`_

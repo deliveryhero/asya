@@ -3,7 +3,6 @@ title: Implement socket transport in sidecar for local testing (Docker Compose +
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 tags:
   - worktree:.worktrees/asya-lab/cavw.implement-socket-transport-sidecar-docker-compose-local-testing
   - branch:asya-lab/cavw.implement-socket-transport-sidecar-docker-compose-local-testing

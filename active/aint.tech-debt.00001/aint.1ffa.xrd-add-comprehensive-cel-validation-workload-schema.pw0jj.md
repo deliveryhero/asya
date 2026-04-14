@@ -2,7 +2,6 @@
 title: "XRD: Add comprehensive CEL validation for workload schema"
 status: open
 priority: 3
-parent: 00001
 tags:
   - type:feature
 ---
@@ -68,5 +67,4 @@ x-kubernetes-validations:
 - [ ] Documentation updated
 
 
----
 _Migrated from beads `asya-tiz`_

@@ -2,7 +2,6 @@
 title: "Phase 2.6: Test webhook injection with sample workloads"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1fju
   - 1f7o
@@ -39,9 +38,7 @@ Create integration tests for the webhook injection flow.
 See docs/rfc/rfc-crossplane.md Section 9 (Phase 2)
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-c19`_

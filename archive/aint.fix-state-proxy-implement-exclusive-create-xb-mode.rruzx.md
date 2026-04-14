@@ -3,7 +3,6 @@ title: "fix(state-proxy): implement exclusive create (xb mode) in server and CAS
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: 00001
 tags:
   - worktree:.worktrees/.worktrees/debt/rruz.fix-state-proxy-implement-exclusive-create-xb-mode
   - branch:debt/rruz.fix-state-proxy-implement-exclusive-create-xb-mode

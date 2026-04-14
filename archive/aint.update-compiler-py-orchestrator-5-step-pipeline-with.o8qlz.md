@@ -2,7 +2,6 @@
 title: "Update compiler.py orchestrator: 5-step pipeline with AsyaProject integration"
 status: rejected
 priority: 1
-parent: pj0fo
 dependencies:
   - qnyz
   - p2d0

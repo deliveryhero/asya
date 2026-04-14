@@ -2,7 +2,6 @@
 title: Runtime FLY helpers (fly_text, fly_status)
 status: merged
 priority: 2
-parent: emmc5
 ---
 
 ## Objective

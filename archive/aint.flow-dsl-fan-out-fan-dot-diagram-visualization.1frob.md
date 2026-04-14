@@ -2,7 +2,6 @@
 title: "Flow DSL: fan-out/fan-in dot diagram visualization"
 status: merged
 priority: 3
-parent: 4e5zh
 dependencies:
   - 1ih5
 tags:
@@ -52,5 +51,4 @@ Extend the dot diagram generator to visualize fan-out/fan-in patterns. Show the 
 - RFC: docs/rfc/fan-in/rfc-fan-in.md (Flow DSL Examples)
 
 
----
 _Migrated from beads `asya-dulv`_

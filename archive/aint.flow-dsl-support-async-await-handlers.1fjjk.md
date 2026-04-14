@@ -2,7 +2,6 @@
 title: "Flow DSL: Support async/await handlers"
 status: merged
 priority: 1
-parent: 00000
 tags:
   - type:feature
 ---
@@ -56,5 +55,4 @@ async def pipeline(state: dict) -> dict:
 - ADK LLM Auditor: validated reference example
 
 
----
 _Migrated from beads `asya-pec`_

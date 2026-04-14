@@ -2,7 +2,6 @@
 title: "Call-site decorator application: actor(handler)(p) pattern"
 status: merged
 priority: 2
-parent: drsjr
 tags:
   - pr:280
   - pr:329

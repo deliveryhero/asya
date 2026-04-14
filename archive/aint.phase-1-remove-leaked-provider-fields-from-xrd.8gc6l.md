@@ -3,7 +3,6 @@ title: "Phase 1: Remove leaked provider fields from XRD"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: ip3ls
 dependencies:
   - u5pd
 tags:

@@ -3,7 +3,6 @@ title: "Unify terminology: task=A2A, tool=MCP, envelope=mesh"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: 00000
 tags:
   - worktree:.worktrees/misc/oihm.unify-terminology-task-a2a-tool-mcp-envelope-mesh
   - branch:misc/oihm.unify-terminology-task-a2a-tool-mcp-envelope-mesh

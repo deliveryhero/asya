@@ -2,7 +2,6 @@
 title: Allow arbitrary flow parameter name beyond p/payload/state
 status: merged
 priority: 1
-parent: drsjr
 reason: "Implemented: removed VALID_PARAM_NAMES whitelist, any param name accepted"
 ---
 

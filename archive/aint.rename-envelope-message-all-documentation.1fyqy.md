@@ -2,7 +2,6 @@
 title: Rename Envelope→Message in all documentation
 status: merged
 priority: 2
-parent: 00000
 ---
 
 Update all documentation to use 'message' instead of 'envelope':
@@ -15,9 +14,7 @@ Update all documentation to use 'message' instead of 'envelope':
 Ensure consistency across all .md files.
 
 
----
 **Close reason**: Completed as part of the envelope→message/task rename PR
 
 
----
 _Migrated from beads `asya-jkw`_

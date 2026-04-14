@@ -2,7 +2,6 @@
 title: "Checklist: compositionSelector required on all AsyncActor manifests"
 status: merged
 priority: 3
-parent: kbh83
 tags:
   - pr:197
 reason: "PR #197 merged: compositionSelector now auto-injected by webhook from spec.transport — manual checklist superseded by injector automation"
@@ -26,5 +25,4 @@ Pattern:
 Learned from PR #161 (RabbitMQ Crossplane composition) where missing selectors caused flaky E2E failures.
 
 
----
 _Migrated from beads `asya-yje0`_

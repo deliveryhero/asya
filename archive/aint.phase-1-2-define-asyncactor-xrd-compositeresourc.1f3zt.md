@@ -2,7 +2,6 @@
 title: "Phase 1.2: Define AsyncActor XRD (CompositeResourceDefinition)"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1f2u
 ---
@@ -43,9 +42,7 @@ Create the Crossplane CompositeResourceDefinition (XRD) that defines the AsyncAc
 See docs/rfc/rfc-crossplane.md Section 4 (AsyncActor XRD)
 
 
----
 **Close reason**: Phase 1 Foundation complete: Crossplane v2.1 installed with providers, XRD created, SQS Composition working with LocalStack
 
 
----
 _Migrated from beads `asya-0l0`_

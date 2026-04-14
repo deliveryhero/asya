@@ -2,7 +2,6 @@
 title: "Gateway: POST /a2a/tasks/{id}:pause external pause endpoint"
 status: merged
 priority: 2
-parent: hwek2
 dependencies:
   - 1kmp
 tags:

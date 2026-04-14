@@ -3,7 +3,6 @@ title: "Phase 2: MCP API key authentication"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: kchkv
 tags:
   - worktree:.worktrees/agentic-security/b51i.phase-2-mcp-api-key-authentication
   - branch:agentic-security/b51i.phase-2-mcp-api-key-authentication

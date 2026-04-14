@@ -2,7 +2,6 @@
 title: "x-sump: emit OpenTelemetry metrics for hook outcomes"
 status: open
 priority: 3
-parent: 00001
 ---
 
 ## Context

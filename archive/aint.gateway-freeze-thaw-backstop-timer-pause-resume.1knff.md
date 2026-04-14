@@ -2,7 +2,6 @@
 title: "Gateway: freeze/thaw backstop timer on pause/resume"
 status: merged
 priority: 2
-parent: hwek2
 dependencies:
   - 1kmp
 tags:

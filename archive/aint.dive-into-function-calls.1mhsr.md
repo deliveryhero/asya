@@ -2,7 +2,6 @@
 title: Allow compiler to dive into functions
 status: merged
 priority: 2
-parent: drsjr
 tags:
   - worktree:.worktrees/1mhs/1mhs04.dive-into-function-calls
   - branch:1mhs/1mhs04.dive-into-function-calls

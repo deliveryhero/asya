@@ -2,7 +2,6 @@
 title: "Phase 1.1: Install Crossplane and providers in Kind cluster"
 status: merged
 priority: 1
-parent: h0mji
 ---
 
 Set up Crossplane infrastructure in the Kind test cluster for development and testing.
@@ -35,9 +34,7 @@ Set up Crossplane infrastructure in the Kind test cluster for development and te
 See docs/rfc/rfc-crossplane.md Section 9 (Phase 1)
 
 
----
 **Close reason**: Phase 1 Foundation complete: Crossplane v2.1 installed with providers, XRD created, SQS Composition working with LocalStack
 
 
----
 _Migrated from beads `asya-sd1`_

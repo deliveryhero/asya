@@ -3,7 +3,6 @@ title: "Flow compiler: support single-actor flows without start router"
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: n6g6h
 tags:
   - worktree:.worktrees/asya-lab/zmuh.flow-compiler-support-single-actor-flows-without-start
   - branch:asya-lab/zmuh.flow-compiler-support-single-actor-flows-without-start

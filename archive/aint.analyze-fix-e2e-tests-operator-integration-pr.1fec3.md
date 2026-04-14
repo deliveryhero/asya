@@ -2,7 +2,6 @@
 title: Analyze and fix E2E tests + operator integration in PR
 status: merged
 priority: 2
-parent: 00000
 ---
 
 # PR #89 Analysis: KEDA 2.17.3 Bump - E2E & Operator Integration Failures
@@ -104,15 +103,12 @@ The PR upgrades k8s.io/api to 0.32.2 but testing/integration/operator/go.mod sti
 Both are related to KEDA 2.17.3 but manifest differently.
 
 
----
 ## Notes
 
 Previous fix attempt pushed to rfc0 instead of PR branches. Need to redo with correct git worktree branches.
 
 
----
 **Close reason**: All E2E test failures fixed and verified passing on remote CI
 
 
----
 _Migrated from beads `asya-a92`_

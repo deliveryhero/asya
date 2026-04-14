@@ -3,7 +3,6 @@ title: Cover all A2A with e2e tests
 status: merged
 priority: 2
 assignee: Artem Yushkovskiy
-parent: emmc5
 tags:
   - worktree:.worktrees/a2a-protocol-compliance-gateway/0s9s.e2e-for-a2a
   - branch:a2a-protocol-compliance-gateway/0s9s.e2e-for-a2a

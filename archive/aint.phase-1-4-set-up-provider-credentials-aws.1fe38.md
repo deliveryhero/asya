@@ -2,7 +2,6 @@
 title: "Phase 1.4: Set up provider credentials (AWS/LocalStack)"
 status: merged
 priority: 1
-parent: h0mji
 dependencies:
   - 1f2u
 ---
@@ -36,9 +35,7 @@ Configure Crossplane provider credentials for AWS (LocalStack in testing, real A
 See docs/rfc/rfc-crossplane.md Section 9 (Phase 1)
 
 
----
 **Close reason**: Phase 1 Foundation complete: Crossplane v2.1 installed with providers, XRD created, SQS Composition working with LocalStack
 
 
----
 _Migrated from beads `asya-9q0`_

@@ -2,7 +2,6 @@
 title: "Phase 2.1: Create asya-injector project structure"
 status: merged
 priority: 1
-parent: h0mji
 ---
 
 Bootstrap the asya-injector Go project for the mutating admission webhook.
@@ -39,9 +38,7 @@ Bootstrap the asya-injector Go project for the mutating admission webhook.
 See docs/rfc/rfc-crossplane.md Section 6 (Mutating Webhook)
 
 
----
 **Close reason**: Closed
 
 
----
 _Migrated from beads `asya-p39`_

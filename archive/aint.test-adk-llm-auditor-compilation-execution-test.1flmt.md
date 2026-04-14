@@ -2,7 +2,6 @@
 title: "Test: ADK LLM Auditor compilation and execution test"
 status: merged
 priority: 1
-parent: 7b55c
 tags:
   - worktree:.worktrees/1c8d/1flmd6.test-adk-llm-auditor-compilation-execution-test
   - branch:1c8d/1flmd6.test-adk-llm-auditor-compilation-execution-test
@@ -52,5 +51,4 @@ testing/component/flow-compiler/tests/test_adk_llm_auditor.py
 - RFC Section 9.2 Test Cases 1-2
 
 
----
 _Migrated from beads `asya-yfv1`_

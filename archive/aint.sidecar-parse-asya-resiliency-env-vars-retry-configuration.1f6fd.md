@@ -2,7 +2,6 @@
 title: "Sidecar: parse ASYA_RESILIENCY_* env vars for retry configuration"
 status: merged
 priority: 2
-parent: s62ja
 ---
 
 Add resiliency configuration parsing to the sidecar in src/asya-sidecar/internal/config/.
@@ -27,9 +26,7 @@ Unit tests: test parsing, validation, edge cases.
 RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md (Resiliency Configuration section)
 
 
----
 **Close reason**: Implemented ResiliencyConfig parsing with 12 new unit tests
 
 
----
 _Migrated from beads `asya-na6q`_

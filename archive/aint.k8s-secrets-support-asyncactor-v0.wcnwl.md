@@ -3,7 +3,6 @@ title: K8s Secrets support for AsyncActor (v0)
 status: merged
 priority: 1
 assignee: Artem Yushkovskiy
-parent: kchkv
 dependencies:
   - 1fuy
 tags:
@@ -64,7 +63,6 @@ at pod admission time and handles `secretRefs` entirely in the webhook layer.
 - Unit tests for injector webhook secret injection logic
 - Unit tests for secretRefs parsing from AsyncActor CR
 
----
 
 ## Implementation Plan
 
@@ -121,7 +119,6 @@ git add src/asya-injector/internal/injection/config.go
 git commit -m "feat(injector): add SecretRef types to ActorConfig [wcnw]"
 ```
 
----
 
 ### Task 2 — Parse spec.secretRefs in extractActorConfig
 
@@ -226,7 +223,6 @@ git add src/asya-injector/internal/webhook/asyncactor.go \
 git commit -m "feat(injector): parse spec.secretRefs from AsyncActor CR [wcnw]"
 ```
 
----
 
 ### Task 3 — Inject secretKeyRef env vars into runtime container
 
@@ -361,7 +357,6 @@ git add src/asya-injector/internal/injection/inject.go \
 git commit -m "feat(injector): inject secretKeyRef env vars into runtime container [wcnw]"
 ```
 
----
 
 ### Task 4 — Add spec.secretRefs to XRD schema
 
@@ -411,7 +406,6 @@ git add deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml
 git commit -m "feat(xrd): add spec.secretRefs schema to AsyncActor XRD [wcnw]"
 ```
 
----
 
 ### Task 5 — Run all unit tests and lint
 

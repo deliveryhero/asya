@@ -2,7 +2,6 @@
 title: Blocking mode for SendMessage
 status: merged
 priority: 2
-parent: emmc5
 ---
 
 ## Objective

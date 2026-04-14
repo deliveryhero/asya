@@ -2,7 +2,6 @@
 title: Support per-error-type retry counts in resiliency config
 status: open
 priority: 3
-parent: 00001
 ---
 
 ## Context

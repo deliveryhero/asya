@@ -2,7 +2,6 @@
 title: Implement s3-passthrough connector (streaming)
 status: merged
 priority: 2
-parent: g5bkc
 dependencies:
   - 1iph
 tags:
