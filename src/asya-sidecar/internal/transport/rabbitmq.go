@@ -294,8 +294,9 @@ func (t *RabbitMQTransport) Receive(ctx context.Context, queueName string) (Queu
 		var err error
 
 		for attempt := 0; attempt < maxRetries; attempt++ {
-			// Recreate channel if it was closed by a previous failed attempt
-			if t.amqpChannel != nil && t.amqpChannel.IsClosed() {
+			// Recreate channel if closed by a previous failed attempt (e.g. 404 kills the AMQP channel).
+			// Also handles nil amqpChannel after a reconnect sets it to nil.
+			if t.amqpConn != nil && (t.amqpChannel == nil || t.amqpChannel.IsClosed()) {
 				newCh, chErr := t.conn.Channel()
 				if chErr != nil {
 					slog.Warn("Failed to recreate channel during retry",
