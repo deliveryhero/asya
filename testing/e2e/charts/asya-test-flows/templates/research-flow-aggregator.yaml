@@ -11,7 +11,7 @@
 {{- $sp := .Values.stateProxy }}
 {{- $connectorImage := dict "val" (dig "connector" "image" "" $sp) }}
 {{- if not $connectorImage.val }}
-  {{- if eq $sp.backend "s3" }}
+  {{- if or (eq $sp.backend "s3") (eq $sp.backend "minio") }}
     {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:dev" }}
   {{- else if eq $sp.backend "gcs" }}
     {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:dev" }}
