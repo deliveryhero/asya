@@ -201,6 +201,20 @@ helm install crossplane crossplane-stable/crossplane \
   --namespace crossplane-system --create-namespace
 ```
 
+> **Custom namespace**: If you install Crossplane in a namespace other than
+> `crossplane-system` (e.g. `asya-system`), you must grant the Kubernetes
+> provider cross-namespace access. After the provider is Healthy, create a
+> ClusterRoleBinding:
+>
+> ```bash
+> kubectl create clusterrolebinding provider-kubernetes-admin \
+>   --clusterrole=cluster-admin \
+>   --serviceaccount=<YOUR_NAMESPACE>:provider-kubernetes
+> ```
+>
+> Without this, the provider cannot create Deployments in actor namespaces
+> and AsyncActors will remain in `Creating` state.
+
 ### 2. Configure Crossplane Values
 
 ```yaml
@@ -209,11 +223,14 @@ providers:
   aws:
     enabled: true   # opt-in: disabled by default
 
+awsRegion: us-east-1
+awsAccountId: "123456789012"   # required for KEDA SQS trigger queue URLs
+actorNamespace: default        # namespace where AsyncActors will be created
+
 irsa:
   enabled: true     # opt-in: disabled by default
-  roleArnPattern: "arn:aws:iam::ACCOUNT_ID:role/asya-actors-{namespace}"
+  roleArnPattern: "arn:aws:iam::123456789012:role/asya-actors-{namespace}"
 
-awsRegion: us-east-1
 awsProviderConfig:
   name: default
   credentialsSource: Secret
@@ -351,6 +368,33 @@ kubectl get pods -l asya.sh/actor=my-actor
 aws sqs list-queues | grep asya-my-actor
 kubectl get sqsqueue
 ```
+
+## Troubleshooting
+
+### ProviderConfig CRD not found during install
+
+The chart uses a two-step install. If you see `no matches for kind "ProviderConfig"`,
+install with `--set providerConfigs.install=false` first, wait for providers, then
+upgrade with `providerConfigs.install=true`. See Step 3 above.
+
+### AsyncActor stuck in Creating
+
+Check the Crossplane Object resource for RBAC errors:
+
+```bash
+kubectl get objects.kubernetes.crossplane.io -l crossplane.io/composite=$(
+  kubectl get asyncactor <name> -n <ns> -o jsonpath='{.spec.resourceRef.name}'
+) -o yaml | grep -A5 "message:"
+```
+
+If you see `"deployments" is forbidden`, the Kubernetes provider needs cross-namespace
+RBAC. See the note under Step 1 above.
+
+### RabbitMQ: sidecar stuck in backoff
+
+Known issue (#384): if the RabbitMQ queue does not exist when the sidecar starts, the
+AMQP channel breaks on the first 404 and subsequent retries cannot recover. Restart
+the pod after the queue is created. Fix tracked in #372 and #384.
 
 ## Cost Optimization
 
