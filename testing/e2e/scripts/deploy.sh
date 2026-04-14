@@ -114,7 +114,7 @@ time {
   FUNCTION_BUILD_PID=$!
 
   # Build state-proxy connector image for the active profile
-  if [[ "$PROFILE" == "sqs-s3" ]]; then
+  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "rabbitmq-minio" ]]; then
     echo "[.] Building state-proxy S3 connector image..."
     docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3-buffered-lww:dev" \
       -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-buffered-lww" \
@@ -212,7 +212,7 @@ time {
     "asya-testing:latest"
   )
 
-  if [[ "$PROFILE" == "sqs-s3" ]]; then
+  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "rabbitmq-minio" ]]; then
     IMAGES_TO_LOAD+=("asya-state-proxy-s3-buffered-lww:dev")
   elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
     IMAGES_TO_LOAD+=("asya-state-proxy-gcs-buffered-lww:dev")
