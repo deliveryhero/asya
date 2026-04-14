@@ -15,7 +15,7 @@ Only aints have IDs. Supporting files (rfc.md, adr.*.md, etc.) are free-format.
 - **Aint file:** `aint.{slug}.{id}.md` (e.g., `aint.fix-auth.ab12c.md`)
 - **Aint directory:** `aint.{slug}.{id}/` with `aint.md` inside
 - **Supporting files:** free-format, no IDs (e.g., `rfc.md`, `adr.nats-over-pg.md`)
-- **IDs:** 5-char base-36 random (`[0-9a-z]`)
+- **IDs:** 4-char base-36 random (`[0-9a-z]`)
 - **Slug:** human-readable, any chars except `.`
 
 ## Statuses
@@ -99,7 +99,7 @@ tags:
 
 ## References
 
-- Bare 5-char ID: `ab12c`
+- Bare 4-char ID: `ab12c`
 - All commands accept bare IDs
 
 ## Current Project State
