@@ -1,7 +1,7 @@
 ---
 title: Enable Observability for KubeCon Demo
-status: working
-priority: 1
+status: merged
+priority: 1 # high
 assignee: Artem Yushkovskiy
 tags:
   - type:feature
@@ -9,6 +9,7 @@ tags:
   - worktree:.worktrees/observability-initial/ldx4.enable-observability-kubecon-demo
   - branch:observability-initial/ldx4.enable-observability-kubecon-demo
 ---
+
 
 ## Context
 
