@@ -1,0 +1,59 @@
+version: 2
+updates:
+- package-ecosystem: "gomod"
+  directories:
+  - "/src/asya-sidecar"
+  - "/src/asya-gateway"
+  - "/src/asya-crew/cmd/dlq-worker"
+  - "/src/asya-crew/cmd/scaler-pubsub"
+  - "/src/function-asya-flavors"
+  - "/testing/integration/sidecar"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+  groups:
+    go-opentelemetry:
+      patterns:
+      - "go.opentelemetry.io/*"
+    go-aws-sdk:
+      patterns:
+      - "github.com/aws/aws-sdk-go-v2*"
+    go-google-cloud:
+      patterns:
+      - "cloud.google.com/go*"
+      - "google.golang.org/*"
+    go-minor-and-patch:
+      update-types:
+      - "minor"
+      - "patch"
+      exclude-patterns:
+      - "go.opentelemetry.io/*"
+      - "github.com/aws/aws-sdk-go-v2*"
+      - "cloud.google.com/go*"
+      - "google.golang.org/*"
+  open-pull-requests-limit: 5
+
+- package-ecosystem: "pip"
+  directories:
+  - "/src/asya-lab"
+  - "/src/asya-crew"
+  - "/src/asya-testing"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+  groups:
+    python-all:
+      patterns:
+      - "*"
+  open-pull-requests-limit: 3
+
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+  groups:
+    actions-all:
+      patterns:
+      - "*"
+  open-pull-requests-limit: 3
