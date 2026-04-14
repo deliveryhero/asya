@@ -9,7 +9,7 @@
 # The aggregator reads x-asya-fan-in header via ABI yield protocol
 # for fan-in coordination.
 {{- $sp := .Values.stateProxy }}
-{{- $connectorImage := dict "val" $sp.connector.image }}
+{{- $connectorImage := dict "val" (dig "connector" "image" "" $sp) }}
 {{- if not $connectorImage.val }}
   {{- if eq $sp.backend "s3" }}
     {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:dev" }}
