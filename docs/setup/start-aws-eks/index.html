@@ -2624,17 +2624,29 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class="w"> </span>crossplane-stable/crossplane<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--namespace<span class="w"> </span>crossplane-system<span class="w"> </span>--create-namespace
 </code></pre></div>
+<blockquote>
+<p><strong>Custom namespace</strong>: If you install Crossplane in a namespace other than
+<code>crossplane-system</code> (e.g. <code>asya-system</code>), set <code>crossplaneNamespace</code> in
+your <code>crossplane-values.yaml</code> (see Step 2). The chart creates the required
+ClusterRoleBinding automatically.</p>
+<p>Without this, the provider cannot create Deployments in actor namespaces
+and AsyncActors will remain in <code>Creating</code> state.</p>
+</blockquote>
 <h3 id="2-configure-crossplane-values">2. Configure Crossplane Values<a class="headerlink" href="#2-configure-crossplane-values" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># crossplane-values.yaml</span>
 <span class="nt">providers</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">aws</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># opt-in: disabled by default</span>
 
+<span class="nt">awsRegion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="nt">awsAccountId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;123456789012&quot;</span><span class="w">    </span><span class="c1"># required for KEDA SQS trigger queue URLs</span>
+<span class="nt">actorNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w">         </span><span class="c1"># namespace where AsyncActors will be created</span>
+<span class="c1"># crossplaneNamespace: asya-system  # set if Crossplane is not in crossplane-system</span>
+
 <span class="nt">irsa</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">     </span><span class="c1"># opt-in: disabled by default</span>
-<span class="w">  </span><span class="nt">roleArnPattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;arn:aws:iam::ACCOUNT_ID:role/asya-actors-{namespace}&quot;</span>
+<span class="w">  </span><span class="nt">roleArnPattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;arn:aws:iam::123456789012:role/asya-actors-{namespace}&quot;</span>
 
-<span class="nt">awsRegion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
 <span class="nt">awsProviderConfig</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
 <span class="w">  </span><span class="nt">credentialsSource</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
@@ -2741,6 +2753,23 @@ kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> <
 aws<span class="w"> </span>sqs<span class="w"> </span>list-queues<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>asya-my-actor
 kubectl<span class="w"> </span>get<span class="w"> </span>sqsqueue
 </code></pre></div>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">#</a></h2>
+<h3 id="providerconfig-crd-not-found-during-install">ProviderConfig CRD not found during install<a class="headerlink" href="#providerconfig-crd-not-found-during-install" title="Permanent link">#</a></h3>
+<p>The chart uses a two-step install. If you see <code>no matches for kind "ProviderConfig"</code>,
+install with <code>--set providerConfigs.install=false</code> first, wait for providers, then
+upgrade with <code>providerConfigs.install=true</code>. See Step 3 above.</p>
+<h3 id="asyncactor-stuck-in-creating">AsyncActor stuck in Creating<a class="headerlink" href="#asyncactor-stuck-in-creating" title="Permanent link">#</a></h3>
+<p>Check the Crossplane Object resource for RBAC errors:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>objects.kubernetes.crossplane.io<span class="w"> </span>-l<span class="w"> </span>crossplane.io/composite<span class="o">=</span><span class="k">$(</span>
+<span class="w">  </span>kubectl<span class="w"> </span>get<span class="w"> </span>asyncactor<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;ns&gt;<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.spec.resourceRef.name}&#39;</span>
+<span class="k">)</span><span class="w"> </span>-o<span class="w"> </span>yaml<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-A5<span class="w"> </span><span class="s2">&quot;message:&quot;</span>
+</code></pre></div>
+<p>If you see <code>"deployments" is forbidden</code>, set <code>crossplaneNamespace</code> in your values to
+match the namespace where Crossplane is installed. See the note under Step 1 above.</p>
+<h3 id="rabbitmq-sidecar-stuck-in-backoff">RabbitMQ: sidecar stuck in backoff<a class="headerlink" href="#rabbitmq-sidecar-stuck-in-backoff" title="Permanent link">#</a></h3>
+<p>Known issue (#384): if the RabbitMQ queue does not exist when the sidecar starts, the
+AMQP channel breaks on the first 404 and subsequent retries cannot recover. Restart
+the pod after the queue is created. Fix tracked in #372 and #384.</p>
 <h2 id="cost-optimization">Cost Optimization<a class="headerlink" href="#cost-optimization" title="Permanent link">#</a></h2>
 <ul>
 <li>Use Spot Instances for GPU nodes</li>
@@ -3974,6 +4003,34 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             data-active="false" data-depth="2">
             Verification
         </a>
+        
+
+        
+        <a href="#troubleshooting"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Troubleshooting
+        </a>
+        
+        
+        <a href="#providerconfig-crd-not-found-during-install"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            ProviderConfig CRD not found during install
+        </a>
+        
+        <a href="#asyncactor-stuck-in-creating"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            AsyncActor stuck in Creating
+        </a>
+        
+        <a href="#rabbitmq-sidecar-stuck-in-backoff"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            RabbitMQ: sidecar stuck in backoff
+        </a>
+        
         
 
         
