@@ -392,10 +392,10 @@ releases:
       - s3
       {{- end }}
       {{- if .Values.transport.rabbitmq.enabled }}
-      - rabbitmq
+      - {{ .Values.namespace | default "asya-e2e" }}/rabbitmq
       {{- end }}
       {{- if .Values.storage.minio.enabled }}
-      - minio
+      - {{ .Values.namespace | default "asya-e2e" }}/minio
       {{- end }}
       {{- if .Values.transport.pubsub.enabled }}
       - pubsub
