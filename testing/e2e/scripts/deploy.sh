@@ -114,7 +114,7 @@ time {
   FUNCTION_BUILD_PID=$!
 
   # Build state-proxy connector image for the active profile
-  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "rabbitmq-minio" ]]; then
+  if [[ "$PROFILE" == "sqs-s3" ]]; then
     echo "[.] Building state-proxy S3 connector image..."
     docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3-buffered-lww:dev" \
       -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-buffered-lww" \
@@ -169,10 +169,10 @@ time {
   helm repo update crossplane-stable > /dev/null 2>&1
   helm upgrade --install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace \
-    --set 'args={--max-reconcile-rate=100,--poll-interval=10s}' \
+    --set 'args={--max-reconcile-rate=50,--poll-interval=10s}' \
     --set resourcesCrossplane.limits.cpu=2000m \
     --set resourcesCrossplane.limits.memory=2Gi \
-    --set resourcesCrossplane.requests.cpu=1000m \
+    --set resourcesCrossplane.requests.cpu=500m \
     --wait --timeout 5m > /dev/null 2>&1
 
   echo "[.] Waiting for Crossplane pods..."
@@ -212,7 +212,7 @@ time {
     "asya-testing:latest"
   )
 
-  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "rabbitmq-minio" ]]; then
+  if [[ "$PROFILE" == "sqs-s3" ]]; then
     IMAGES_TO_LOAD+=("asya-state-proxy-s3-buffered-lww:dev")
   elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
     IMAGES_TO_LOAD+=("asya-state-proxy-gcs-buffered-lww:dev")
@@ -511,17 +511,6 @@ time {
 }
 echo
 
-# Wait for function pods to be ready (Healthy status means package installed, not pod ready)
-echo "[.] Waiting for Crossplane function/provider pods to be ready..."
-if ! kubectl wait --for=condition=Ready pod \
-  -l pkg.crossplane.io/revision --all-namespaces --timeout=120s 2> /dev/null; then
-  echo "[!] Warning: Some Crossplane pods may not be ready"
-  kubectl get pods --all-namespaces -l pkg.crossplane.io/revision || true
-else
-  echo "[+] All Crossplane function/provider pods ready"
-fi
-echo
-
 # Phase 6b: Install ProviderConfigs (CRDs now available after providers are healthy)
 echo "[.] Phase 6b: Installing Crossplane ProviderConfigs..."
 time {
@@ -557,15 +546,32 @@ time {
 }
 echo
 
-# Phase 7b: Wait for XR creation before entering the reconciliation wait loop.
-# Crossplane needs a moment to create XRs from the claims Helm just deployed.
-echo "[.] Phase 7b: Waiting for XRs to be created..."
-if ! kubectl wait --for=jsonpath='{.metadata.name}' xasyncactors \
-  -l "crossplane.io/claim-namespace=$NAMESPACE" --timeout=60s > /dev/null 2>&1; then
-  echo "[!] Warning: XRs may not be created yet"
-fi
-XR_COUNT=$(kubectl get xasyncactors -l "crossplane.io/claim-namespace=$NAMESPACE" --no-headers 2> /dev/null | wc -l)
-echo "[+] $XR_COUNT XRs exist, proceeding to reconciliation wait"
+# Phase 7b: Stagger XR reconciliation to break backoff synchronization
+#
+# All actors are created simultaneously by Helm, so their poll timers all
+# start at t=0. Without staggering, every 10s poll fires for all 40+ actors
+# at once. Each annotation triggers an immediate reconcile which resets the
+# actor's poll timer to (annotation_time + poll-interval), spreading them
+# across different poll windows. 1s sleep between actors × 40 actors = 40s
+# of spread — more than enough to desynchronize the 10s poll cycles.
+echo "[.] Phase 7b: Staggering actor reconciliation..."
+time {
+  # Allow Crossplane a moment to create XRs from the claims we just deployed
+  sleep 5
+
+  STAGGER_COUNT=0
+  while IFS= read -r xr; do
+    [ -z "$xr" ] && continue
+    kubectl annotate "$xr" "asya.sh/stagger=$(date +%s%N)" \
+      --overwrite > /dev/null 2>&1
+    sleep 1
+    STAGGER_COUNT=$((STAGGER_COUNT + 1))
+  done < <(kubectl get xasyncactors \
+    -l "crossplane.io/claim-namespace=$NAMESPACE" \
+    --no-headers -o name 2> /dev/null | sort)
+
+  echo "[+] Staggered $STAGGER_COUNT actor XRs (1s apart)"
+}
 echo
 
 # Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
