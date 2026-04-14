@@ -511,6 +511,17 @@ time {
 }
 echo
 
+# Wait for function pods to be ready (Healthy status means package installed, not pod ready)
+echo "[.] Waiting for Crossplane function pods to be ready..."
+if ! kubectl wait --for=condition=Ready pod \
+  -l pkg.crossplane.io/revision -n asya-system --timeout=120s 2> /dev/null; then
+  echo "[!] Warning: Some function pods may not be ready"
+  kubectl get pods -n asya-system -l pkg.crossplane.io/revision || true
+else
+  echo "[+] All function pods ready"
+fi
+echo
+
 # Phase 6b: Install ProviderConfigs (CRDs now available after providers are healthy)
 echo "[.] Phase 6b: Installing Crossplane ProviderConfigs..."
 time {

@@ -286,13 +286,10 @@ jobs:
           profile: pubsub-gcs
           run_pipeline: true
           run_crossplane: true
-          # rabbitmq-minio: actors with flavors don't reconcile (function-asya-flavors
-          # blocks on "Waiting for flavor EnvironmentConfigs"). Tracked in #432.
-          # Integration tests (gateway-actors rabbitmq-minio) pass and cover transport.
-          # - name: rabbitmq-minio
-          #   profile: rabbitmq-minio
-          #   run_pipeline: true
-          #   run_crossplane: true
+        - name: rabbitmq-minio
+          profile: rabbitmq-minio
+          run_pipeline: true
+          run_crossplane: true
 
     steps:
     - uses: actions/checkout@v4
