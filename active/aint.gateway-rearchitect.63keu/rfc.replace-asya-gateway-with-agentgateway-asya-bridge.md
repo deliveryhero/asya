@@ -2,7 +2,6 @@
 title: "RFC: Replace asya-gateway with agentgateway + asya-dispatcher"
 status: open
 priority: 1
-parent: 63keu
 tags:
   - architecture
   - rfc
