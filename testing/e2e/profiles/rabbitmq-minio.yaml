@@ -36,13 +36,7 @@ crew:
   image:
     pullPolicy: Never
   persistence:
-    enabled: true
-    backend: s3
-    config:
-      bucket: asya-results
-      errorsBucket: asya-errors
-      endpoint: http://minio.asya-e2e.svc.cluster.local:9000
-      region: us-east-1
+    enabled: false
   x-sink:
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
