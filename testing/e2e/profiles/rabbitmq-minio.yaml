@@ -36,7 +36,15 @@ crew:
   image:
     pullPolicy: Never
   persistence:
-    enabled: false
+    enabled: true
+    backend: s3
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:dev
+    config:
+      bucket: asya-results
+      errorsBucket: asya-errors
+      endpoint: http://minio.asya-e2e.svc.cluster.local:9000
+      region: us-east-1
   x-sink:
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
