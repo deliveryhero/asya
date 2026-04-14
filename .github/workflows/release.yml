@@ -41,6 +41,7 @@ jobs:
           echo "::error::Tag '$TAG' does not match semver pattern vX.Y.Z"
           exit 1
         fi
+        git fetch --tags --quiet
         MAJOR=$(echo "$TAG" | cut -d. -f1 | tr -d 'v')
         PREV_TAG=$(git tag -l 'v*.*.*' | sort -V | grep -B1 "^${TAG}$" | head -1)
         PREV_MAJOR=$(echo "${PREV_TAG:-v0.0.0}" | cut -d. -f1 | tr -d 'v')
