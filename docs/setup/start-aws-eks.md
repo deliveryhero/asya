@@ -202,15 +202,9 @@ helm install crossplane crossplane-stable/crossplane \
 ```
 
 > **Custom namespace**: If you install Crossplane in a namespace other than
-> `crossplane-system` (e.g. `asya-system`), you must grant the Kubernetes
-> provider cross-namespace access. After the provider is Healthy, create a
-> ClusterRoleBinding:
->
-> ```bash
-> kubectl create clusterrolebinding provider-kubernetes-admin \
->   --clusterrole=cluster-admin \
->   --serviceaccount=<YOUR_NAMESPACE>:provider-kubernetes
-> ```
+> `crossplane-system` (e.g. `asya-system`), set `crossplaneNamespace` in
+> your `crossplane-values.yaml` (see Step 2). The chart creates the required
+> ClusterRoleBinding automatically.
 >
 > Without this, the provider cannot create Deployments in actor namespaces
 > and AsyncActors will remain in `Creating` state.
@@ -224,8 +218,9 @@ providers:
     enabled: true   # opt-in: disabled by default
 
 awsRegion: us-east-1
-awsAccountId: "123456789012"   # required for KEDA SQS trigger queue URLs
-actorNamespace: default        # namespace where AsyncActors will be created
+awsAccountId: "123456789012"    # required for KEDA SQS trigger queue URLs
+actorNamespace: default         # namespace where AsyncActors will be created
+# crossplaneNamespace: asya-system  # set if Crossplane is not in crossplane-system
 
 irsa:
   enabled: true     # opt-in: disabled by default
@@ -387,8 +382,8 @@ kubectl get objects.kubernetes.crossplane.io -l crossplane.io/composite=$(
 ) -o yaml | grep -A5 "message:"
 ```
 
-If you see `"deployments" is forbidden`, the Kubernetes provider needs cross-namespace
-RBAC. See the note under Step 1 above.
+If you see `"deployments" is forbidden`, set `crossplaneNamespace` in your values to
+match the namespace where Crossplane is installed. See the note under Step 1 above.
 
 ### RabbitMQ: sidecar stuck in backoff
 
