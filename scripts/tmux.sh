@@ -1,4 +1,5 @@
 #!/bin/sh
+# Description: Manage tmux sessions for aints
 subcmd="$1"; shift
 ref="$1"; shift 2>/dev/null
 

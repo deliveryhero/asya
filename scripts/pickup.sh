@@ -1,4 +1,5 @@
 #!/bin/sh
+# Description: Create worktree and start working on an aint
 ref="$1"
 [ -z "$ref" ] && { echo "usage: git aint pickup <ref>" >&2; exit 1; }
 
@@ -21,11 +22,11 @@ if [ ! -d "$wt_dir" ]; then
 fi
 
 # 4. update aint
-git aint update "$ref" --status active --add-tag "worktree:$wt_rel" --add-tag "branch:$branch" || exit 1
+git aint set "$ref" --status working --add-tag "worktree:$wt_rel" --add-tag "branch:$branch" || exit 1
 
 # 5. summary
 echo ""
 echo "Picked up [$ref] in $wt_dir"
 echo "  tmux:    $ git aint tmux attach $ref"
 echo "  exec:    $ git aint exec $ref -- git status"
-echo "  finish:  $ git aint merge $ref"
+echo "  finish:  $ git aint set $ref --status merged"

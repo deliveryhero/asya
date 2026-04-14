@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Description: Run themed health checks
 set -eu
 
 case "${1:-}" in
@@ -15,9 +16,6 @@ case "${1:-}" in
   tracking)
     shift; exec git aint doctor --only sync "$@"
     ;;
-  organized)
-    shift; exec git aint doctor --only descriptions,epic-files "$@"
-    ;;
   hygienic)
     shift; exec git aint doctor --only clean-worktrees,clean-branches,clean-tmux,clean-aints "$@"
     ;;
@@ -25,13 +23,13 @@ case "${1:-}" in
     shift; exec git aint init "$@"
     ;;
   helping)
-    shift; exec git aint list --stats "$@"
+    shift; exec git aint get --stats "$@"
     ;;
   working)
     shift; exec git aint doctor "$@"
     ;;
   "")
-    exec git aint doctor "$@"
+    echo "really what? elegant? tracking? hygeienic?! configured? helping? working??"
     ;;
   *)
     echo "error: unknown check '$1'" >&2

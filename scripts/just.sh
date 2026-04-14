@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Description: Read philosophy docs
 set -euo pipefail
 
 AINT_DIR="$(git rev-parse --show-toplevel)/.aint"
