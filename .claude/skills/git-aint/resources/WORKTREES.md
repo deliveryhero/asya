@@ -24,8 +24,8 @@ git aint pickup <ref>
 
 ### What it does
 
-1. **Creates a branch** named `{epic}/{task}.{task_slug}` (e.g. `{epic}/{task}.{task_slug}`)
-2. **Creates a worktree** in `.worktrees/{epic}/{task}.{task_slug}`
+1. **Creates a branch** named `{id}.{slug}` (e.g. `c9x8.fix-auth`)
+2. **Creates a worktree** in `.worktrees/c9x8.fix-auth`
 3. **Tags the aint** with `worktree:<worktree-path>` and `branch:<branch>`
 4. **Sets status** to `active`
 
@@ -35,11 +35,11 @@ git aint pickup <ref>
 $ git aint pickup c9x8
 
 # Result:
-# Branch:   {epic}/{task}.{task_slug}
-# Worktree: .worktrees/{epic}/{task}.{task_slug}/
+# Branch:   c9x8.fix-auth
+# Worktree: .worktrees/c9x8.fix-auth/
 # Status:   active
-# Tags:     worktree:.worktrees/{epic}/{task}.{task_slug}
-#           branch:{epic}/{task}.{task_slug}
+# Tags:     worktree:.worktrees/c9x8.fix-auth
+#           branch:c9x8.fix-auth
 ```
 
 ---
@@ -87,7 +87,7 @@ git config aint.worktree-dir /path/to/worktrees
 git aint pickup c9x8
 
 # 2. Work in the worktree
-cd .worktrees/{epic}/{task}.{task_slug}/
+cd .worktrees/c9x8.fix-auth/
 # ... make changes, commit ...
 
 # 3. Push and create PR
@@ -112,7 +112,7 @@ git aint get c9x8 --format "{tag:worktree}"
 git aint get c9x8 --format "{tag:branch}"
 
 # Find aint for a branch
-git aint list --tag "branch:{epic}/{task}.{task_slug}"
+git aint list --tag "branch:c9x8.fix-auth"
 ```
 
 ---
@@ -129,7 +129,7 @@ ls .worktrees/                            # check directory
 ### Branch already exists
 
 ```bash
-git branch -D {epic}/{task}.{task_slug}     # delete old branch
+git branch -D c9x8.fix-auth     # delete old branch
 git aint pickup c9x8                      # try again
 ```
 
