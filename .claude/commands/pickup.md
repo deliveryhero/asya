@@ -15,7 +15,7 @@ git aint pickup <REFERENCE>
 
 ## What it does
 
-1. Creates branch `{dir}/{id}.{slug}` (e.g. `ci-setup/c9x8.fix-auth`)
+1. Creates branch `{epic}/{task}.{task_slug}` (e.g. `{epic}/{task}.{task_slug}`)
 2. Creates worktree in `.worktrees/` (configurable via `git config aint.worktree-dir`)
 3. Tags the aint with `worktree:<worktree-path>` and `branch:<branch>`
 4. Sets status to `active`
@@ -26,5 +26,5 @@ git aint pickup <REFERENCE>
 git aint pickup c9x8            # create worktree and start working
 ```
 
-After pickup, work in the worktree directory at `.worktrees/ci-setup/c9x8.fix-auth`.
+After pickup, work in the worktree directory at `.worktrees/{epic}/{task}.{task_slug}`.
 When finished, close with `git aint update c9x8 --status merged`.

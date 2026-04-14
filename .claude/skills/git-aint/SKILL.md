@@ -44,7 +44,7 @@ git-aint --version  # Requires git-aint installed
 
 1. `git aint list` — see open aints
 2. `git aint pickup <ref>` — create worktree + branch, set status to active
-3. Work in the worktree at `.worktrees/ci-setup/c9x8.fix-auth`
+3. Work in the worktree at `.worktrees/{epic}/{task}.{task_slug}`
 4. `git aint update <ref> --status merged` — mark complete
 
 ## Key Concepts
