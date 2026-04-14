@@ -102,8 +102,8 @@ Usage: git aint pickup <REFERENCE>
 
 ```bash
 git aint pickup c9x8
-# → Branch:   {epic}/{task}.{task_slug}
-# → Worktree: .worktrees/{epic}/{task}.{task_slug}/
+# → Branch:   c9x8.fix-auth
+# → Worktree: .worktrees/c9x8.fix-auth/
 # → Status:   active
 # → Tags:     worktree:<path>, branch:<branch>
 ```

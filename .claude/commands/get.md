@@ -12,7 +12,7 @@ format strings with placeholders.
 git aint get [OPTIONS] <REFERENCE>
 ```
 
-The reference can be a bare 4-char ID (e.g. `c9x8`) or a file path (e.g. `.aint/aints/ci-setup/active.c9x8.fix-auth.md`).
+The reference can be a bare 5-char ID (e.g. `c9x8`) or a file path (e.g. `.aint/aints/ci-setup/active.c9x8.fix-auth.md`).
 
 ## Options
 
