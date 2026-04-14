@@ -2,8 +2,6 @@ module github.com/deliveryhero/asya/asya-gateway
 
 go 1.25.0
 
-toolchain go1.25.9
-
 require (
 	cloud.google.com/go/pubsub v1.50.1
 	github.com/MicahParks/keyfunc/v3 v3.8.0

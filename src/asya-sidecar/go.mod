@@ -2,8 +2,6 @@ module github.com/deliveryhero/asya/asya-sidecar
 
 go 1.25.0
 
-toolchain go1.25.9
-
 require (
 	cloud.google.com/go/pubsub v1.50.1
 	github.com/aws/aws-sdk-go-v2 v1.39.4
