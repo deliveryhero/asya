@@ -1,6 +1,8 @@
 module github.com/deliveryhero/asya/testing/integration/sidecar
 
-go 1.25.9
+go 1.25.0
+
+toolchain go1.25.9
 
 replace github.com/deliveryhero/asya/asya-sidecar => ../../../src/asya-sidecar
 
