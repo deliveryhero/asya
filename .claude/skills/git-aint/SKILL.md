@@ -44,7 +44,7 @@ git-aint --version  # Requires git-aint installed
 
 1. `git aint list` — see open aints
 2. `git aint pickup <ref>` — create worktree + branch, set status to active
-3. Work in the worktree at `.worktrees/ci-setup/c9x8.fix-auth`
+3. Work in the worktree at `.worktrees/c9x8.fix-auth`
 4. `git aint update <ref> --status merged` — mark complete
 
 ## Key Concepts
@@ -53,7 +53,7 @@ git-aint --version  # Requires git-aint installed
   File naming: `<status>.<id>.<slug>.md` (e.g. `active.c9x8.fix-auth.md`).
 - **Directories**: grouping folders (e.g. `ci-setup/`) with `summary.md`.
   No IDs, no status — open by location, closed when moved to `.closed/`.
-- **References**: bare 4-char base-36 IDs (e.g. `c9x8`) or file paths (e.g. `.aint/aints/ci-setup/active.c9x8.fix-auth.md`).
+- **References**: bare 5-char base-36 IDs (e.g. `c9x8`) or file paths (e.g. `.aint/aints/ci-setup/active.c9x8.fix-auth.md`).
 - **Statuses**: `backlog` → `open` → `active` → `pushed` → `merged` (or `rejected`).
 - **Priority**: 0 critical, 1 high, 2 medium, 3 low, 4 backlog.
 
