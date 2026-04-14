@@ -1,11 +1,9 @@
 ---
 title: Allow compiler to dive into functions
 status: merged
-priority: 2
-tags:
-  - worktree:.worktrees/1mhs/1mhs04.dive-into-function-calls
-  - branch:1mhs/1mhs04.dive-into-function-calls
+priority: 2 # medium
 ---
+
 
 Teach the flow compiler to resolve function calls and decide whether to
 **dive in** (decompose/inline) or **treat as opaque** (actor boundary).

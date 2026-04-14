@@ -1,15 +1,10 @@
 ---
+title: "Simplify flavor function and fix stateProxy asymmetry"
 status: merged
----
-
-j---
-title: Simplify flavor function and fix stateProxy asymmetry
-priority: 2 # medium
-assignee: Artem Yushkovskiy
+priority: 2
 tags:
-  - worktree:.worktrees/.worktrees/debt/u5pd.fix-composition-assymetry-stateproxy
-  - branch:debt/u5pd.fix-composition-assymetry-stateproxy
   - pr:290
+---
 
 
 

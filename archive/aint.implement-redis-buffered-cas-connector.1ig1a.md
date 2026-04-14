@@ -1,12 +1,11 @@
 ---
 title: Implement redis-buffered-cas connector
 status: merged
-priority: 1
+priority: 1 # high
 tags:
-  - worktree:.worktrees/1dmf/1ig161.implement-redis-buffered-cas-connector
-  - branch:1dmf/1ig161.implement-redis-buffered-cas-connector
   - pr:200
 ---
+
 
 Second connector: Redis with buffered writes and CAS (compare-and-swap) semantics.
 

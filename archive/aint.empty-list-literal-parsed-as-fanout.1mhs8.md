@@ -1,5 +1,5 @@
 ---
-title: "Parser: empty list literal `state["x"] = []` wrongly parsed as fan-out"
+title: 'Parser: empty list literal state["x"] = [] wrongly parsed as fan-out'
 status: merged
 priority: 1
 tags:

@@ -1,15 +1,14 @@
 ---
 title: "Compiler knowledge base: treat-as rules engine with default rule set"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
   - type:feature
-  - worktree:.worktrees/.worktrees/asya-lab/1fmi.flow-actor-dsl-tenacity-retry-decorator-detection-asya
-  - branch:asya-lab/1fmi.flow-actor-dsl-tenacity-retry-decorator-detection-asya
   - pr:307
   - pr:329
 ---
+
 
 ## Problem
 

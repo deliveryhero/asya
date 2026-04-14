@@ -1,16 +1,15 @@
 ---
 title: "Phase 4: Kubernetes CLI (apply, delete, status, logs) + asya build"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:298
 dependencies:
   - 5ifnq
-tags:
-  - worktree:.worktrees/.worktrees/asya-lab/4g10.phase-4-kubernetes-cli
-  - branch:asya-lab/4g10.phase-4-kubernetes-cli
-  - pr:298
 reason: "PR #298 merged"
 ---
+
 
 ## Scope
 

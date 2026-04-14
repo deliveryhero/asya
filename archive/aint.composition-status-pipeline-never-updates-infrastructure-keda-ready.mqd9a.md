@@ -1,13 +1,12 @@
 ---
 title: Composition status pipeline never updates infrastructure.keda.ready after ScaledObject becomes Ready
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/debt/mqd9.composition-status-pipeline-never-updates-infrastructure-keda-ready
-  - branch:debt/mqd9.composition-status-pipeline-never-updates-infrastructure-keda-ready
   - pr:364
 ---
+
 
 ## Bug
 

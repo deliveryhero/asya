@@ -1,12 +1,11 @@
 ---
 title: "Composition: Add function-asya-flavors to pipeline"
 status: merged
-priority: 2
+priority: 2 # medium
 tags:
-  - worktree:.worktrees/1c4w/1f76vf.composition-add-function-asya-flavors-pipeline
-  - branch:1c4w/1f76vf.composition-add-function-asya-flavors-pipeline
   - pr:194
 ---
+
 
 Add function-asya-flavors as the first step in the SQS (and future transport) Composition pipeline, before function-go-templating.
 

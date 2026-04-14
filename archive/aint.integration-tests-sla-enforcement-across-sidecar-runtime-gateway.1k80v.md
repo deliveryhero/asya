@@ -1,15 +1,14 @@
 ---
 title: "Integration tests: SLA enforcement across sidecar, runtime, and gateway"
 status: merged
-priority: 2
+priority: 2 # medium
+tags:
+  - pr:228
 dependencies:
   - 1k1pt
   - 1kz8j
-tags:
-  - worktree:.worktrees/1crv/1k8024.integration-tests-sla-enforcement-across-sidecar-runtime-gateway
-  - branch:1crv/1k8024.integration-tests-sla-enforcement-across-sidecar-runtime-gateway
-  - pr:228
 ---
+
 
 ## Scope
 

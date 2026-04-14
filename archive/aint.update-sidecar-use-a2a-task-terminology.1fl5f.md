@@ -1,12 +1,11 @@
 ---
 title: Update sidecar to use A2A task terminology
 status: merged
-priority: 2
+priority: 2 # medium
 tags:
-  - worktree:.worktrees/1c0d/1fl5rf.update-sidecar-use-a2a-task-terminology
-  - branch:1c0d/1fl5rf.update-sidecar-use-a2a-task-terminology
   - pr:208
 ---
+
 
 Update asya-sidecar to communicate with gateway using A2A task terminology.
 

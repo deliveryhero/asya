@@ -1,15 +1,14 @@
 ---
 title: "Runtime: AsyncGenerator handler support"
 status: merged
-priority: 1
-dependencies:
-  - 1iofo
+priority: 1 # high
 tags:
   - type:feature
-  - worktree:.worktrees/1ia4/1f2wwf.runtime-asyncgenerator-handler-support-multi-frame-response
-  - branch:1ia4/1f2wwf.runtime-asyncgenerator-handler-support-multi-frame-response
   - pr:203
+dependencies:
+  - 1iofo
 ---
+
 
 Add `AsyncGenerator` handler detection to `asya_runtime.py`. The runtime already supports sync generators (`inspect.isgeneratorfunction`). This task adds the async counterpart.
 

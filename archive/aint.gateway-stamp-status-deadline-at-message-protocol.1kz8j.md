@@ -1,13 +1,11 @@
 ---
 title: "Gateway: stamp status.deadline_at in message protocol"
 status: merged
-priority: 2
+priority: 2 # medium
 dependencies:
   - 1kjf3
-tags:
-  - worktree:.worktrees/1crv/1kz8ww.gateway-stamp-status-deadline-at-message-protocol
-  - branch:1crv/1kz8ww.gateway-stamp-status-deadline-at-message-protocol
 ---
+
 
 ## Scope
 

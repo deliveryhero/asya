@@ -1,15 +1,14 @@
 ---
 title: Runtime SSE streaming for generator handlers
 status: merged
-priority: 2
+priority: 2 # medium
+tags:
+  - pr:205
 dependencies:
   - 1iofo
   - 1f2ww
-tags:
-  - worktree:.worktrees/1ia4/1i6yzk.runtime-sse-streaming-generator-handlers
-  - branch:1ia4/1i6yzk.runtime-sse-streaming-generator-handlers
-  - pr:205
 ---
+
 
 Add SSE (`text/event-stream`) response mode for generator and async-generator handlers in the HTTP-over-Unix-socket runtime server.
 

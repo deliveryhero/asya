@@ -1,13 +1,12 @@
 ---
 title: "Phase 2: MCP API key authentication"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/agentic-security/b51i.phase-2-mcp-api-key-authentication
-  - branch:agentic-security/b51i.phase-2-mcp-api-key-authentication
   - pr:271
 ---
+
 
 Simple Bearer token auth for MCP endpoints. Reuse existing Authenticator interface from A2A auth. See rfc.md section 7, Phase 2.
 

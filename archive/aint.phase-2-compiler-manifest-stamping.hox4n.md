@@ -1,15 +1,14 @@
 ---
 title: "Phase 2: Compiler manifest stamping (kustomize output)"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:296
 dependencies:
   - pyt1i
-tags:
-  - worktree:.worktrees/.worktrees/asya-lab/hox4.phase-2-compiler-manifest-stamping
-  - branch:asya-lab/hox4.phase-2-compiler-manifest-stamping
-  - pr:296
 ---
+
 
 ## Scope
 

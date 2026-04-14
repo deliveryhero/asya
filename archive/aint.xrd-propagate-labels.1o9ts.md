@@ -1,11 +1,9 @@
 ---
 title: Teach XRD to propagate user labels from AsyncActor down to owned resources
 status: merged
-priority: 2
-tags:
-  - worktree:.worktrees/misc/1o9t98.xrd-propagate-labels
-  - branch:misc/1o9t98.xrd-propagate-labels
+priority: 2 # medium
 ---
+
 
 # XRD Label Propagation — Implementation Plan
 

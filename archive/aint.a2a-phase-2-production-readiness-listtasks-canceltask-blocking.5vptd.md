@@ -1,13 +1,12 @@
 ---
 title: "A2A Phase 2: production readiness (ListTasks, CancelTask, blocking, auth, FLY helpers)"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/a2a-protocol-compliance-gateway/5vpt.a2a-phase-2-production-readiness-listtasks-canceltask-blocking
-  - branch:a2a-protocol-compliance-gateway/5vpt.a2a-phase-2-production-readiness-listtasks-canceltask-blocking
   - pr:259
 ---
+
 
 ## Objective
 

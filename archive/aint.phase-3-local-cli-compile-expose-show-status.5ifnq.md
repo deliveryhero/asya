@@ -1,15 +1,14 @@
 ---
 title: "Phase 3: Local CLI (compile, expose, show, status)"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:297
 dependencies:
   - hox4n
-tags:
-  - worktree:.worktrees/.worktrees/asya-lab/5ifn.phase-3-local-cli-compile-expose-show-status
-  - branch:asya-lab/5ifn.phase-3-local-cli-compile-expose-show-status
-  - pr:297
 ---
+
 
 ## Scope
 

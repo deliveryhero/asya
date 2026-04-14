@@ -1,12 +1,11 @@
 ---
 title: "Component tests: runtime <-> connector over Unix socket"
 status: merged
-priority: 2
+priority: 2 # medium
 tags:
-  - worktree:.worktrees/1dmf/1ihv8x.component-tests-runtime-connector-over-unix-socket
-  - branch:1dmf/1ihv8x.component-tests-runtime-connector-over-unix-socket
   - pr:204
 ---
+
 
 Component tests validating runtime interception layer communicates correctly with a connector over Unix socket.
 

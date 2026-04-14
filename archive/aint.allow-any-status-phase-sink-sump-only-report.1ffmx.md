@@ -1,13 +1,12 @@
 ---
 title: Allow any status.phase in sink/sump; only report terminal phases to gateway
 status: merged
-priority: 2
+priority: 2 # medium
 tags:
   - type:feature
-  - worktree:.worktrees/1c46/1ffmnb.allow-any-status-phase-sink-sump-only-report
-  - branch:1c46/1ffmnb.allow-any-status-phase-sink-sump-only-report
   - pr:193
 ---
+
 
 ## Context
 

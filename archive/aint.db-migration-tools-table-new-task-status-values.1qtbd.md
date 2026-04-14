@@ -1,12 +1,11 @@
 ---
 title: "DB migration: tools table and new task status values"
 status: merged
-priority: 2
+priority: 2 # medium
 tags:
-  - worktree:.worktrees/1c0d/1qtbxr.db-migration-tools-table-new-task-status-values
-  - branch:1c0d/1qtbxr.db-migration-tools-table-new-task-status-values
   - pr:257
 ---
+
 
 ## Objective
 
