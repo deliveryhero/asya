@@ -1,12 +1,10 @@
 ---
 title: Cover all A2A with e2e tests
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
-tags:
-  - worktree:.worktrees/a2a-protocol-compliance-gateway/0s9s.e2e-for-a2a
-  - branch:a2a-protocol-compliance-gateway/0s9s.e2e-for-a2a
 ---
+
 
 A2A auth is covered at the component level (`testing/component/gateway-a2a/`).
 This task is for full Kubernetes-level A2A e2e tests.

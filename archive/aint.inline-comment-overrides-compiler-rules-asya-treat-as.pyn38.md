@@ -1,15 +1,14 @@
 ---
 title: "Inline comment overrides for compiler rules (# asya: <action>)"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/support-more-compiler-constructs/pyn3.inline-comment-overrides-compiler-rules-asya-treat-as
-  - branch:support-more-compiler-constructs/pyn3.inline-comment-overrides-compiler-rules-asya-treat-as
   - pr:278
   - pr:280
   - pr:329
 ---
+
 
 ## Problem
 

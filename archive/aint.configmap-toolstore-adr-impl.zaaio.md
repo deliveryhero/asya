@@ -1,14 +1,13 @@
 ---
 title: "Implement ConfigMap-based flow registry: YAML toolstore + Helm chart + RBAC (ADR impl)"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/a2a-protocol-compliance-gateway/zaai.configmap-toolstore-adr-impl
-  - branch:a2a-protocol-compliance-gateway/zaai.configmap-toolstore-adr-impl
   - pr:277
 reason: "PR #277 merged"
 ---
+
 
 Implement the accepted ADR (`adr.configmap-flow-registry.md`): replace the
 PostgreSQL-backed `tools` table with a ConfigMap-mounted `flows.yaml` file,

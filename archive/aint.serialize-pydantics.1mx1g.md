@@ -1,16 +1,15 @@
 ---
 title: "Smart JSON serialization: support pydantic, dataclasses, and typed structures in runtime"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
   - type:feature
   - runtime
   - a2a
   - user-approved
-  - worktree:.worktrees/a2a-protocol-compliance-gateway/1mx1.serialize-pydantics
-  - branch:a2a-protocol-compliance-gateway/1mx1.serialize-pydantics
 ---
+
 
 ## Motivation
 

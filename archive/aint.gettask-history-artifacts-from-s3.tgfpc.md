@@ -1,13 +1,12 @@
 ---
 title: GetTask history and artifacts from S3
 status: merged
-priority: 3
+priority: 3 # low
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/a2a-protocol-compliance-gateway/tgfp.gettask-history-artifacts-from-s3
-  - branch:a2a-protocol-compliance-gateway/tgfp.gettask-history-artifacts-from-s3
   - pr:273
 ---
+
 
 ## Objective
 

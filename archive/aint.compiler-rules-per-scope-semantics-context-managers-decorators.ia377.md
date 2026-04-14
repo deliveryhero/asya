@@ -1,13 +1,12 @@
 ---
 title: "Compiler rules: per-scope semantics for context managers, decorators, and single calls"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/compiler-simplify/ia37.compiler-rules-per-scope-semantics-context-managers-decorators
-  - branch:compiler-simplify/ia37.compiler-rules-per-scope-semantics-context-managers-decorators
   - pr:342
 ---
+
 
 ## Problem
 

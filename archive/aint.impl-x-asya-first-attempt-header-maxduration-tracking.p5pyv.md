@@ -1,15 +1,14 @@
 ---
 title: "impl: x-asya-first-attempt header for maxDuration tracking"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:332
 dependencies:
   - nqf56
-tags:
-  - worktree:.worktrees/resiliency/p5py.impl-x-asya-first-attempt-header-maxduration-tracking
-  - branch:resiliency/p5py.impl-x-asya-first-attempt-header-maxduration-tracking
-  - pr:332
 ---
+
 
 ## Context
 

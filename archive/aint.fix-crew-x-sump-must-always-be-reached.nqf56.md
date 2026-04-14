@@ -1,13 +1,12 @@
 ---
 title: "fix(crew): x-sump must always be reached via x-sink (enforce two-layer termination)"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/debt/nqf5.fix-crew-x-sump-must-always-be-reached
-  - branch:debt/nqf5.fix-crew-x-sump-must-always-be-reached
   - pr:330
 ---
+
 
 ## Problem
 

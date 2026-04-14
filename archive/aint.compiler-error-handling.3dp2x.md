@@ -1,17 +1,16 @@
 ---
 title: Compiler error handling
 status: rejected
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
-dependencies:
-  - 7179w
 tags:
   - integrate-into:gml9
   - absorbed-into:gml9
-  - worktree:.worktrees/compiler-simplify/3dp2.compiler-error-handling
-  - branch:compiler-simplify/3dp2.compiler-error-handling
   - pr:346
+dependencies:
+  - 7179w
 ---
+
 
 ## Context
 

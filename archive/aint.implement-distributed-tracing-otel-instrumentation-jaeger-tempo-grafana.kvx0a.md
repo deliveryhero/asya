@@ -1,12 +1,10 @@
 ---
 title: "Implement distributed tracing: OTEL instrumentation + Jaeger/Tempo in Grafana"
 status: merged
-priority: 1
+priority: 1 # high
 assignee: Artem Yushkovskiy
-tags:
-  - worktree:.worktrees/observability-initial/kvx0.implement-distributed-tracing-otel-instrumentation-jaeger-tempo-grafana
-  - branch:observability-initial/kvx0.implement-distributed-tracing-otel-instrumentation-jaeger-tempo-grafana
 ---
+
 
 ## Goal
 

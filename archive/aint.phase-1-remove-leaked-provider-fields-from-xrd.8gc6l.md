@@ -4,10 +4,9 @@ status: merged
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/xrd-v2/8gc6.phase-1-remove-leaked-provider-fields-from-xrd
-  - branch:xrd-v2/8gc6.phase-1-remove-leaked-provider-fields-from-xrd
   - pr:292
 ---
+
 
 
 ## Summary

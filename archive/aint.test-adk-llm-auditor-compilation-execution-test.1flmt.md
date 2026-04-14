@@ -1,12 +1,11 @@
 ---
 title: "Test: ADK LLM Auditor compilation and execution test"
 status: merged
-priority: 1
+priority: 1 # high
 tags:
-  - worktree:.worktrees/1c8d/1flmd6.test-adk-llm-auditor-compilation-execution-test
-  - branch:1c8d/1flmd6.test-adk-llm-auditor-compilation-execution-test
   - pr:219
 ---
+
 
 Create comprehensive tests that compile the ADK LLM Auditor example and verify correctness.
 

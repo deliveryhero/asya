@@ -1,13 +1,12 @@
 ---
 title: "Sidecar error logging: log runtime error content and distinguish success/error frames"
 status: merged
-priority: 1
+priority: 1 # high
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/debt/msic.sidecar-does-not-log-runtime-error-content-before
-  - branch:debt/msic.sidecar-does-not-log-runtime-error-content-before
   - pr:344
 ---
+
 
 ## Bug
 

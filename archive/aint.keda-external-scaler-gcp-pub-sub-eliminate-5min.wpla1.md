@@ -1,13 +1,12 @@
 ---
 title: KEDA external scaler for GCP Pub/Sub — eliminate 5min Cloud Monitoring lag
 status: merged
-priority: 1
+priority: 1 # high
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/debt/wpla.keda-external-scaler-gcp-pub-sub-eliminate-5min
-  - branch:debt/wpla.keda-external-scaler-gcp-pub-sub-eliminate-5min
   - pr:383
 ---
+
 
 ## Problem
 

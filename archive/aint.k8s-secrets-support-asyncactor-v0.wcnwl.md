@@ -1,15 +1,14 @@
 ---
 title: K8s Secrets support for AsyncActor (v0)
 status: merged
-priority: 1
+priority: 1 # high
 assignee: Artem Yushkovskiy
+tags:
+  - pr:282
 dependencies:
   - 1fuyh
-tags:
-  - worktree:.worktrees/agentic-security/wcnw.k8s-secrets-support-asyncactor-v0
-  - branch:agentic-security/wcnw.k8s-secrets-support-asyncactor-v0
-  - pr:282
 ---
+
 
 Enable AsyncActor workloads to consume sensitive credentials (AI API tokens, DB passwords) via standard Kubernetes Secrets. This is the minimum viable secret injection story for v0 — no external vault required.
 

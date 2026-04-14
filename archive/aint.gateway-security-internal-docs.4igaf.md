@@ -1,13 +1,12 @@
 ---
 title: Document gateway security model in docs/internal/
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/agentic-security/4iga.gateway-security-internal-docs
-  - branch:agentic-security/4iga.gateway-security-internal-docs
   - pr:275
 ---
+
 
 Write clean, implementation-accurate internal documentation for the gateway security model.
 The RFC and research docs are design-time artifacts; this task produces the canonical reference

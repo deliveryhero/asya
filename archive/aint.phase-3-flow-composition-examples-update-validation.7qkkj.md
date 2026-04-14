@@ -1,15 +1,14 @@
 ---
 title: "Phase 3: Flow composition, examples update, and validation"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:340
 dependencies:
   - gml9b
-tags:
-  - worktree:.worktrees/compiler-simplify/7qkk.phase-3-flow-composition-examples-update-validation
-  - branch:compiler-simplify/7qkk.phase-3-flow-composition-examples-update-validation
-  - pr:340
 ---
+
 
 ## Overview
 

@@ -1,13 +1,12 @@
 ---
 title: Create transport EnvironmentConfig
 status: rejected
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/debt/qh2y.create-transport-environmentconfi
-  - branch:debt/qh2y.create-transport-environmentconfi
   - pr:287
 ---
+
 
 Superseeded by 6lxy.
 

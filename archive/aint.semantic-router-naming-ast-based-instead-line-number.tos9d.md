@@ -1,13 +1,12 @@
 ---
 title: "Semantic router naming: AST-based instead of line-number-based"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/compiler-simplify/tos9.semantic-router-naming-ast-based-instead-line-number
-  - branch:compiler-simplify/tos9.semantic-router-naming-ast-based-instead-line-number
   - pr:366
 ---
+
 
 ## Problem
 

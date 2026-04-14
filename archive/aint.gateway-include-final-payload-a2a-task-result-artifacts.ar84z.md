@@ -4,10 +4,9 @@ status: merged
 priority: 1 # high
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/observability-initial/ar84.gateway-include-final-payload-a2a-task-result-artifacts
-  - branch:observability-initial/ar84.gateway-include-final-payload-a2a-task-result-artifacts
   - pr:392
 ---
+
 
 
 ## Problem

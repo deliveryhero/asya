@@ -1,15 +1,14 @@
 ---
 title: "Phase 1.5: Remove injector, render full Deployment in compositions"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:293
 dependencies:
   - 8gc6l
-tags:
-  - worktree:.worktrees/xrd-v2/af25.phase-1-5-remove-injector-render-full-deployment
-  - branch:xrd-v2/af25.phase-1-5-remove-injector-render-full-deployment
-  - pr:293
 ---
+
 
 ## Summary
 

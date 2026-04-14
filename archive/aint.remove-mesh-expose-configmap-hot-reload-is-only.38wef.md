@@ -1,13 +1,12 @@
 ---
 title: Remove /mesh/expose — ConfigMap+hot-reload is the only tool registration mechanism
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/misc/38we.remove-mesh-expose-configmap-hot-reload-is-only
-  - branch:misc/38we.remove-mesh-expose-configmap-hot-reload-is-only
   - pr:335
 ---
+
 
 ## Context
 

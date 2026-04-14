@@ -1,14 +1,12 @@
 ---
 title: "Phase 1.6: Harmonize AsyncActor scaling spec with KEDA ScaledObject"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 dependencies:
   - af25i
-tags:
-  - worktree:.worktrees/xrd-v2/8nhy.phase-1-6-harmonize-scaling-keda-spec
-  - branch:xrd-v2/8nhy.phase-1-6-harmonize-scaling-keda-spec
 ---
+
 
 ## Goal
 

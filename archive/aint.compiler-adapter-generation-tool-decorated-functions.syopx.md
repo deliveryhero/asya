@@ -1,15 +1,14 @@
 ---
 title: "Compiler: adapter generation for @tool-decorated functions"
 status: merged
-priority: 1
+priority: 1 # high
 assignee: Artem Yushkovskiy
+tags:
+  - pr:365
 dependencies:
   - hppv5
-tags:
-  - worktree:.worktrees/asya-lab/syop.compiler-adapter-generation-tool-decorated-functions
-  - branch:asya-lab/syop.compiler-adapter-generation-tool-decorated-functions
-  - pr:365
 ---
+
 
 ## Problem
 

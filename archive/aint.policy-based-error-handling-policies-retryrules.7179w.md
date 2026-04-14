@@ -1,15 +1,14 @@
 ---
 title: Policy-based error handling (timeout + policies + rules replaces nonRetryableErrors)
 status: merged
-priority: 1
+priority: 1 # high
 assignee: Artem Yushkovskiy
+tags:
+  - pr:334
 dependencies:
   - p5pyv
-tags:
-  - worktree:.worktrees/resiliency/7179.policy-based-error-handling-policies-retryrules
-  - branch:resiliency/7179.policy-based-error-handling-policies-retryrules
-  - pr:334
 ---
+
 
 ## Context
 
