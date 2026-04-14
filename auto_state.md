@@ -1,6 +1,6 @@
-git-aint state | 2026-04-14T12:02:23Z
+git-aint state | 2026-04-14T14:08:45Z
 
-Working(10) Open(126) Closed(360)
+Working(10) Open(123) Closed(364)
 
 [n6g6h] "asya-lab"  P2 working  [0/14]
   .aint/active/aint.asya-lab.n6g6h/ adr.click-over-argparse.md, adr.compiler-template-not-helm.md, adr.ds-config-management-research.md, adr.k-d-command-split.md, adr.kustomize-not-extra-dependency.md, adr.no-cog.md, conversation-tilt.txt, refactor-config-with-templates.md, research-build-system.md, research-compiler-knowledge-base.md, research-compiler-resolution.md, research-config-setup.md, research-no-dockerfile.md, research-seamless-build.md, rfc-ui-components.md, rfc.md
@@ -54,19 +54,13 @@ Working(10) Open(126) Closed(360)
   ├── [1fvxp] "Enhance AGENTS.md with decision trees for faster agent comprehension"  open
   └── [1j0yi] "Gateway: remove queue-name fallback once status.phase is stable"  open
 
-[ar84z] "Gateway: include final payload in A2A task result (artifacts)"  P1 pushed
-  .aint/archive/aint.gateway-include-final-payload-a2a-task-result-artifacts.ar84z.md
-
-[1kowt] "E2E tests: full pipeline SLA and gateway backstop race"  P2 pushed
-  .aint/archive/aint.e2e-tests-full-pipeline-sla-gateway-backstop-race.1kowt.md
-
 [emmc5] "Implement A2A protocol"  P2 open  [0/2]
   .aint/active/aint.implement-a2a-protocol.emmc5/ adr.configmap-flow-registry.md, impl-phases.md, rfc.md
   ├── [82bdw] "x-pause: auto-preserve remaining route.next when actor overwrites with x-pause"  open
   └── [8sc0k] "Check GetTasks Implementation"  open
 
-[v89t8] "resiliency"  P2 open
-  .aint/active/aint.resiliency.v89t8/
+[fd73j] "Actor Warm-Up Pattern for Scale-to-Zero Validation"  P2 open
+  .aint/active/aint.actor-warm-up-pattern-for-scale-to-zero-validation.fd73j.md
 
 [0yjeo] "agentic-claw-code"  P2 open
   .aint/active/aint.agentic-claw-code.0yjeo/ session-asya-vs-openclaw.md
@@ -145,9 +139,6 @@ Working(10) Open(126) Closed(360)
   ├── [1fifn] "Add Kafka transport support (code + Crossplane)"  open
   └── [1fgnn] "Add Redis Streams transport support (code + Crossplane)"  open
 
-[fd73j] "Actor Warm-Up Pattern for Scale-to-Zero Validation"  P2 open
-  .aint/active/aint.actor-warm-up-pattern-for-scale-to-zero-validation.fd73j/
-
 [hb1v1] "Local testing workflow in docker-compose"  P2 open
   .aint/active/aint.local-testing-workflow-in-docker-compose.hb1v1/ notes-for-rfc.md
 
@@ -204,4 +195,4 @@ Closed:
 [1fzhp] Research: kubectl-asya via Krew vs custom CLI wrapper  rejected
 [1frs7] XRD: Add spec.flavors field to AsyncActor  merged
 [1jnjg] E2E: Enable function-asya-flavors once ghcr.io image is public  merged
-... and 355 more
+... and 359 more
