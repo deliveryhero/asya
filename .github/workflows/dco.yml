@@ -1,0 +1,21 @@
+name: DCO
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  dco-check:
+    name: DCO Sign-off
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check DCO sign-off
+      uses: cpanato/dco-check-action@main
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        pull_request_number: ${{ github.event.number }}

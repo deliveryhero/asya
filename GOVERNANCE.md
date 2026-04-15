@@ -21,7 +21,10 @@ Maintainers are expected to:
 Anyone who submits a pull request, files an issue, or participates in
 discussions is a contributor. All contributions must follow the
 [Developer Certificate of Origin (DCO)](https://developercertificate.org/) by
-adding a `Signed-off-by` line to commit messages (`git commit -s`).
+adding a `Signed-off-by` line to commit messages (`git commit -s`). This is
+enforced automatically on pull requests. See
+[CONTRIBUTING.md](CONTRIBUTING.md#developer-certificate-of-origin-dco) for
+details.
 
 ## Decision Process
 

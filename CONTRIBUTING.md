@@ -194,6 +194,41 @@ make clean
 5. Commit your changes following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (pre-commit hooks will run automatically)
 6. Push and create a pull request with a conventional commit prefix in the title
 
+### Developer Certificate of Origin (DCO)
+
+All contributions to this project must be signed off in accordance with the
+[Developer Certificate of Origin (DCO)](https://developercertificate.org/). The
+DCO is a lightweight attestation that you have the right to submit your
+contribution under the project's open-source license.
+
+**How to sign off your commits:**
+
+Add the `-s` flag when committing:
+```bash
+git commit -s -m "feat(gateway): add health endpoint"
+```
+
+This appends a `Signed-off-by` trailer to your commit message:
+```
+feat(gateway): add health endpoint
+
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+The name and email must match your `git config user.name` and `git config user.email`.
+
+**Sign off all commits in an existing branch:**
+
+If you forgot `-s` on previous commits, you can retroactively sign them off:
+```bash
+git rebase HEAD~N --signoff    # N = number of commits to sign off
+```
+
+**Automated enforcement:**
+
+Pull requests are checked by the [DCO bot](https://github.com/apps/dco). Any
+commit without a valid `Signed-off-by` line will cause the check to fail.
+
 ### Commit Message Format
 
 This project follows the [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) specification. All PR titles **must** use one of these prefixes:

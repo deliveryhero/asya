@@ -307,3 +307,8 @@ Never say "ready to push when you are" — you must push.
 This project uses [git-aint](https://github.com/atemate/git-aint) for issue tracking. Run
 `git aint init` to initialize (idempotent). `.aint/` is a git worktree on branch `aint-sync`,
 shared across all agents. See [.aint/AGENTS.md](.aint/AGENTS.md) for full usage.
+
+
+## Coding Guidelines for Agents
+
+@AGENTS_GUIDELINES.md
