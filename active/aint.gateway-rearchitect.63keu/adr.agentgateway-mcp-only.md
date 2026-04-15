@@ -1,10 +1,10 @@
 ---
-title: "ADR: agentgateway for MCP Only"
+title: "ADR: agentgateway for MCP, Common Proxy for All"
 status: accepted
 date: 2026-04-14
 ---
 
-# ADR: agentgateway for MCP Only
+# ADR: agentgateway for MCP, Common Proxy for All
 
 ## Context
 
@@ -33,17 +33,21 @@ and A2A. Research into the source code and ecosystem revealed:
 
 ## Decision
 
-**Use agentgateway for MCP only.** Build A2A server in the dispatcher.
+**Use agentgateway for MCP (deep support) and as common proxy for all
+protocols (auth, rate limiting, observability).** Build A2A server in the
+dispatcher.
 
-agentgateway handles MCP clients (tool federation, auth, RBAC, sessions).
-A2A requests route through agentgateway for auth (JWT on all routes) but
-agentgateway adds nothing A2A-specific.
+agentgateway handles MCP clients with deep support (tool federation, RBAC,
+sessions). For A2A and /mesh/, agentgateway provides common proxy features
+(JWT auth, rate limiting, TLS termination, observability) but no
+protocol-specific logic. A2A task lifecycle lives in the dispatcher.
 
 ## Consequences
 
 - MCP: delete ~2,400 LOC (MCP server, auth, tool registry), replaced by agentgateway config
 - A2A: keep/rewrite ~500 LOC (A2A adapter over /mesh/), no external dependency
-- Auth: agentgateway provides JWT/OIDC for all routes (MCP and A2A)
+- Auth: agentgateway provides JWT/OIDC for ALL routes (MCP, A2A, /mesh/)
+- Rate limiting + observability: agentgateway applies uniformly to all protocols
 - Risk: if a better A2A gateway appears, easy to adopt (A2A handler is thin adapter)
 
 ## Alternatives Considered

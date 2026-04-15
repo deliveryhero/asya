@@ -52,10 +52,10 @@ Internet
   |                   MCP server                (tool call -> POST /mesh/
   |                   Auth, RBAC, federation      subscribe -> GET /mesh/{id}/stream)
   |
-  +-- A2A clients --> agentgateway (auth) --> dispatcher :8080 /a2a/*
-  |                   JWT on all routes          A2A adapter over /mesh/
-  |                   (A2A is passthrough)        (task lifecycle, history,
-  |                                               pause/resume)
+  +-- A2A clients --> agentgateway (proxy) --> dispatcher :8080 /a2a/*
+  |                   Auth, rate limit,          A2A adapter over /mesh/
+  |                   observability               (task lifecycle, history,
+  |                   (common proxy features)      pause/resume)
   |
   +-- Dashboard ----> External Ingress -----> dispatcher :8080 /mesh/*
                       Session auth              Direct /mesh/ access
@@ -319,8 +319,8 @@ The dispatcher implements the A2A server (adapter over /mesh/):
 - `input_required` <- x-pause status from mesh
 - Agent card served at `/.well-known/agent.json`
 
-A2A requests route through agentgateway for auth only (passthrough).
-agentgateway adds nothing A2A-specific.
+A2A requests route through agentgateway for common proxy features (auth,
+rate limiting, observability) but A2A protocol logic lives in the dispatcher.
 
 ### 4.5 Dashboard via /mesh/ Direct
 
