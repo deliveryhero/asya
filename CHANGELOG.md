@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.8] - 2026-04-15
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+Same as v1.0.7 but includes commit https://github.com/deliveryhero/asya/commit/0eeb89aaff181dd9a75d2f8b0ccdeed32af4a36b
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.0.6...v1.0.8
+
+
+
 ## [1.0.6] - 2026-04-14
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -1528,6 +1538,9 @@ All images are published to GitHub Container Registry:
 
 [1.0.5]: https://github.com/deliveryhero/asya/releases/tag/v1.0.5
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.6...HEAD
 [1.0.6]: https://github.com/deliveryhero/asya/releases/tag/v1.0.6
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.8...HEAD
+[1.0.8]: https://github.com/deliveryhero/asya/releases/tag/v1.0.8
 
