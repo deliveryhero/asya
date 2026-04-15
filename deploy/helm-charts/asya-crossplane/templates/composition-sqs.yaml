@@ -79,6 +79,9 @@ spec:
                 tags:
                   asya.sh/namespace: {{`{{ $namespace }}`}}
                   asya.sh/actor: {{`{{ $actorName }}`}}
+                  {{- range $key, $value := .Values.awsResourceTags }}
+                  {{ $key }}: {{ $value | quote }}
+                  {{- end }}
               providerConfigRef:
                 name: {{`{{ $providerConfigRef }}`}}
               deletionPolicy: Delete

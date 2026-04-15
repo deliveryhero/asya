@@ -148,6 +148,14 @@ keda:
     accessKeyIdKey: AWS_ACCESS_KEY_ID
     secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
 
+# AWS resource tags applied to all Crossplane-managed AWS resources (SQS queues).
+# Required by DH AWS Organization SCP — resources without dh_app, dh_squad,
+# dh_tribe tags are rejected with "explicit deny in service control policy".
+awsResourceTags: {}
+# dh_app: asya
+# dh_squad: my-squad
+# dh_tribe: my-tribe
+
 # SQS configuration (used by composition-sqs)
 sqs:
   receiveWaitTimeSeconds: 20
