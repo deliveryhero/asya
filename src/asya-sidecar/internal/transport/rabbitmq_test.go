@@ -143,19 +143,24 @@ func createMockRabbitMQTransport(mockConn rabbitmqConnection, mockChannel rabbit
 func TestRabbitMQTransport_EnsureQueue(t *testing.T) {
 	queueName := testQueueName
 
-	t.Run("successful queue existence check", func(t *testing.T) {
-		queueChecked := false
+	t.Run("declares and binds queue", func(t *testing.T) {
+		declared := false
+		bound := false
 
 		mockChannel := &mockRabbitMQChannel{
-			queueDeclarePassiveFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
+			queueDeclareFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
 				if name != queueName {
-					t.Errorf("QueueDeclarePassive name = %v, want %v", name, queueName)
+					t.Errorf("QueueDeclare name = %v, want %v", name, queueName)
 				}
 				if !durable {
-					t.Error("QueueDeclarePassive durable = false, want true")
+					t.Error("QueueDeclare durable = false, want true")
 				}
-				queueChecked = true
+				declared = true
 				return amqp.Queue{Name: name}, nil
+			},
+			queueBindFunc: func(name, key, exchange string, noWait bool, args amqp.Table) error {
+				bound = true
+				return nil
 			},
 		}
 
@@ -165,15 +170,18 @@ func TestRabbitMQTransport_EnsureQueue(t *testing.T) {
 		if err != nil {
 			t.Errorf("ensureQueue() error = %v, want nil", err)
 		}
-		if !queueChecked {
-			t.Error("QueueDeclarePassive was not called")
+		if !declared {
+			t.Error("QueueDeclare was not called")
+		}
+		if !bound {
+			t.Error("QueueBind was not called")
 		}
 	})
 
-	t.Run("queue does not exist", func(t *testing.T) {
+	t.Run("declare failure", func(t *testing.T) {
 		mockChannel := &mockRabbitMQChannel{
-			queueDeclarePassiveFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
-				return amqp.Queue{}, errors.New("queue not found")
+			queueDeclareFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
+				return amqp.Queue{}, errors.New("declare failed")
 			},
 		}
 
@@ -341,8 +349,8 @@ func TestRabbitMQTransport_Send(t *testing.T) {
 
 	t.Run("queue ensure failure", func(t *testing.T) {
 		mockChannel := &mockRabbitMQChannel{
-			queueDeclarePassiveFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
-				return amqp.Queue{}, errors.New("queue does not exist")
+			queueDeclareFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
+				return amqp.Queue{}, errors.New("queue declare failed")
 			},
 		}
 

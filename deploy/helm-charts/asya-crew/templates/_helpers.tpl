@@ -238,9 +238,9 @@ If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
 {{- $connectorImage := dict "val" $values.persistence.connector.image }}
 {{- if not $connectorImage.val }}
   {{- if eq $values.persistence.backend "s3" }}
-    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:{{ $.Chart.AppVersion }}" }}
   {{- else if eq $values.persistence.backend "gcs" }}
-    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:v1.0.0" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:{{ $.Chart.AppVersion }}" }}
   {{- end }}
 {{- end }}
 - name: checkpoints
