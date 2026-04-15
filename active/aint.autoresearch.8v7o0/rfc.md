@@ -188,6 +188,37 @@ world knowledge + experiment history to propose the most promising next
 experiments. Unlike classical BO (which fits a GP posterior), the LLM reasons
 about the experiment landscape using its training knowledge.
 
+#### Two Levels of Orchestration
+
+**Level 1 — LLM as acquisition function (v0)**:
+The orchestrator-brain calls the LLM directly: "given these results, propose
+next experiments." The LLM proposes concrete parameter combinations. Simple,
+works out of the box, but the LLM doesn't learn a reusable search strategy.
+
+**Level 2 — LLM generates the acquisition function (LLAMBO-inspired)**:
+Instead of proposing experiments directly, the LLM writes a *search strategy
+as Python code* — e.g., "scan learning rates logarithmically, then fine-tune
+around the best with linear search." That strategy generates N experiments,
+results come back, the LLM refines the strategy code itself.
+
+This is inspired by LLAMBO (Ghorbanpour et al., NeurIPS 2024 Workshop on ML
+and Physical Sciences): "LLM Enhanced Bayesian Optimization for Scientific
+Applications." Their key finding: LLM-generated acquisition functions
+(Python code) outperform standard Expected Improvement and Upper Confidence
+Bound on complex scientific optimization (Inertial Confinement Fusion). Even
+open-source WizardCoder-34B matched proprietary models.
+
+Why Level 2 fits Asya naturally:
+- The orchestrator already writes code to git state proxy
+- x-deploy already deploys new actors from git
+- The generated strategy code is just another handler (compilable, deployable)
+- The evaluation flow remains immutable (safety preserved)
+- The LLM optimizes the *search algorithm*, not just the hyperparameters
+
+Level 2 requires no additional infrastructure beyond Level 1 — just a different
+orchestrator prompt strategy. Implement Level 1 first, upgrade to Level 2 when
+the loop is proven.
+
 ### 4.5 Code Delivery
 
 Actors receive code via **git state proxy** (default) or **ConfigMap** (simple
