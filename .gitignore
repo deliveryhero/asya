@@ -2,6 +2,7 @@
 # On aint-sync branch: track active/, archive/, scripts/, docs/, and auto files
 *
 !.gitignore
+!.gitattributes
 !AGENTS.md
 !active/
 !active/*
