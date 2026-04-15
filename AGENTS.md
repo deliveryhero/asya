@@ -311,4 +311,4 @@ shared across all agents. See [.aint/AGENTS.md](.aint/AGENTS.md) for full usage.
 
 ## Coding Guidelines for Agents
 
-@AGENT_GUIDELINES.md
+@AGENTS_GUIDELINES.md
