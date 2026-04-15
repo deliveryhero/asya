@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [1.0.9] - 2026-04-15
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Features
+* feat(charts): configurable AWS resource tags for SQS queues by @atemate in https://github.com/deliveryhero/asya/pull/436
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.0.7...v1.0.9
+
+
+
 ## [1.0.8] - 2026-04-15
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -13,6 +26,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Same as v1.0.7 but includes commit https://github.com/deliveryhero/asya/commit/0eeb89aaff181dd9a75d2f8b0ccdeed32af4a36b
 
 **Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.0.6...v1.0.8
+
+
+
+## [1.0.7] - 2026-04-15
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Bug Fixes
+* fix(sidecar): RabbitMQ queue auto-creation and channel recovery by @atemate in https://github.com/deliveryhero/asya/pull/431
+### Documentation
+* docs(setup): EKS install guide — RBAC, missing values, troubleshooting by @atemate in https://github.com/deliveryhero/asya/pull/430
+### Other Changes
+* chore(deps): consolidate dependency updates and add dependabot grouping by @atemate in https://github.com/deliveryhero/asya/pull/419
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.0.6...v1.0.7
+
 
 
 
@@ -1540,7 +1571,10 @@ All images are published to GitHub Container Registry:
 
 [1.0.6]: https://github.com/deliveryhero/asya/releases/tag/v1.0.6
 
+[1.0.7]: https://github.com/deliveryhero/asya/releases/tag/v1.0.7
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.8...HEAD
 [1.0.8]: https://github.com/deliveryhero/asya/releases/tag/v1.0.8
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.9...HEAD
+[1.0.9]: https://github.com/deliveryhero/asya/releases/tag/v1.0.9
 
