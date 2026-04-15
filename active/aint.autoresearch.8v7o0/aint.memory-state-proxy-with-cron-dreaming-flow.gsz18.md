@@ -3,7 +3,7 @@ title: Memory state proxy with cron dreaming flow
 status: open
 priority: 1 # high
 tags: [autoresearch, state-proxy, memory, agentic]
-dependencies: [8v7o0/34yhs]
+dependencies: [8v7o0/34yhs, 8v7o0/cy0p1]
 ---
 
 ## Context
