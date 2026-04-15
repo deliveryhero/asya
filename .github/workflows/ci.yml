@@ -39,7 +39,7 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -73,7 +73,7 @@ jobs:
         - asya-ui
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -84,7 +84,7 @@ jobs:
         make -C src/${{ matrix.component }} test-unit
 
     - name: Upload unit test coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: coverage-unit-${{ matrix.component }}
@@ -152,7 +152,7 @@ jobs:
           config_value: redis-cas
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -168,7 +168,7 @@ jobs:
         make -C testing/component/${{ matrix.component }} test-one ${{ matrix.config_var }}=${{ matrix.config_value }}
 
     - name: Upload component test coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: coverage-component-${{ matrix.component }}-${{ matrix.config_value }}
@@ -226,7 +226,7 @@ jobs:
           storage: gcs
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -255,7 +255,7 @@ jobs:
         make -C testing/integration/${{ matrix.target }} test-one
 
     - name: Upload integration test coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: coverage-integration-${{ matrix.target }}-${{ matrix.transport || 'default' }}-${{ matrix.storage || 'none'
@@ -294,7 +294,7 @@ jobs:
           #   run_crossplane: true
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -374,7 +374,7 @@ jobs:
         kind delete cluster --name asya-e2e-${{ matrix.profile }} || true
 
     - name: Upload E2E test coverage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: coverage-e2e-${{ matrix.profile }}
@@ -393,31 +393,31 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Download all unit test coverage
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         pattern: coverage-unit-*
         path: .coverage
         merge-multiple: true
 
     - name: Download all component test coverage
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         pattern: coverage-component-*
         path: .coverage
         merge-multiple: true
 
     - name: Download all integration test coverage
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         pattern: coverage-integration-*
         path: .coverage
         merge-multiple: true
 
     - name: Download all E2E test coverage
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         pattern: coverage-e2e-*
         path: .coverage

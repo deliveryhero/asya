@@ -18,7 +18,7 @@ jobs:
       packages: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -26,7 +26,7 @@ jobs:
         install-docker: "true"
 
     - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -128,10 +128,10 @@ jobs:
       id-token: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: "3.13"
 
@@ -180,7 +180,7 @@ jobs:
 
     steps:
     - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -204,7 +204,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -216,7 +216,7 @@ jobs:
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
     - name: Install Helm
-      uses: azure/setup-helm@v4
+      uses: azure/setup-helm@v5
       with:
         version: v3.14.0
 
@@ -255,7 +255,7 @@ jobs:
         ls -la .deploy/charts/
 
     - name: Checkout gh-pages
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: gh-pages
         path: gh-pages
