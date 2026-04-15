@@ -338,33 +338,42 @@ Not Asya-specific infrastructure — just a persistent dev environment that can
 | Periodic flush for buffered writes | **New** [pr3ib] |
 | Cron flow pattern + observability | **New** [34yhs] |
 | Route allowlist/blocklist enforcement | **New** [krses] |
-| x-deploy crew actor | **New** (needs aint) |
+| x-deploy crew actor | **New** [zgdsp] |
+| Generic autoresearch flow template | **New** [5i52w] |
+| Workbench devcontainer | **New** [ugr4f] |
 | Gateway rework | **Separate** [63keu] |
 
 ## 7. Dependency Graph
 
 ```
-[jbtnm] append mode          (no deps, unblocks pr3ib)
-[cynl0] XRD init/sidecars    (no deps)
-[cy0p1] git state proxy      (no deps, unblocks gsz18, x-deploy)
-[34yhs] cron flow pattern     (no deps, unblocks gsz18)
-[krses] route enforcement     (no deps)
-[lb740] dataset state proxy   (no deps, separate repo)
-[pr3ib] periodic flush        (depends: jbtnm)
-[gsz18] memory + dreaming     (depends: cy0p1, 34yhs)
-[63keu] gateway rework        (separate, pre-existing)
+[jbtnm] append mode           (no deps, unblocks pr3ib)
+[cynl0] XRD init/sidecars     (no deps)
+[cy0p1] git state proxy       (no deps, unblocks gsz18, zgdsp, 5i52w)
+[34yhs] cron flow pattern      (no deps, unblocks gsz18)
+[krses] route enforcement      (no deps, unblocks 5i52w)
+[lb740] dataset state proxy    (no deps, separate repo)
+[pr3ib] periodic flush         (depends: jbtnm)
+[gsz18] memory + dreaming      (depends: cy0p1, 34yhs)
+[zgdsp] x-deploy crew actor    (depends: cy0p1)
+[5i52w] autoresearch flow      (depends: cy0p1, krses, zgdsp)
+[ugr4f] workbench devcontainer (no deps, low priority)
+[63keu] gateway rework         (separate, pre-existing)
 ```
 
-Critical path: `cy0p1` (git state proxy) and `34yhs` (cron) unblock `gsz18`
-(memory). Everything else can proceed in parallel.
+Critical path: `cy0p1` (git state proxy) unblocks the most work (gsz18,
+zgdsp, 5i52w). `34yhs` (cron) unblocks gsz18. `krses` (route enforcement)
+unblocks 5i52w.
 
 Parallelizable work streams:
 1. State proxy core: jbtnm (append) + pr3ib (flush) — sequential
 2. XRD extension: cynl0 — independent
-3. Git state proxy: cy0p1 — independent
+3. Git state proxy: cy0p1 — independent, critical path
 4. Dataset library: lb740 — separate repo, fully independent
 5. Cron pattern: 34yhs — independent
 6. Route enforcement: krses — independent
+7. x-deploy: zgdsp — after cy0p1
+8. Autoresearch flow: 5i52w — after cy0p1 + krses + zgdsp (integration)
+9. Workbench: ugr4f — independent, low priority
 
 ## 8. Open Questions
 
