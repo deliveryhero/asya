@@ -2,7 +2,7 @@
 title: Add periodic flush to buffered state proxy writes
 status: open
 priority: 2 # medium
-tags: [autoresearch, state-proxy, runtime]
+tags: [tier-2, autoresearch, state-proxy, runtime]
 dependencies: [8v7o0/jbtnm]
 ---
 

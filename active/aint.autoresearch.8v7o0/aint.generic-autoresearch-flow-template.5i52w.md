@@ -2,7 +2,7 @@
 title: Generic autoresearch flow template
 status: open
 priority: 2 # medium
-tags: [autoresearch, flow, template]
+tags: [tier-3, autoresearch, flow, template]
 dependencies: [8v7o0/cy0p1, 8v7o0/krses, 8v7o0/zgdsp]
 ---
 

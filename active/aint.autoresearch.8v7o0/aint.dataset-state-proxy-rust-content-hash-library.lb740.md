@@ -2,7 +2,7 @@
 title: Dataset state proxy (Rust content-hash library)
 status: open
 priority: 1 # high
-tags: [autoresearch, state-proxy, dataset, rust]
+tags: [tier-4, autoresearch, state-proxy, dataset, rust]
 ---
 
 ## Context

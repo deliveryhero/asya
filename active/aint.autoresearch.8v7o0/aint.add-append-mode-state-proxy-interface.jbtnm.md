@@ -2,7 +2,7 @@
 title: Add append mode to state proxy interface
 status: open
 priority: 1 # high
-tags: [autoresearch, state-proxy]
+tags: [tier-2, autoresearch, state-proxy]
 ---
 
 ## Context

@@ -2,7 +2,7 @@
 title: Route allowlist/blocklist enforcement in sidecar and runtime
 status: open
 priority: 1 # high
-tags: [autoresearch, runtime, security]
+tags: [tier-3, autoresearch, runtime, security]
 ---
 
 ## Context

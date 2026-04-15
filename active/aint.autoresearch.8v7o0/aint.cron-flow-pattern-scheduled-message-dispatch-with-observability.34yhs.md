@@ -2,7 +2,7 @@
 title: "Cron flow pattern: scheduled message dispatch with observability"
 status: open
 priority: 1 # high
-tags: [autoresearch, infrastructure, cron, observability]
+tags: [tier-2, autoresearch, infrastructure, cron, observability]
 ---
 
 ## Context

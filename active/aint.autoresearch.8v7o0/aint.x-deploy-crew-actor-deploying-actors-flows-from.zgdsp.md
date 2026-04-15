@@ -2,7 +2,7 @@
 title: x-deploy crew actor for deploying actors/flows from git
 status: open
 priority: 1 # high
-tags: [autoresearch, crew, deployment]
+tags: [tier-3, autoresearch, crew, deployment]
 dependencies: [8v7o0/cy0p1]
 ---
 

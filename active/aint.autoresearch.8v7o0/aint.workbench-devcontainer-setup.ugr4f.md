@@ -2,7 +2,7 @@
 title: Workbench devcontainer setup
 status: open
 priority: 3 # low
-tags: [autoresearch, workbench, devcontainer]
+tags: [tier-1, autoresearch, workbench, devcontainer]
 ---
 
 ## Context

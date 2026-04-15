@@ -2,7 +2,7 @@
 title: Git state proxy sidecar
 status: open
 priority: 1 # high
-tags: [autoresearch, state-proxy, git]
+tags: [tier-1, autoresearch, state-proxy, git]
 ---
 
 ## Context
