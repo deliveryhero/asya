@@ -1,0 +1,17 @@
+name: DCO
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  dco-check:
+    name: DCO Sign-off
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check DCO sign-off
+      uses: tim-actions/dco-checker@v1
