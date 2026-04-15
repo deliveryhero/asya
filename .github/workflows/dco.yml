@@ -14,4 +14,8 @@ jobs:
 
     steps:
     - name: Check DCO sign-off
-      uses: tim-actions/dco-checker@v1
+      uses: cpanato/dco-check-action@main
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        pull_request_number: ${{ github.event.number }}
