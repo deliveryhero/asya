@@ -16,6 +16,7 @@ const (
 
 	defaultQueueRetryMaxAttempts = 10
 	defaultQueueRetryBackoff     = 1 * time.Second
+	maxQueueRetryBackoff         = 30 * time.Second
 )
 
 // getQueueRetryMaxAttempts returns configured max retry attempts from environment or default
@@ -100,6 +101,9 @@ func NewRabbitMQTransport(cfg RabbitMQConfig) (*RabbitMQTransport, error) {
 
 		if attempt < maxRetries-1 {
 			backoff := initialBackoff * (1 << uint(attempt))
+			if backoff > maxQueueRetryBackoff {
+				backoff = maxQueueRetryBackoff
+			}
 			slog.Warn("Failed to connect to RabbitMQ, retrying",
 				"attempt", attempt+1,
 				"maxRetries", maxRetries,
@@ -162,15 +166,15 @@ func NewRabbitMQTransport(cfg RabbitMQConfig) (*RabbitMQTransport, error) {
 	}, nil
 }
 
-// ensureQueue checks if queue exists using passive declaration
-// Does NOT create the queue - operator is responsible for queue creation
+// ensureQueue declares the queue (creates if absent, no-op if it exists) and
+// binds it to the exchange. The queue name doubles as the binding key so that
+// messages published with that routing key land in the queue.
 func (t *RabbitMQTransport) ensureQueue(queueName string) error {
 	if t.channel == nil {
 		return fmt.Errorf("channel is not available")
 	}
 
-	// Use passive declaration to check if queue exists without creating it
-	_, err := t.channel.QueueDeclarePassive(
+	_, err := t.channel.QueueDeclare(
 		queueName,
 		true,  // durable
 		false, // delete when unused
@@ -179,7 +183,18 @@ func (t *RabbitMQTransport) ensureQueue(queueName string) error {
 		nil,   // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("queue does not exist: %w", err)
+		return fmt.Errorf("failed to declare queue: %w", err)
+	}
+
+	// Derive routing key from queue name by stripping namespace prefix
+	namespacePrefix := fmt.Sprintf("%s%s-", queuePrefix, t.namespace)
+	routingKey := queueName
+	if len(queueName) > len(namespacePrefix) && queueName[:len(namespacePrefix)] == namespacePrefix {
+		routingKey = queueName[len(namespacePrefix):]
+	}
+
+	if err := t.channel.QueueBind(queueName, routingKey, t.exchange, false, nil); err != nil {
+		return fmt.Errorf("failed to bind queue: %w", err)
 	}
 
 	return nil
@@ -204,6 +219,9 @@ func (t *RabbitMQTransport) Receive(ctx context.Context, queueName string) (Queu
 
 			if attempt < maxRetries-1 {
 				backoff := initialBackoff * (1 << uint(attempt))
+				if backoff > maxQueueRetryBackoff {
+					backoff = maxQueueRetryBackoff
+				}
 				slog.Warn("Failed to reconnect to RabbitMQ, retrying",
 					"attempt", attempt+1,
 					"maxRetries", maxRetries,
@@ -276,11 +294,28 @@ func (t *RabbitMQTransport) Receive(ctx context.Context, queueName string) (Queu
 		var err error
 
 		for attempt := 0; attempt < maxRetries; attempt++ {
-			// Try to ensure queue exists
+			// Recreate channel if closed by a previous failed attempt (e.g. 404 kills the AMQP channel).
+			// Also handles nil amqpChannel after a reconnect sets it to nil.
+			if t.amqpConn != nil && (t.amqpChannel == nil || t.amqpChannel.IsClosed()) {
+				newCh, chErr := t.conn.Channel()
+				if chErr != nil {
+					slog.Warn("Failed to recreate channel during retry",
+						"queue", queueName, "attempt", attempt+1, "error", chErr)
+				} else {
+					_ = newCh.Qos(t.prefetchCount, 0, false)
+					_ = newCh.ExchangeDeclare(t.exchange, "topic", true, false, false, false, nil)
+					t.channel = newCh
+					t.amqpChannel = newCh
+				}
+			}
+
+			// Try to ensure queue exists (creates if absent)
 			if err = t.ensureQueue(queueName); err != nil {
 				if attempt < maxRetries-1 {
-
 					backoff := initialBackoff * (1 << uint(attempt))
+					if backoff > maxQueueRetryBackoff {
+						backoff = maxQueueRetryBackoff
+					}
 					slog.Warn("Failed to ensure queue exists, retrying",
 						"queue", queueName,
 						"attempt", attempt+1,
@@ -310,6 +345,9 @@ func (t *RabbitMQTransport) Receive(ctx context.Context, queueName string) (Queu
 			if attempt < maxRetries-1 {
 
 				backoff := initialBackoff * (1 << uint(attempt))
+				if backoff > maxQueueRetryBackoff {
+					backoff = maxQueueRetryBackoff
+				}
 				slog.Warn("Failed to start consuming, retrying",
 					"queue", queueName,
 					"attempt", attempt+1,
