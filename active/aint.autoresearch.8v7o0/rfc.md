@@ -320,62 +320,149 @@ S3 access for dataset exploration via EKS Mountpoint for S3 CSI.
 Not Asya-specific infrastructure — just a persistent dev environment that can
 `kubectl apply` to the cluster.
 
-## 6. What's New vs What Exists
+## 6. Data Storage Strategy
 
-| Component | Status |
+**Design Principle 002**: state proxy is for **state** (infrequent, small-to-medium
+I/O) — not for **bulk data** (frequent, latency-critical I/O). Every state proxy
+`open()` call goes through Unix socket → HTTP → S3, adding ~50ms per operation.
+
+| Data type | Access pattern | Storage | Why |
+|---|---|---|---|
+| Training dataset (images) | 1000s reads/epoch, tight loop | PVC / emptyDir + `aws s3 sync` | Latency-critical |
+| Model checkpoints | Write once, read once | S3 state proxy | Infrequent, large blob |
+| TFEvents metrics | Write once ("wb"), single file | S3 state proxy | One PUT on close |
+| Metadata/labels (CSV/JSON) | Read once at start | Either | Latency irrelevant |
+| Experiment tracking (aint) | Infrequent read/write | Git state proxy | Small files |
+| Memory files | Infrequent read/write | S3 (memory proxy) | Small files |
+
+**Training actor pattern**: init container or startup script does
+`aws s3 sync s3://bucket/dataset/ /data/` to local volume (PVC or emptyDir).
+Training reads local files at native filesystem speed. Metrics and checkpoints
+go to S3 state proxy (infrequent writes).
+
+## 7. Dataset Visualization
+
+FiftyOne (Voxel51) for image pair browsing and labeling on the workbench [bh1rg].
+Runs locally as a web app. Supports: grid view with images, filtering, one-click
+tagging, comparison views.
+
+Workflow for over-upscaling classifier dataset:
+1. Load ~5K original images + N upscaled variants into FiftyOne dataset
+2. Optional: VLM pre-labeling (Claude/GPT-4V scores each pair)
+3. Human reviews in FiftyOne grid, one-click labels: good / over-upscaled / skip
+4. Export cleaned labels as CSV for training pipeline
+
+VLM pre-labeling can run as a simple Asya flow (parallelize VLM calls).
+
+## 8. Implementation Tiers
+
+Work is organized into four tiers. Each tier builds on the previous.
+
+### Tier 1 [rjkl2] — "Train a model" (immediate)
+
+Human + Claude Code on EKS workbench, manually deploy training flows, train ViT
+over-upscaling classifier, get results. No automation loop.
+
+| Aint | Title | Notes |
+|---|---|---|
+| ugr4f | Workbench devcontainer | EKS pod, PVC, Claude Code, kubectl, TensorBoard |
+| bh1rg | Dataset visualization (FiftyOne) | Image pair browsing, one-click labeling |
+| cy0p1 | Git state proxy (read-only stretch) | Optional: mount repo in training actor |
+
+Everything else is existing Asya: S3 state proxy for metrics/checkpoints,
+gateway for triggering, ConfigMap for code delivery. Dataset on PVC/emptyDir.
+
+### Tier 2 [qclcl] — "Better infrastructure"
+
+Proper code delivery, crash-resilient writes, scheduled flows.
+
+| Aint | Title |
 |---|---|
-| S3 state proxy | Exists |
-| Gateway (MCP/A2A/SSE) | Exists |
-| x-pause / x-resume | Exists |
-| Self-routing (`yield "SET"`) | Exists |
-| FLY events for streaming | Exists |
-| Flow compiler (fan-out/fan-in, loops) | Exists |
-| Append mode state proxy | **New** [jbtnm] |
-| AsyncActor XRD init/sidecar containers | **New** [cynl0] |
-| Git state proxy | **New** [cy0p1] |
-| Memory state proxy + dreaming cron | **New** [gsz18] |
-| Dataset state proxy (Rust library) | **New** [lb740] |
-| Periodic flush for buffered writes | **New** [pr3ib] |
-| Cron flow pattern + observability | **New** [34yhs] |
-| Route allowlist/blocklist enforcement | **New** [krses] |
-| x-deploy crew actor | **New** [zgdsp] |
-| Generic autoresearch flow template | **New** [5i52w] |
-| Workbench devcontainer | **New** [ugr4f] |
-| Gateway rework | **Separate** [63keu] |
+| jbtnm | Append mode state proxy |
+| pr3ib | Periodic flush for buffered writes |
+| cynl0 | XRD init/sidecar containers (git-sync) |
+| cy0p1 | Git state proxy (full read-write) |
+| 34yhs | Cron flow pattern + observability |
 
-## 7. Dependency Graph
+### Tier 3 [coeie] — "Autonomous experimentation"
+
+Deploy-once generic autoresearch flow that iterates autonomously.
+
+| Aint | Title |
+|---|---|
+| gsz18 | Memory state proxy + dreaming cron flow |
+| zgdsp | x-deploy crew actor |
+| krses | Route allowlist/blocklist enforcement |
+| 5i52w | Generic autoresearch flow template |
+
+### Tier 4 [9kega] — "Scale and polish"
+
+Production-grade dataset management, meta-optimization, dashboards.
+
+| Aint | Title |
+|---|---|
+| lb740 | Dataset state proxy (Rust content-hash library) |
+| — | LLAMBO Level 2 orchestration |
+| — | Experiment dashboard (real-time UI) |
+| — | Multi-tenant security hardening |
+| — | In-cloud image building |
+
+## 9. What's New vs What Exists
+
+| Component | Status | Tier |
+|---|---|---|
+| S3 state proxy | Exists | — |
+| Gateway (MCP/A2A/SSE) | Exists | — |
+| x-pause / x-resume | Exists | — |
+| Self-routing (`yield "SET"`) | Exists | — |
+| FLY events for streaming | Exists | — |
+| Flow compiler (fan-out/fan-in, loops) | Exists | — |
+| Workbench devcontainer | **New** [ugr4f] | 1 |
+| Dataset visualization (FiftyOne) | **New** [bh1rg] | 1 |
+| Git state proxy | **New** [cy0p1] | 1-2 |
+| Append mode state proxy | **New** [jbtnm] | 2 |
+| Periodic flush for buffered writes | **New** [pr3ib] | 2 |
+| AsyncActor XRD init/sidecar containers | **New** [cynl0] | 2 |
+| Cron flow pattern + observability | **New** [34yhs] | 2 |
+| Memory state proxy + dreaming cron | **New** [gsz18] | 3 |
+| x-deploy crew actor | **New** [zgdsp] | 3 |
+| Route allowlist/blocklist enforcement | **New** [krses] | 3 |
+| Generic autoresearch flow template | **New** [5i52w] | 3 |
+| Dataset state proxy (Rust library) | **New** [lb740] | 4 |
+| Gateway rework | **Separate** [63keu] | — |
+
+## 10. Dependency Graph
 
 ```
-[jbtnm] append mode           (no deps, unblocks pr3ib)
-[cynl0] XRD init/sidecars     (no deps)
-[cy0p1] git state proxy       (no deps, unblocks gsz18, zgdsp, 5i52w)
-[34yhs] cron flow pattern      (no deps, unblocks gsz18)
-[krses] route enforcement      (no deps, unblocks 5i52w)
-[lb740] dataset state proxy    (no deps, separate repo)
-[pr3ib] periodic flush         (depends: jbtnm)
-[gsz18] memory + dreaming      (depends: cy0p1, 34yhs)
-[zgdsp] x-deploy crew actor    (depends: cy0p1)
-[5i52w] autoresearch flow      (depends: cy0p1, krses, zgdsp)
-[ugr4f] workbench devcontainer (no deps, low priority)
-[63keu] gateway rework         (separate, pre-existing)
+Tier 1 (immediate):
+  [ugr4f] workbench              (no deps)
+  [bh1rg] dataset viz            (no deps)
+  [cy0p1] git state proxy RO     (no deps, stretch)
+
+Tier 2 (after tier 1):
+  [jbtnm] append mode            (no deps, unblocks pr3ib)
+  [pr3ib] periodic flush         (depends: jbtnm)
+  [cynl0] XRD init/sidecars      (no deps)
+  [cy0p1] git state proxy RW     (extends tier 1 work)
+  [34yhs] cron flow pattern      (no deps, unblocks gsz18)
+
+Tier 3 (after tier 2):
+  [gsz18] memory + dreaming      (depends: cy0p1, 34yhs)
+  [zgdsp] x-deploy crew actor    (depends: cy0p1)
+  [krses] route enforcement      (no deps)
+  [5i52w] autoresearch flow      (depends: cy0p1, krses, zgdsp)
+
+Tier 4 (after tier 3):
+  [lb740] dataset state proxy    (no deps, separate repo)
+
+Separate:
+  [63keu] gateway rework         (pre-existing, independent)
 ```
 
-Critical path: `cy0p1` (git state proxy) unblocks the most work (gsz18,
-zgdsp, 5i52w). `34yhs` (cron) unblocks gsz18. `krses` (route enforcement)
-unblocks 5i52w.
+Critical path through tiers: ugr4f (workbench) → cy0p1 (git proxy RW) →
+zgdsp (x-deploy) → 5i52w (autoresearch flow).
 
-Parallelizable work streams:
-1. State proxy core: jbtnm (append) + pr3ib (flush) — sequential
-2. XRD extension: cynl0 — independent
-3. Git state proxy: cy0p1 — independent, critical path
-4. Dataset library: lb740 — separate repo, fully independent
-5. Cron pattern: 34yhs — independent
-6. Route enforcement: krses — independent
-7. x-deploy: zgdsp — after cy0p1
-8. Autoresearch flow: 5i52w — after cy0p1 + krses + zgdsp (integration)
-9. Workbench: ugr4f — independent, low priority
-
-## 8. Open Questions
+## 11. Open Questions
 
 1. **x-deploy permissions long-term**: multi-tenant clusters need admission
    policies, image signing, resource quotas per tenant. Deferred.
@@ -396,7 +483,7 @@ Parallelizable work streams:
 6. **Memory relevance at scale**: keyword match on frontmatter works for <100
    memories. At 1000+, need embedding-based retrieval. Future optimization.
 
-## 9. Non-Goals
+## 12. Non-Goals
 
 - **Full RL training of the orchestrator policy**: the LLM is zero-shot.
   Memory provides few-shot context but no gradient updates.
