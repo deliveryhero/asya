@@ -1,3 +1,7 @@
+---
+description: "Role separation: data scientists write Python handlers, platform engineers configure infrastructure"
+---
+
 # Separation of Concerns
 
 Asya enforces a clean boundary between application logic and infrastructure

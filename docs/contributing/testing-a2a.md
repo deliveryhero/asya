@@ -1,3 +1,7 @@
+---
+description: "Test strategy: A2A protocol testing across all test levels"
+---
+
 # Testing: A2A Protocol
 
 How the A2A (Agent-to-Agent) protocol implementation in `asya-gateway` is tested

@@ -1,3 +1,7 @@
+---
+description: "Index of core concepts: actor mesh, routing, virtual actors, flow compiler, transports, storage, observability"
+---
+
 # Core Concepts
 
 Asya 🎭 rests on a small set of ideas. Each page below explains one

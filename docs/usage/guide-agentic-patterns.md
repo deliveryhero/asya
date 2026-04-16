@@ -1,3 +1,6 @@
+---
+description: "Agentic patterns: fan-out, dynamic routing, conditional branching, LLM streaming, agent swarms"
+---
 
 # Agentic Patterns
 

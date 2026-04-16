@@ -1,3 +1,7 @@
+---
+description: "Comparison: Asya vs Erlang/OTP, Akka, Orleans, Dapr — actor model implementations"
+---
+
 # Actor Frameworks
 
 **Erlang/OTP, Akka/Pekko, Microsoft Orleans, Dapr**

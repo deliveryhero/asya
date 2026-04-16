@@ -1,3 +1,7 @@
+---
+description: "Helm charts config: gateway, crew, crossplane chart values, image tags, resource limits"
+---
+
 # Helm Charts
 
 Asya🎭 provides Helm charts for deploying framework components.

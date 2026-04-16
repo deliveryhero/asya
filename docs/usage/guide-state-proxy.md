@@ -1,3 +1,7 @@
+---
+description: "State proxy usage: read/write /state/ paths in Python handlers, file I/O interception"
+---
+
 # State Proxy
 
 How to read and write persistent state from your actor handlers using standard Python file operations.

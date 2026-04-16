@@ -1,3 +1,7 @@
+---
+description: "Agentic patterns: AI agent swarms as distributed actors with streaming, pause/resume, fan-out"
+---
+
 # Agentic Native
 
 The actor mesh is the most general agentic pattern: each AI agent runs as an

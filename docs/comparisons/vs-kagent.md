@@ -1,3 +1,7 @@
+---
+description: "Deep comparison: Asya vs KAgent — CNCF K8s-native agent CRDs vs actor mesh CRDs"
+---
+
 # vs KAgent
 
 ## TL;DR

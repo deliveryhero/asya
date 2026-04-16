@@ -1,3 +1,7 @@
+---
+description: "Choreography pattern: actors communicate via queues, scale independently, no central orchestrator"
+---
+
 # Actor Mesh
 
 ## What is an Actor Mesh?

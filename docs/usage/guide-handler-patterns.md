@@ -1,3 +1,7 @@
+---
+description: "Handler patterns: adapter pattern, generator vs function handlers, typed outputs, yield protocol"
+---
+
 # Handler Patterns
 
 This guide covers practical patterns for writing Asya actor handlers: from basic

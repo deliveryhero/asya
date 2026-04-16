@@ -1,3 +1,6 @@
+---
+description: "AsyncActor CRD spec: full field reference, compositionSelector, resiliency, transport, state proxy"
+---
 
 # AsyncActor CRD
 

@@ -1,3 +1,7 @@
+---
+description: "RabbitMQ transport: connection config, exchange setup, prefetch, no delayed retry support"
+---
+
 # RabbitMQ
 
 Self-hosted open-source message broker.

@@ -1,3 +1,7 @@
+---
+description: "AsyncActor spec guide: write actor manifests, compositionSelector, inline config, XRD fields"
+---
+
 # AsyncActor Spec
 
 The AsyncActor is the only CRD you need to deploy an actor on Kubernetes.

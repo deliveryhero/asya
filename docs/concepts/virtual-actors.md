@@ -1,3 +1,7 @@
+---
+description: "Virtual actors: stateless Deployments with optional persistent memory via state proxy sidecar"
+---
+
 # Virtual Actors
 
 Asya actors are stateless Kubernetes Deployments by design. They carry no

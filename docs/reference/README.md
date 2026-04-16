@@ -1,3 +1,7 @@
+---
+description: "Reference index: component specs, transport configs, state proxy connectors, environment variables"
+---
+
 # Reference
 
 Accurate technical descriptions — specs, configuration tables, API surfaces. Shared by both actor authors and platform engineers.

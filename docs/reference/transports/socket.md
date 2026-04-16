@@ -1,3 +1,7 @@
+---
+description: "Socket transport: Unix socket for local development, no infrastructure dependencies"
+---
+
 # Socket
 
 ⚠️ **Local testing only.** The socket transport exists exclusively for Docker Compose developer

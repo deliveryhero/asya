@@ -1,3 +1,7 @@
+---
+description: "Specs index: envelope, CRD, ABI protocol, sidecar-runtime, gateway API, flow DSL, error handling"
+---
+
 # Specifications
 
 Protocols, interfaces, and formal specifications for the Asya framework.

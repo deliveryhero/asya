@@ -1,3 +1,7 @@
+---
+description: "Pub/Sub external scaler: KEDA scaler for Pub/Sub, direct Pull API, replaces deprecated built-in"
+---
+
 # asya-scalers
 
 KEDA external scalers for Asya transport backends.

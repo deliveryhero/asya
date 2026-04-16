@@ -1,3 +1,7 @@
+---
+description: "Test strategy: transport backends across unit, component, integration, E2E test levels"
+---
+
 # Testing: Transport Backends
 
 How message transport (SQS, Pub/Sub, RabbitMQ) is exercised across all test levels.

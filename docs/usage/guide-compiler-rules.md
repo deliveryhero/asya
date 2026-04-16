@@ -1,3 +1,7 @@
+---
+description: "Compiler rules usage: extend compiler with custom rules for decorators, context managers, calls"
+---
+
 # Compiler Rules
 
 How to use and extend the compiler's extensible rule system — the knowledge base

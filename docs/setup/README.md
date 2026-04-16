@@ -1,3 +1,7 @@
+---
+description: "Setup index: quickstart, cloud deployment (EKS/GKE), Helm charts, autoscaling, observability, ops"
+---
+
 # Run Asya
 
 Deploy Asya on your cluster, configure transports, monitor and scale.

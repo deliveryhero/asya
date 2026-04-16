@@ -1,3 +1,6 @@
+---
+description: "Pause/resume usage: yield SET to x-pause, handle resume input, human-in-the-loop workflow"
+---
 
 # Pause/Resume
 

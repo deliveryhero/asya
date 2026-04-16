@@ -1,3 +1,7 @@
+---
+description: "ABI protocol: yield-based commands (GET/SET/DEL/FLY), path syntax, access control, type dispatch"
+---
+
 # ABI Protocol
 
 ## What is the ABI?

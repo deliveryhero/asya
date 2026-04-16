@@ -1,3 +1,6 @@
+---
+description: "Error handling setup: configure resiliency policies, retry rules, DLQ routing in Helm values"
+---
 
 # Configuring Error Handling and Retries
 

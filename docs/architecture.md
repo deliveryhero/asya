@@ -1,3 +1,7 @@
+---
+description: "Architecture overview: actor mesh, pod anatomy, message flow, gateway, crossplane, deployment patterns"
+---
+
 # Architecture
 
 Asya is a Kubernetes-native async actor mesh. All components are designed around one

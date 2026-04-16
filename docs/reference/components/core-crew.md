@@ -1,3 +1,7 @@
+---
+description: "Crew system actors: x-sink (results), x-sump (DLQ), x-pause/x-resume (human-in-the-loop)"
+---
+
 # Crew
 
 System actors with reserved roles for framework-level tasks.

@@ -1,3 +1,7 @@
+---
+description: "Flow compiler: Python DSL to actor graph, CPS transform, router generation, fan-out/fan-in"
+---
+
 # Flow Compiler
 
 This document describes the **compiler internals** — how the Flow DSL
