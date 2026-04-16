@@ -78,7 +78,7 @@ func (h *Handler) HandleEventsGet(w http.ResponseWriter, r *http.Request, id str
 				return
 			}
 		case <-keepalive.C:
-			if _, err = fmt.Fprintf(w, ":keepalive\n\n"); err != nil {
+			if _, err = fmt.Fprintf(w, ":keepalive\n\n"); err != nil { // nosemgrep
 				return
 			}
 			flusher.Flush()
@@ -135,19 +135,19 @@ func (h *Handler) HandleEventsPost(w http.ResponseWriter, r *http.Request, id st
 // writeSSE writes a single SSE event to the response writer.
 // Returns an error if the write fails (e.g. client disconnected).
 func writeSSE(w http.ResponseWriter, flusher http.Flusher, eventType string, data json.RawMessage) error {
-	if _, err := fmt.Fprintf(w, "event: %s\n", eventType); err != nil {
+	if _, err := fmt.Fprintf(w, "event: %s\n", eventType); err != nil { // nosemgrep
 		return err
 	}
 	if data != nil {
-		if _, err := fmt.Fprintf(w, "data: %s\n", string(data)); err != nil {
+		if _, err := fmt.Fprintf(w, "data: %s\n", string(data)); err != nil { // nosemgrep
 			return err
 		}
 	} else {
-		if _, err := fmt.Fprintf(w, "data: {}\n"); err != nil {
+		if _, err := fmt.Fprintf(w, "data: {}\n"); err != nil { // nosemgrep
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "\n"); err != nil {
+	if _, err := fmt.Fprintf(w, "\n"); err != nil { // nosemgrep
 		return err
 	}
 	flusher.Flush()

@@ -13,13 +13,12 @@ import (
 // used by the mesh handler. It converts raw envelope JSON into the
 // types.Envelope struct that queue.Client.SendMessage expects.
 type QueueClientSender struct {
-	client    queue.Client
-	namespace string
+	client queue.Client
 }
 
 // NewQueueClientSender wraps a queue.Client as an EnvelopeSender.
-func NewQueueClientSender(client queue.Client, namespace string) *QueueClientSender {
-	return &QueueClientSender{client: client, namespace: namespace}
+func NewQueueClientSender(client queue.Client) *QueueClientSender {
+	return &QueueClientSender{client: client}
 }
 
 // Send dispatches an envelope to the actor's queue.

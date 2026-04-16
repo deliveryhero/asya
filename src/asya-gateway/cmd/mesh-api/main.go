@@ -84,7 +84,7 @@ func main() {
 	}
 	defer func() { _ = queueClient.Close() }()
 
-	sender := mesh.NewQueueClientSender(queueClient, namespace)
+	sender := mesh.NewQueueClientSender(queueClient)
 	handler := mesh.NewHandler(msgStore, sender, gatewayURL)
 
 	// External server (port 8080)
@@ -98,11 +98,10 @@ func main() {
 	intMux.HandleFunc("/health", healthHandler)
 
 	extServer := &http.Server{
-		Addr:         ":" + extPort,
-		Handler:      extMux,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Addr:        ":" + extPort,
+		Handler:     extMux,
+		ReadTimeout: 30 * time.Second,
+		IdleTimeout: 120 * time.Second,
 	}
 	intServer := &http.Server{
 		Addr:         ":" + intPort,
