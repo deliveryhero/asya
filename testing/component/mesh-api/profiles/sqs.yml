@@ -1,0 +1,136 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: asya_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  sqs:
+    image: localstack/localstack:4.4.0
+    logging: *default-logging
+    environment:
+    - SERVICES=sqs
+    - DEBUG=0
+    - PERSISTENCE=0
+    - AWS_DEFAULT_REGION=us-east-1
+    - AWS_ACCESS_KEY_ID=test
+    - AWS_SECRET_ACCESS_KEY=test
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 5s
+      timeout: 15s
+      retries: 15
+      start_period: 10s
+
+  queue-setup:
+    image: localstack/localstack:4.4.0
+    logging: *default-logging
+    depends_on:
+      sqs:
+        condition: service_healthy
+    environment:
+    - AWS_DEFAULT_REGION=us-east-1
+    - AWS_ACCESS_KEY_ID=test
+    - AWS_SECRET_ACCESS_KEY=test
+    - AWS_ENDPOINT_URL=http://sqs:4566
+    healthcheck:
+      test:
+      - CMD
+      - sh
+      - -c
+      - "awslocal sqs list-queues --endpoint-url http://sqs:4566 | grep -q asya-test-mesh-echo"
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    entrypoint: >
+      /bin/sh -c "
+      for queue in asya-test-mesh-echo asya-test-x-sink asya-test-x-sump; do
+        awslocal sqs create-queue --queue-name $$queue --endpoint-url http://sqs:4566 || true;
+      done;
+      echo '[+] SQS mesh-api test queues created';
+      "
+
+  state-proxy-pg:
+    build:
+      context: ../../../../src/asya-gateway
+      dockerfile: Dockerfile
+      target: builder
+    logging: *default-logging
+    command: ["go", "run", "./cmd/state-proxy-pg"]
+    environment:
+      CONNECTOR_SOCKET: /tmp/stateproxy.sock
+      STATE_PROXY_PG_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
+      STATE_PROXY_PG_INDEXES: "status"
+    volumes:
+    - stateproxy-socket:/tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mesh-api:
+    build:
+      context: ../../../../src/asya-gateway
+      dockerfile: Dockerfile
+      target: builder
+    logging: *default-logging
+    command: ["go", "run", "./cmd/mesh-api"]
+    environment:
+      ASYA_MESH_EXTERNAL_PORT: "8080"
+      ASYA_MESH_INTERNAL_PORT: "8081"
+      ASYA_STATEPROXY_SOCKET: /tmp/stateproxy.sock
+      ASYA_INTERNAL_URL: http://mesh-api:8081
+      ASYA_SQS_ENDPOINT: http://sqs:4566
+      ASYA_SQS_REGION: us-east-1
+      ASYA_NAMESPACE: test
+      ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+    - stateproxy-socket:/tmp
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    depends_on:
+      state-proxy-pg:
+        condition: service_started
+      queue-setup:
+        condition: service_healthy
+
+  tester-go:
+    build:
+      context: ../../../../src/asya-gateway
+      dockerfile: Dockerfile
+      target: tester
+    logging: *default-logging
+    working_dir: /build
+    command: >
+      go test -v -count=1 -timeout=120s
+      -run TestComponent
+      ./internal/mesh/...
+    environment:
+      MESH_API_URL: http://mesh-api:8080
+      MESH_API_INTERNAL_URL: http://mesh-api:8081
+    depends_on:
+      mesh-api:
+        condition: service_healthy
+
+volumes:
+  stateproxy-socket:
