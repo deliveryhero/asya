@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "39aa2240f835c5a8620a65b5022c1ad4e0dfc779",
+  "commit": "f242929325d4143aca570b98ad01e6bc131ea3ea",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -14202,7 +14202,7 @@
           {
             "type": "statement",
             "start_line": 34,
-            "start_col": 142,
+            "start_col": 168,
             "end_line": 38,
             "end_col": 58,
             "num_stmt": 1,
@@ -28904,7 +28904,7 @@
       },
       {
         "code": 115,
-        "comment": 8,
+        "comment": 10,
         "blank": 33,
         "path": "src/asya-gateway/internal/mcp/transport_test.go",
         "language": "Go"
@@ -29156,6 +29156,6 @@
       }
     ]
   },
-  "test_execution_time": 498000000000,
-  "timestamp": "2026-04-15T21:26:10.057780428Z"
+  "test_execution_time": 445000000000,
+  "timestamp": "2026-04-16T15:08:57.559421537Z"
 }
