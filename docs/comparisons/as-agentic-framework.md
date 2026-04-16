@@ -1,3 +1,7 @@
+---
+description: "Comparison: Asya vs LangGraph, CrewAI, Google ADK, AutoGen, KAgent — AI agent frameworks"
+---
+
 # Agentic Frameworks
 
 **LangGraph, CrewAI, Google ADK, AutoGen, KAgent**

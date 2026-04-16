@@ -1,3 +1,7 @@
+---
+description: "Deep comparison: Asya vs Google ADK — output_key pattern vs envelope routing for agents"
+---
+
 # vs Google ADK
 
 ## TL;DR

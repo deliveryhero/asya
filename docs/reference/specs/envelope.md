@@ -1,3 +1,7 @@
+---
+description: "Envelope spec: JSON structure, route (prev/curr/next), headers, status, fan-out ID semantics"
+---
+
 # Envelope
 
 ## Envelope Structure

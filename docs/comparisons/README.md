@@ -1,3 +1,7 @@
+---
+description: "Comparisons index: Asya vs workflow orchestrators, actor frameworks, agentic frameworks, ML tools"
+---
+
 # Comparisons
 
 How does 🎭 Asya compare to other tools in the ecosystem? Each page provides honest,

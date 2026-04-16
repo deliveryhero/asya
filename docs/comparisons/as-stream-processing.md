@@ -1,3 +1,7 @@
+---
+description: "Comparison: Asya vs Flink, Kafka Streams, Spark Streaming — stream processing frameworks"
+---
+
 # Stream Processing
 
 **Apache Flink, Kafka Streams, Spark Streaming**

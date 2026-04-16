@@ -1,3 +1,6 @@
+---
+description: "Autoscaling setup: KEDA configuration, ScaledObject parameters, scaling scenarios, GPU pods"
+---
 
 # Autoscaling
 

@@ -1,3 +1,7 @@
+---
+description: "Crossplane: XRD, Compositions, provider configs, inline sidecar rendering, queue auto-creation"
+---
+
 # Crossplane
 
 ## Overview

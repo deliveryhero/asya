@@ -1,3 +1,6 @@
+---
+description: "Flow DSL spec: Python syntax rules, compilation semantics, fan-out/fan-in, conditional routing"
+---
 
 # Flow DSL
 

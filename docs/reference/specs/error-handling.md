@@ -1,3 +1,7 @@
+---
+description: "Error handling spec: resiliency policies, retry rules, error routing, DLQ, onExhausted fallback"
+---
+
 # Error Handling
 
 Error routing specification for the Asya actor mesh. Covers policy exhaustion, DLQ handling, and the x-sink/x-sump termination chain.

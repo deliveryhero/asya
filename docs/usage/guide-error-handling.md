@@ -1,3 +1,6 @@
+---
+description: "Error handling usage: try/except in flows, error routing patterns, finally blocks"
+---
 
 # Error Handling in Flows
 

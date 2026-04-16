@@ -1,3 +1,7 @@
+---
+description: "Deep comparison: Asya vs LangGraph — in-process graph vs distributed actor mesh for agents"
+---
+
 # vs LangGraph
 
 ## TL;DR

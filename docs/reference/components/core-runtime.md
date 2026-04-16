@@ -1,3 +1,7 @@
+---
+description: "Runtime (Python): handler execution, Unix socket protocol, generator/function dispatch, ABI"
+---
+
 # Runtime
 
 ## Responsibilities

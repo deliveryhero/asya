@@ -1,3 +1,7 @@
+---
+description: "Runtime routing: actors rewrite route.next at runtime for branches, loops, human-in-the-loop"
+---
+
 # Dynamic Routing
 
 In static pipeline frameworks like Airflow or Argo Workflows, the execution

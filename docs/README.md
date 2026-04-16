@@ -1,3 +1,7 @@
+---
+description: "Documentation home: navigation hub for data scientists, platform engineers, and contributors"
+---
+
 # Home
 
 ---

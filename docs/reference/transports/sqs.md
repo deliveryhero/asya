@@ -1,3 +1,7 @@
+---
+description: "SQS transport: AWS SQS configuration, IRSA/Pod Identity, queue auto-creation, retry with delay"
+---
+
 # SQS
 
 AWS-managed message queue service.

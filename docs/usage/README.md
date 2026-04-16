@@ -1,3 +1,7 @@
+---
+description: "Usage index: first actor, first mesh, first flow, handler patterns, agentic patterns, debugging"
+---
+
 # Build AI Actors 🎭
 
 Write Python functions, deploy as Kubernetes actors, chain into meshes.

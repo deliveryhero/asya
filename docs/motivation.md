@@ -1,3 +1,7 @@
+---
+description: "Motivation: why Asya exists, problem statement, AI pipeline scalability challenges"
+---
+
 # Motivation
 
 ## The Starting Point

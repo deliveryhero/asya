@@ -1,3 +1,7 @@
+---
+description: "Observability: OpenTelemetry tracing, Prometheus metrics, structured logging, Grafana dashboards"
+---
+
 # Built-in Observability
 
 In a distributed actor mesh, understanding what happened and where requires

@@ -1,3 +1,7 @@
+---
+description: "Envelope routing: route embedded in message (prev/curr/next), no external router or coordinator"
+---
+
 # Message Knows the Way
 
 In most pipeline frameworks, a central coordinator decides where each message

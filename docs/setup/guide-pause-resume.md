@@ -1,3 +1,7 @@
+---
+description: "Pause/resume setup: deploy x-pause/x-resume crew actors, configure S3 checkpoint bucket"
+---
+
 # Pause/Resume
 
 This guide shows how to deploy and configure the pause/resume infrastructure for human-in-the-loop workflows.

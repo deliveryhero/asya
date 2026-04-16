@@ -1,3 +1,7 @@
+---
+description: "Troubleshooting: symptom-to-solution checklist, common errors, debugging commands"
+---
+
 # Troubleshooting
 
 Common issues and solutions.

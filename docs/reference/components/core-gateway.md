@@ -1,3 +1,7 @@
+---
+description: "Gateway (Go): MCP/A2A HTTP bridge, api/mesh modes, task state, PostgreSQL, SSE streaming"
+---
+
 # Gateway
 
 ## Responsibilities

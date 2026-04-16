@@ -1,3 +1,6 @@
+---
+description: "Tutorial: chain two actors via route.next, trace the envelope at each hop, verify pipeline"
+---
 
 # First Actor Mesh
 

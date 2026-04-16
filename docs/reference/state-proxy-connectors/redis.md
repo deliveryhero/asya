@@ -1,3 +1,7 @@
+---
+description: "Redis connector: Redis config for state proxy, connection string, key prefix, TTL"
+---
+
 # Redis
 
 Redis key-value connector for state proxy with Check-And-Set consistency.

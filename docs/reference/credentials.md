@@ -1,3 +1,7 @@
+---
+description: "Credentials mapping: auth configuration for all components (AWS, GCP, RabbitMQ, PostgreSQL)"
+---
+
 # Credentials and Secrets Reference
 
 How authentication works across Asya components. This page maps every

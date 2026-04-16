@@ -1,3 +1,7 @@
+---
+description: "Deep comparison: Asya vs Temporal — centralized replay vs decentralized queue-based routing"
+---
+
 # vs Temporal
 
 ## TL;DR

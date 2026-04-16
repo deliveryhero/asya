@@ -1,3 +1,7 @@
+---
+description: "Sidecar-runtime protocol: Unix socket framing, request/response format, timeout strategy"
+---
+
 # Sidecar-Runtime
 
 Communication between Asya sidecar (Go) and runtime (Python) uses **HTTP/1.1 over a Unix domain socket**.

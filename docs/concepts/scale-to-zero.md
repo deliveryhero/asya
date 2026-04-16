@@ -1,3 +1,7 @@
+---
+description: "Autoscaling: KEDA watches queue depth, scale to zero between batches, GPU cost optimization"
+---
+
 # Scale Zero to Infinity
 
 Asya actors scale independently based on their own queue depth. When there is no

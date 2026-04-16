@@ -1,3 +1,7 @@
+---
+description: "Compiler rules spec: extensible rules for decorators, context managers, custom call patterns"
+---
+
 # Compiler Rules
 
 Formal specification for the compiler rules system — the extensible knowledge

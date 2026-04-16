@@ -1,3 +1,6 @@
+---
+description: "Tutorial: build an echo actor, deploy to Kubernetes, send a message, verify the result"
+---
 
 # First Actor
 

@@ -1,3 +1,7 @@
+---
+description: "Sidecar (Go): queue polling, envelope routing, retry policies, fan-out, progress reporting, metrics"
+---
+
 # Sidecar
 
 Detailed architecture of the 🎭 Actor Sidecar. Please also refer to code documentation [`src/asya-sidecar/README.md`](https://github.com/deliveryhero/asya/blob/main/src/asya-sidecar/README.md)

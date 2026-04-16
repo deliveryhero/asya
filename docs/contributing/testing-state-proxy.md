@@ -1,3 +1,7 @@
+---
+description: "Test strategy: state proxy backends across unit, component, integration, E2E test levels"
+---
+
 # Testing: State Proxy / Storage Backends
 
 How storage backends (S3/GCS/Redis) are exercised across all test levels.

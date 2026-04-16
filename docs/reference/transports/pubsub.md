@@ -1,3 +1,7 @@
+---
+description: "Pub/Sub transport: Google Cloud Pub/Sub configuration, Workload Identity, subscription setup"
+---
+
 # Pub/Sub
 
 Google Cloud Pub/Sub managed messaging service for actor communication.
