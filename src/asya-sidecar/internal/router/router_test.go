@@ -4102,6 +4102,13 @@ func TestRouter_PreFlightCheck_Canceled(t *testing.T) {
 			Next: []string{"next-actor"},
 		},
 		Payload: json.RawMessage(`{"x": 1}`),
+		Status: &envelopes.Status{
+			Phase:      envelopes.PhasePending,
+			Actor:      "prev-actor",
+			CreatedAt:  "2026-01-01T00:00:00Z",
+			UpdatedAt:  "2026-01-01T00:00:00Z",
+			DeadlineAt: "2026-12-31T23:59:59Z",
+		},
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
@@ -4132,6 +4139,12 @@ func TestRouter_PreFlightCheck_Canceled(t *testing.T) {
 	}
 	if sentMsg.Status.Reason != envelopes.ReasonPreFlightCanceled {
 		t.Errorf("Expected reason=PreFlightCanceled, got %v", sentMsg.Status.Reason)
+	}
+	if sentMsg.Status.CreatedAt != "2026-01-01T00:00:00Z" {
+		t.Errorf("Expected original CreatedAt preserved, got %v", sentMsg.Status.CreatedAt)
+	}
+	if sentMsg.Status.DeadlineAt != "2026-12-31T23:59:59Z" {
+		t.Errorf("Expected original DeadlineAt preserved, got %v", sentMsg.Status.DeadlineAt)
 	}
 }
 
@@ -4440,5 +4453,51 @@ func TestRouter_EnvelopeHeaderEnablesReportingWithoutEnvVar(t *testing.T) {
 
 	if !headerHit {
 		t.Error("Header gateway should have been hit even without ASYA_GATEWAY_URL env var")
+	}
+}
+
+func TestIsValidGatewayURL(t *testing.T) {
+	tests := []struct {
+		name  string
+		url   string
+		valid bool
+	}{
+		{"http URL", "http://gateway.svc:8080", true},
+		{"https URL", "https://gateway.example.com", true},
+		{"http with path", "http://gateway.svc:8080/api", true},
+		{"empty string", "", false},
+		{"file scheme", "file:///etc/passwd", false},
+		{"gopher scheme", "gopher://evil.com", false},
+		{"ftp scheme", "ftp://evil.com/data", false},
+		{"no scheme", "gateway.svc:8080", false},
+		{"javascript scheme", "javascript:alert(1)", false},
+		{"just path", "/api/v1/mesh", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isValidGatewayURL(tc.url)
+			if got != tc.valid {
+				t.Errorf("isValidGatewayURL(%q) = %v, want %v", tc.url, got, tc.valid)
+			}
+		})
+	}
+}
+
+func TestResolveGatewayURL_RejectsInvalidScheme(t *testing.T) {
+	router := &Router{
+		gatewayURL: "http://default-gw:8080",
+	}
+
+	msg := &envelopes.Envelope{
+		ID: "test-ssrf",
+		Headers: map[string]interface{}{
+			envelopes.HeaderGatewayURL: "file:///etc/passwd",
+		},
+	}
+
+	got := router.resolveGatewayURL(msg)
+	if got != "http://default-gw:8080" {
+		t.Errorf("Expected fallback to default gateway, got %q", got)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"math"
 	"math/rand/v2"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -173,15 +174,39 @@ func (r *Router) shouldReportFinalToGateway(msg *envelopes.Envelope) bool {
 
 // resolveGatewayURL returns the gateway URL for this envelope.
 // Envelope header x-asya-gateway-url takes precedence over the env var fallback.
+// The header value is validated to prevent SSRF: only http/https schemes are
+// accepted and the URL must parse correctly. Invalid values are logged and
+// ignored, falling back to the configured gateway URL.
 func (r *Router) resolveGatewayURL(msg *envelopes.Envelope) string {
 	if msg.Headers != nil {
 		if raw, ok := msg.Headers[envelopes.HeaderGatewayURL]; ok {
 			if s, ok := raw.(string); ok && s != "" {
-				return s
+				if isValidGatewayURL(s) {
+					return s
+				}
+				slog.Warn("Ignoring invalid x-asya-gateway-url header",
+					"id", msg.ID, "value", s)
 			}
 		}
 	}
 	return r.gatewayURL
+}
+
+// isValidGatewayURL validates that a gateway URL is safe to use.
+// Only http and https schemes are permitted to prevent SSRF via file://,
+// gopher://, or other dangerous schemes.
+func isValidGatewayURL(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+	if u.Host == "" {
+		return false
+	}
+	return true
 }
 
 // getReporter returns a progress.Reporter for the given envelope.
@@ -837,13 +862,13 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 					}
 
 					now := time.Now().UTC().Format(time.RFC3339)
-					msg.Status = &envelopes.Status{
-						Phase:     envelopes.PhaseCanceled,
-						Reason:    envelopes.ReasonPreFlightCanceled,
-						Actor:     r.actorName,
-						CreatedAt: now,
-						UpdatedAt: now,
+					if msg.Status == nil || msg.Status.CreatedAt == "" {
+						msg.Status = &envelopes.Status{CreatedAt: now}
 					}
+					msg.Status.Phase = envelopes.PhaseCanceled
+					msg.Status.Reason = envelopes.ReasonPreFlightCanceled
+					msg.Status.Actor = r.actorName
+					msg.Status.UpdatedAt = now
 					return r.sendToSinkQueue(ctx, *msg)
 
 				case "paused":
@@ -856,13 +881,13 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 					}
 
 					now := time.Now().UTC().Format(time.RFC3339)
-					msg.Status = &envelopes.Status{
-						Phase:     envelopes.PhasePaused,
-						Reason:    envelopes.ReasonPreFlightPaused,
-						Actor:     r.actorName,
-						CreatedAt: now,
-						UpdatedAt: now,
+					if msg.Status == nil || msg.Status.CreatedAt == "" {
+						msg.Status = &envelopes.Status{CreatedAt: now}
 					}
+					msg.Status.Phase = envelopes.PhasePaused
+					msg.Status.Reason = envelopes.ReasonPreFlightPaused
+					msg.Status.Actor = r.actorName
+					msg.Status.UpdatedAt = now
 					return r.sendToSinkQueue(ctx, *msg)
 				}
 			}
@@ -960,12 +985,15 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return fmt.Errorf("failed to marshal message with status: %w", err)
 	}
 
-	// Build callback that forwards FLY events to gateway
+	// Build callback that forwards FLY events to gateway via unified PostEvent
 	var onUpstream func(json.RawMessage)
 	if r.isMeshStatusEnabled(msg) {
 		reporter := r.getReporter(msg)
 		onUpstream = func(payload json.RawMessage) {
-			if err := reporter.ForwardFly(ctx, msg.ID, payload); err != nil {
+			if err := reporter.PostEvent(ctx, msg.ID, progress.MeshEvent{
+				Type: progress.EventTypeFly,
+				Data: payload,
+			}); err != nil {
 				slog.Warn("Failed to forward FLY event", "id", msg.ID, "error", err)
 			}
 		}
