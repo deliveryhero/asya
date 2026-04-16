@@ -60,7 +60,7 @@ func (s *StateProxyStore) Create(ctx context.Context, msg *types.Message) error 
 	if err != nil {
 		return fmt.Errorf("create: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("create: unexpected status %d", resp.StatusCode)
@@ -80,7 +80,7 @@ func (s *StateProxyStore) Get(ctx context.Context, id string) (*types.Message, e
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
@@ -146,7 +146,7 @@ func (s *StateProxyStore) updateStatusAttempt(ctx context.Context, id string, st
 	if err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusConflict {
 		if retries > 0 {
@@ -173,7 +173,7 @@ func (s *StateProxyStore) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return ErrNotFound
@@ -218,7 +218,7 @@ func (s *StateProxyStore) List(ctx context.Context, params types.ListParams) ([]
 	if err != nil {
 		return nil, 0, fmt.Errorf("list: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, 0, fmt.Errorf("list: unexpected status %d", resp.StatusCode)

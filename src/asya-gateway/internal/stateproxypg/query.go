@@ -11,6 +11,8 @@ import (
 // contains characters outside the allowed identifier pattern.
 var ErrInvalidFieldName = fmt.Errorf("invalid field name")
 
+// validateFieldName checks that a field name matches the safe identifier pattern.
+// Reuses validFieldName from schema.go: ^[a-zA-Z_][a-zA-Z0-9_]*$
 func validateFieldName(field string) error {
 	if !validFieldName.MatchString(field) {
 		return fmt.Errorf("%w: %q", ErrInvalidFieldName, field)
@@ -42,7 +44,8 @@ var topLevelColumns = map[string]bool{
 }
 
 // buildFilterSQL constructs a parameterized SELECT query from a QueryRequest.
-// Returns the SQL string and a slice of positional parameters.
+// Returns the SQL string, a slice of positional parameters, and an error if
+// any field name fails validation.
 func buildFilterSQL(req QueryRequest) (string, []any, error) {
 	var conditions []string
 	var args []any

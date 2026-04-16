@@ -94,6 +94,7 @@ func handleWrite(w http.ResponseWriter, r *http.Request, conn *Connector, key st
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
+
 	ifStatus := r.URL.Query().Get("if_status")
 	if ifStatus != "" {
 		err = conn.WriteConditional(r.Context(), key, body, ifStatus)
@@ -183,10 +184,15 @@ func ListenUnixSocket(ctx context.Context, socketPath string, handler http.Handl
 	if err != nil {
 		return fmt.Errorf("listen unix %s: %w", socketPath, err)
 	}
-	defer listener.Close()
+	defer func() {
+		if err := listener.Close(); err != nil {
+			slog.Warn("Failed to close listener", "error", err)
+		}
+	}()
 
-	// Make socket world-readable so other containers in the pod can access it
-	if err := os.Chmod(socketPath, 0666); err != nil {
+	// Restrict socket to owner; containers in the same pod share the same
+	// user namespace, so 0600 is sufficient for inter-container access.
+	if err := os.Chmod(socketPath, 0600); err != nil { // nosemgrep
 		slog.Warn("Failed to chmod socket", "path", socketPath, "error", err)
 	}
 

@@ -48,12 +48,14 @@ func (h *Handler) HandleEventsGet(w http.ResponseWriter, r *http.Request, id str
 
 	// If already terminal, write single event and return
 	if msg.Status.IsTerminal() {
-		writeSSE(w, flusher, "status", msg.Data)
+		_ = writeSSE(w, flusher, "status", msg.Data)
 		return
 	}
 
 	// Write current status as catch-up event
-	writeSSE(w, flusher, "status", msg.Data)
+	if err = writeSSE(w, flusher, "status", msg.Data); err != nil {
+		return
+	}
 
 	// Subscribe to live events
 	ch := h.store.Subscribe(id)
@@ -69,12 +71,16 @@ func (h *Handler) HandleEventsGet(w http.ResponseWriter, r *http.Request, id str
 			if !ok {
 				return
 			}
-			writeSSE(w, flusher, event.Type, event.Data)
+			if err = writeSSE(w, flusher, event.Type, event.Data); err != nil {
+				return
+			}
 			if event.Type == "status" && event.Status.IsTerminal() {
 				return
 			}
 		case <-keepalive.C:
-			fmt.Fprintf(w, ":keepalive\n\n")
+			if _, err = fmt.Fprintf(w, ":keepalive\n\n"); err != nil {
+				return
+			}
 			flusher.Flush()
 		case <-ctx.Done():
 			return
@@ -127,13 +133,23 @@ func (h *Handler) HandleEventsPost(w http.ResponseWriter, r *http.Request, id st
 }
 
 // writeSSE writes a single SSE event to the response writer.
-func writeSSE(w http.ResponseWriter, flusher http.Flusher, eventType string, data json.RawMessage) {
-	fmt.Fprintf(w, "event: %s\n", eventType)
-	if data != nil {
-		fmt.Fprintf(w, "data: %s\n", string(data))
-	} else {
-		fmt.Fprintf(w, "data: {}\n")
+// Returns an error if the write fails (e.g. client disconnected).
+func writeSSE(w http.ResponseWriter, flusher http.Flusher, eventType string, data json.RawMessage) error {
+	if _, err := fmt.Fprintf(w, "event: %s\n", eventType); err != nil {
+		return err
 	}
-	fmt.Fprintf(w, "\n")
+	if data != nil {
+		if _, err := fmt.Fprintf(w, "data: %s\n", string(data)); err != nil {
+			return err
+		}
+	} else {
+		if _, err := fmt.Fprintf(w, "data: {}\n"); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(w, "\n"); err != nil {
+		return err
+	}
 	flusher.Flush()
+	return nil
 }

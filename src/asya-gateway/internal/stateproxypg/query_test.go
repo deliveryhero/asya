@@ -80,6 +80,7 @@ func TestBuildQuery_ExistsOperator(t *testing.T) {
 			"error": map[string]any{"$exists": false},
 		},
 	})
+	require.NoError(t, err)
 	assert.Contains(t, sql2, "NOT (value ? 'error')")
 }
 

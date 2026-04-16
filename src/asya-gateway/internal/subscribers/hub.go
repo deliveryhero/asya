@@ -49,15 +49,24 @@ func (h *Hub) Unsubscribe(id string, ch <-chan types.Event) {
 }
 
 // Publish sends an event to all subscribers for the given ID.
-// Drops if any channel is full (logs warning).
+// Terminal status events use a blocking send to prevent silent drops
+// that could leave SSE connections hanging. Non-terminal events are
+// dropped if a channel is full.
 func (h *Hub) Publish(id string, event types.Event) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+
+	isTerminal := event.Type == "status" && event.Status.IsTerminal()
+
 	for _, ch := range h.subs[id] {
-		select {
-		case ch <- event:
-		default:
-			slog.Warn("Event dropped: subscriber channel full", "id", id)
+		if isTerminal {
+			ch <- event
+		} else {
+			select {
+			case ch <- event:
+			default:
+				slog.Warn("Event dropped: subscriber channel full", "id", id, "type", event.Type)
+			}
 		}
 	}
 }

@@ -133,6 +133,7 @@ func readJSON(r *http.Request, v any) error {
 }
 
 // messageToResponse converts a types.Message into a JSON-friendly response.
+// Uses json.RawMessage directly to avoid unnecessary unmarshal/remarshal.
 func messageToResponse(msg *types.Message) map[string]any {
 	resp := map[string]any{
 		"id":         msg.ID,
@@ -140,11 +141,8 @@ func messageToResponse(msg *types.Message) map[string]any {
 		"created_at": msg.CreatedAt,
 		"updated_at": msg.UpdatedAt,
 	}
-	if msg.Data != nil {
-		var data map[string]any
-		if err := json.Unmarshal(msg.Data, &data); err == nil {
-			resp["data"] = data
-		}
+	if len(msg.Data) > 0 {
+		resp["data"] = msg.Data
 	}
 	return resp
 }

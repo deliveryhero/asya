@@ -97,8 +97,20 @@ func main() {
 	handler.RegisterInternal(intMux)
 	intMux.HandleFunc("/health", healthHandler)
 
-	extServer := &http.Server{Addr: ":" + extPort, Handler: extMux}
-	intServer := &http.Server{Addr: ":" + intPort, Handler: intMux}
+	extServer := &http.Server{
+		Addr:         ":" + extPort,
+		Handler:      extMux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	intServer := &http.Server{
+		Addr:         ":" + intPort,
+		Handler:      intMux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 
 	go func() {
 		slog.Info("External API listening", "port", extPort)
