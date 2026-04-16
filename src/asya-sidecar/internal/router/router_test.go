@@ -1312,23 +1312,35 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 		t.Errorf("End actor should not send any messages, got %d", len(mockTransport.sentMessages))
 	}
 
-	expectedPath := "/mesh/test-gateway-report/final"
+	// PostEvent sends to the unified endpoint /api/v1/mesh/{id}/events
+	expectedPath := "/api/v1/mesh/test-gateway-report/events"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected gateway request to %s, but none received", expectedPath)
 	}
 
-	var payload map[string]interface{}
-	if err := json.Unmarshal(req.Body, &payload); err != nil {
-		t.Fatalf("Failed to parse gateway request: %v", err)
+	// The unified endpoint wraps the payload in a MeshEvent
+	var event progress.MeshEvent
+	if err := json.Unmarshal(req.Body, &event); err != nil {
+		t.Fatalf("Failed to parse gateway request as MeshEvent: %v", err)
 	}
 
-	if payload["status"] != statusSucceeded {
-		t.Errorf("Expected status '%s', got %v", statusSucceeded, payload["status"])
+	if event.Type != progress.EventTypeStatus {
+		t.Errorf("Expected event type 'status', got %v", event.Type)
 	}
 
-	if payload["id"] != "test-gateway-report" {
-		t.Errorf("Expected id 'test-gateway-report', got %v", payload["id"])
+	if event.Status != statusSucceeded {
+		t.Errorf("Expected event status '%s', got %v", statusSucceeded, event.Status)
+	}
+
+	// The inner data contains the final payload
+	var data map[string]interface{}
+	if err := json.Unmarshal(event.Data, &data); err != nil {
+		t.Fatalf("Failed to parse event data: %v", err)
+	}
+
+	if data["id"] != "test-gateway-report" {
+		t.Errorf("Expected id 'test-gateway-report', got %v", data["id"])
 	}
 }
 
@@ -1646,27 +1658,33 @@ func TestRouter_ReportFinalStatus_Sink(t *testing.T) {
 		t.Fatalf("reportFinalStatus failed: %v", err)
 	}
 
-	expectedPath := "/mesh/test-msg-123/final"
+	// PostEvent sends to unified endpoint
+	expectedPath := "/api/v1/mesh/test-msg-123/events"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
 	}
 
-	var payload map[string]interface{}
-	if err := json.Unmarshal(req.Body, &payload); err != nil {
-		t.Fatalf("Failed to parse request body: %v", err)
+	var event progress.MeshEvent
+	if err := json.Unmarshal(req.Body, &event); err != nil {
+		t.Fatalf("Failed to parse request body as MeshEvent: %v", err)
 	}
 
-	if payload["status"] != statusSucceeded {
-		t.Errorf("Expected status '%s', got %v", statusSucceeded, payload["status"])
+	if event.Status != statusSucceeded {
+		t.Errorf("Expected event status '%s', got %v", statusSucceeded, event.Status)
 	}
 
-	if payload["id"] != "test-msg-123" {
-		t.Errorf("Expected id 'test-msg-123', got %v", payload["id"])
+	var data map[string]interface{}
+	if err := json.Unmarshal(event.Data, &data); err != nil {
+		t.Fatalf("Failed to parse event data: %v", err)
 	}
 
-	if payload["progress"] != 1.0 {
-		t.Errorf("Expected progress 1.0, got %v", payload["progress"])
+	if data["id"] != "test-msg-123" {
+		t.Errorf("Expected id 'test-msg-123', got %v", data["id"])
+	}
+
+	if data["progress"] != 1.0 {
+		t.Errorf("Expected progress 1.0, got %v", data["progress"])
 	}
 }
 
@@ -1699,19 +1717,20 @@ func TestRouter_ReportFinalStatus_Sump(t *testing.T) {
 		t.Fatalf("reportFinalStatus failed: %v", err)
 	}
 
-	expectedPath := "/mesh/test-error-456/final"
+	// PostEvent sends to unified endpoint
+	expectedPath := "/api/v1/mesh/test-error-456/events"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
 	}
 
-	var payload map[string]interface{}
-	if err := json.Unmarshal(req.Body, &payload); err != nil {
-		t.Fatalf("Failed to parse request body: %v", err)
+	var event progress.MeshEvent
+	if err := json.Unmarshal(req.Body, &event); err != nil {
+		t.Fatalf("Failed to parse request body as MeshEvent: %v", err)
 	}
 
-	if payload["status"] != "failed" {
-		t.Errorf("Expected status 'failed', got %v", payload["status"])
+	if event.Status != "failed" {
+		t.Errorf("Expected event status 'failed', got %v", event.Status)
 	}
 }
 
@@ -1780,19 +1799,25 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testin
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	expectedPath := "/mesh/test-error-details-789/final"
+	// PostEvent sends to unified endpoint
+	expectedPath := "/api/v1/mesh/test-error-details-789/events"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
 	}
 
-	var finalPayload map[string]interface{}
-	if err := json.Unmarshal(req.Body, &finalPayload); err != nil {
-		t.Fatalf("Failed to parse gateway request: %v", err)
+	var event progress.MeshEvent
+	if err := json.Unmarshal(req.Body, &event); err != nil {
+		t.Fatalf("Failed to parse gateway request as MeshEvent: %v", err)
 	}
 
-	if finalPayload["status"] != statusFailed {
-		t.Errorf("Expected status '%s', got %v", statusFailed, finalPayload["status"])
+	if event.Status != statusFailed {
+		t.Errorf("Expected event status '%s', got %v", statusFailed, event.Status)
+	}
+
+	var finalPayload map[string]interface{}
+	if err := json.Unmarshal(event.Data, &finalPayload); err != nil {
+		t.Fatalf("Failed to parse event data: %v", err)
 	}
 
 	if finalPayload["error"] != "Processing failed due to invalid input" {
@@ -1877,19 +1902,25 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	expectedPath := "/mesh/test-no-error-details/final"
+	// PostEvent sends to unified endpoint
+	expectedPath := "/api/v1/mesh/test-no-error-details/events"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
 	}
 
-	var finalPayload map[string]interface{}
-	if err := json.Unmarshal(req.Body, &finalPayload); err != nil {
-		t.Fatalf("Failed to parse gateway request: %v", err)
+	var event progress.MeshEvent
+	if err := json.Unmarshal(req.Body, &event); err != nil {
+		t.Fatalf("Failed to parse gateway request as MeshEvent: %v", err)
 	}
 
-	if finalPayload["status"] != statusFailed {
-		t.Errorf("Expected status '%s', got %v", statusFailed, finalPayload["status"])
+	if event.Status != statusFailed {
+		t.Errorf("Expected event status '%s', got %v", statusFailed, event.Status)
+	}
+
+	var finalPayload map[string]interface{}
+	if err := json.Unmarshal(event.Data, &finalPayload); err != nil {
+		t.Fatalf("Failed to parse event data: %v", err)
 	}
 
 	if finalPayload["error"] != "" && finalPayload["error"] != nil {

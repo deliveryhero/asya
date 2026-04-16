@@ -21,17 +21,20 @@ const (
 	HeaderMeshStatus   = "x-asya-mesh-status"
 	MeshStatusOff      = "off"
 	HeaderFirstAttempt = "x-asya-first-attempt"
+	HeaderGatewayURL   = "x-asya-gateway-url"
 )
 
 // Status reason constants
 const (
-	ReasonCompleted       = "Completed"
-	ReasonRuntimeError    = "RuntimeError"
-	ReasonTimeout         = "Timeout"
-	ReasonParseError      = "ParseError"
-	ReasonRouteMismatch   = "RouteMismatch"
-	ReasonPolicyExhausted = "PolicyExhausted"
-	ReasonPolicyRouted    = "PolicyRouted"
+	ReasonCompleted         = "Completed"
+	ReasonRuntimeError      = "RuntimeError"
+	ReasonTimeout           = "Timeout"
+	ReasonParseError        = "ParseError"
+	ReasonRouteMismatch     = "RouteMismatch"
+	ReasonPolicyExhausted   = "PolicyExhausted"
+	ReasonPolicyRouted      = "PolicyRouted"
+	ReasonPreFlightCanceled = "PreFlightCanceled"
+	ReasonPreFlightPaused   = "PreFlightPaused"
 )
 
 // StatusError captures error details within a status

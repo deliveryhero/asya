@@ -1,7 +1,6 @@
 package router
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,7 +8,6 @@ import (
 	"log/slog"
 	"math"
 	"math/rand/v2"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -171,13 +169,40 @@ func (r *Router) shouldReportFinalToGateway(msg *envelopes.Envelope) bool {
 	return true
 }
 
+// resolveGatewayURL returns the gateway URL for this envelope.
+// Envelope header x-asya-gateway-url takes precedence over the env var fallback.
+func (r *Router) resolveGatewayURL(msg *envelopes.Envelope) string {
+	if msg.Headers != nil {
+		if raw, ok := msg.Headers[envelopes.HeaderGatewayURL]; ok {
+			if s, ok := raw.(string); ok && s != "" {
+				return s
+			}
+		}
+	}
+	return r.gatewayURL
+}
+
+// getReporter returns a progress.Reporter for the given envelope.
+// If the envelope carries x-asya-gateway-url, a reporter targeting that URL is
+// returned. Otherwise falls back to the router's default reporter (which may be nil).
+func (r *Router) getReporter(msg *envelopes.Envelope) *progress.Reporter {
+	envelopeURL := r.resolveGatewayURL(msg)
+	if envelopeURL == "" {
+		return nil
+	}
+	if r.progressReporter != nil && r.progressReporter.GetGatewayURL() == envelopeURL {
+		return r.progressReporter
+	}
+	return progress.NewReporter(envelopeURL, r.actorName)
+}
+
 // isMeshStatusEnabled returns true when gateway mesh-status reporting is active for this envelope.
 // Returns false when:
-//   - no progressReporter is configured (no gateway URL)
+//   - no gateway URL is available (neither from envelope header nor env var)
 //   - envelope header x-asya-mesh-status is "off" (explicit stealth mode)
 //   - envelope has no ID (no correlation context)
 func (r *Router) isMeshStatusEnabled(msg *envelopes.Envelope) bool {
-	if r.progressReporter == nil {
+	if r.resolveGatewayURL(msg) == "" {
 		return false
 	}
 	if v, ok := msg.Headers[envelopes.HeaderMeshStatus]; ok {
@@ -235,7 +260,7 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Enve
 			if r.isMeshStatusEnabled(&msg) {
 				errorCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 				defer cancel()
-				_ = r.progressReporter.ReportFinalError(errorCtx, msg.ID, "Runtime timeout exceeded")
+				_ = r.getReporter(&msg).ReportFinalError(errorCtx, msg.ID, "Runtime timeout exceeded")
 			}
 
 			slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
@@ -675,7 +700,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envel
 
 	if index == 0 && r.isMeshStatusEnabled(msg) {
 		durationMs := runtimeDuration.Milliseconds()
-		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
+		_ = r.getReporter(msg).ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
 			Prev:       outputRoute.Prev,
 			Curr:       outputRoute.Curr,
 			Next:       outputRoute.Next,
@@ -693,7 +718,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envel
 		slog.Debug("Fan-out: generated unique message ID", "original", msg.ID, "fanout", msgID, "index", index)
 
 		if r.isMeshStatusEnabled(msg) {
-			if err := r.createFanoutMessage(ctx, msgID, *parentID, outputRoute); err != nil {
+			if err := r.getReporter(msg).CreateMesh(ctx, msgID, *parentID, outputRoute); err != nil {
 				slog.Warn("Failed to create fanout message in gateway", "id", msgID, "error", err)
 			}
 		}
@@ -735,7 +760,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envel
 		}
 
 		if r.isMeshStatusEnabled(msg) {
-			_ = r.progressReporter.ReportProgress(ctx, msgID, progress.ProgressUpdate{
+			_ = r.getReporter(msg).ReportProgress(ctx, msgID, progress.ProgressUpdate{
 				Prev:          outputRoute.Prev,
 				Curr:          outputRoute.Curr,
 				Next:          outputRoute.Next,
@@ -784,6 +809,58 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	ctx, span := r.startProcessSpan(ctx, msg)
 	defer span.End()
 
+	// Pre-flight check: skip processing if message is already canceled or paused
+	if r.isMeshStatusEnabled(msg) {
+		reporter := r.getReporter(msg)
+		if reporter != nil {
+			preflightCtx, preflightCancel := context.WithTimeout(ctx, 2*time.Second)
+			msgStatus, _ := reporter.CheckMessage(preflightCtx, msg.ID)
+			preflightCancel()
+
+			if msgStatus != nil {
+				switch msgStatus.Status {
+				case "canceled":
+					slog.Info("Pre-flight: message canceled, routing to x-sink",
+						"id", msg.ID, "status", msgStatus.Status)
+
+					if r.metrics != nil {
+						r.metrics.RecordMessageProcessed(r.actorName, "preflight_canceled")
+						r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+					}
+
+					now := time.Now().UTC().Format(time.RFC3339)
+					msg.Status = &envelopes.Status{
+						Phase:     envelopes.PhaseCanceled,
+						Reason:    envelopes.ReasonPreFlightCanceled,
+						Actor:     r.actorName,
+						CreatedAt: now,
+						UpdatedAt: now,
+					}
+					return r.sendToSinkQueue(ctx, *msg)
+
+				case "paused":
+					slog.Info("Pre-flight: message paused, routing to x-sink",
+						"id", msg.ID, "status", msgStatus.Status)
+
+					if r.metrics != nil {
+						r.metrics.RecordMessageProcessed(r.actorName, "preflight_paused")
+						r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+					}
+
+					now := time.Now().UTC().Format(time.RFC3339)
+					msg.Status = &envelopes.Status{
+						Phase:     envelopes.PhasePaused,
+						Reason:    envelopes.ReasonPreFlightPaused,
+						Actor:     r.actorName,
+						CreatedAt: now,
+						UpdatedAt: now,
+					}
+					return r.sendToSinkQueue(ctx, *msg)
+				}
+			}
+		}
+	}
+
 	// SLA pre-check: reject expired envelopes before processing
 	if deadline, ok := msg.ParseDeadline(); ok && time.Now().After(deadline) {
 		slog.Warn("Message SLA expired, routing to x-sink",
@@ -815,7 +892,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 	if r.isMeshStatusEnabled(msg) {
 		msgSizeKB := float64(len(queueMsg.Body)) / 1024.0
-		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
+		_ = r.getReporter(msg).ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
 			Prev:          msg.Route.Prev,
 			Curr:          msg.Route.Curr,
 			Next:          msg.Route.Next,
@@ -848,7 +925,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	}
 
 	if r.isMeshStatusEnabled(msg) {
-		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
+		_ = r.getReporter(msg).ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
 			Prev:    msg.Route.Prev,
 			Curr:    msg.Route.Curr,
 			Next:    msg.Route.Next,
@@ -878,8 +955,9 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	// Build callback that forwards FLY events to gateway
 	var onUpstream func(json.RawMessage)
 	if r.isMeshStatusEnabled(msg) {
+		reporter := r.getReporter(msg)
 		onUpstream = func(payload json.RawMessage) {
-			if err := r.progressReporter.ForwardFly(ctx, msg.ID, payload); err != nil {
+			if err := reporter.ForwardFly(ctx, msg.ID, payload); err != nil {
 				slog.Warn("Failed to forward FLY event", "id", msg.ID, "error", err)
 			}
 		}
@@ -1213,7 +1291,7 @@ func (r *Router) handleSLAExpiry(ctx context.Context, msg envelopes.Envelope, st
 	if r.isMeshStatusEnabled(&msg) {
 		reportCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
-		_ = r.progressReporter.ReportFinalError(reportCtx, msg.ID, "SLA deadline expired")
+		_ = r.getReporter(&msg).ReportFinalError(reportCtx, msg.ID, "SLA deadline expired")
 	}
 
 	return r.sendToSinkQueue(ctx, msg)
@@ -1368,7 +1446,8 @@ func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, error
 // This is called by end actors (x-sink, x-sump) after processing
 // It has access to both the envelope (with route) and the result payload
 func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *envelopes.Envelope, resultPayload json.RawMessage, duration time.Duration) error {
-	if r.progressReporter == nil {
+	reporter := r.getReporter(msg)
+	if reporter == nil {
 		return nil
 	}
 
@@ -1480,33 +1559,18 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *envelope
 		}
 	}
 
-	// Send to gateway
+	// Send to gateway via unified PostEvent with legacy fallback
 	payloadBytes, err := json.Marshal(finalPayload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal final status: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/mesh/%s/final", r.gatewayURL, msg.ID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to send final status: %w", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			slog.Error("Failed to close response body", "error", err)
-		}
-	}()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("gateway returned non-success status: %d", resp.StatusCode)
+	if err := reporter.PostEvent(ctx, msg.ID, progress.MeshEvent{
+		Type:   progress.EventTypeStatus,
+		Status: status,
+		Data:   payloadBytes,
+	}); err != nil {
+		return err
 	}
 
 	slog.Info("Reported final status to gateway", "id", msg.ID, "status", status,
@@ -1612,33 +1676,18 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 		}
 	}
 
-	// Send to gateway
+	// Send to gateway via unified PostEvent with legacy fallback
 	payloadBytes, err := json.Marshal(finalPayload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal final status: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/mesh/%s/final", r.gatewayURL, msgID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to send final status: %w", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			slog.Error("Failed to close response body", "error", err)
-		}
-	}()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("gateway returned non-success status: %d", resp.StatusCode)
+	if err := r.progressReporter.PostEvent(ctx, msgID, progress.MeshEvent{
+		Type:   progress.EventTypeStatus,
+		Status: status,
+		Data:   payloadBytes,
+	}); err != nil {
+		return err
 	}
 
 	slog.Info("Reported final status to gateway", "id", msgID, "status", status,
@@ -1705,12 +1754,6 @@ func (r *Router) resolveQueueName(actorName string) string {
 	default:
 		return actorName
 	}
-}
-
-// createFanoutMessage creates a fanout child message in the gateway
-// Fanout children use the same route state as the parent after runtime processing
-func (r *Router) createFanoutMessage(ctx context.Context, id, parentID string, route envelopes.Route) error {
-	return r.progressReporter.CreateMesh(ctx, id, parentID, route)
 }
 
 // CheckGatewayHealth verifies the gateway is reachable if gateway URL is configured
