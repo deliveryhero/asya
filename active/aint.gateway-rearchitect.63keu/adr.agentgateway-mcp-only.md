@@ -1,60 +1,47 @@
 ---
-title: "ADR: agentgateway for MCP, Common Proxy for All"
+title: "ADR: nginx + Custom Adapters (agentgateway Phase 2)"
 status: accepted
-date: 2026-04-14
+date: 2026-04-16
+supersedes: "ADR: agentgateway for MCP, Common Proxy for All"
 ---
 
-# ADR: agentgateway for MCP, Common Proxy for All
+# ADR: nginx + Custom Adapters, agentgateway in Phase 2
 
 ## Context
 
-We evaluated agentgateway (Linux Foundation, Rust) as a facade for both MCP
-and A2A. Research into the source code and ecosystem revealed:
+We evaluated agentgateway (Linux Foundation, Rust) as a facade for MCP/A2A.
+Research found:
+- MCP support is deep and valuable (tool federation, CEL RBAC, sessions)
+- A2A support is pure passthrough (~100 LOC Rust, empty policy struct)
+- agentgateway CANNOT handle two-step async backends (tools/call makes one
+  synchronous HTTP call, MCP Tasks explicitly rejected: InvalidMethod)
+- The ecosystem has no mature A2A gateway
 
-**MCP support is deep and valuable:**
-- Real MCP server with tool federation (merge tools from N backends)
-- CEL-based per-tool RBAC
-- Session management (encrypted cookies)
-- Multiple upstream transports (stdio, SSE, streamablehttp, OpenAPI)
-- failOpen/failClosed modes
-
-**A2A support is negligible:**
-- ~100 lines of Rust, pure passthrough proxy
-- Empty policy struct: `pub struct A2aPolicy {}`
-- No agent card aggregation (1:1 proxy)
-- No task state management
-- No RBAC for A2A
-- Trend toward LESS A2A awareness (v1.0 removed A2A SDK dependency)
-
-**The entire A2A gateway ecosystem is immature:**
-- LiteLLM A2A: passthrough + logging (same as agentgateway)
-- All other A2A gateway projects: 0-3 GitHub stars
-- No mature project manages A2A task lifecycle at the gateway layer
+We also evaluated the effort of custom adapters:
+- MCP adapter: ~300-500 LOC Go (mark3labs/mcp-go library)
+- A2A adapter: ~500-800 LOC Go (a2aproject/a2a-go v2 library)
+- Total: ~800-1300 LOC -- comparable to learning agentgateway's config model
 
 ## Decision
 
-**Use agentgateway for MCP (deep support) and as common proxy for all
-protocols (auth, rate limiting, observability).** Build A2A server in the
-dispatcher.
+**Phase 1: nginx Ingress + custom protocol adapters.** No agentgateway.
 
-agentgateway handles MCP clients with deep support (tool federation, RBAC,
-sessions). For A2A and /mesh/, agentgateway provides common proxy features
-(JWT auth, rate limiting, TLS termination, observability) but no
-protocol-specific logic. A2A task lifecycle lives in the dispatcher.
+nginx Ingress provides: JWT auth (annotation), rate limiting (annotation),
+TLS termination, consistent hash routing (upstream-hash-by). All via
+annotations, zero custom code.
+
+Custom adapters provide: MCP Streamable HTTP, A2A JSON-RPC. Both call
+/mesh/ API as HTTP clients. Both read config from ConfigMaps with
+polling watcher hot-reload.
+
+**Phase 2 (when needed): add agentgateway** for MCP tool federation
+(aggregate tools from multiple Asya meshes + external MCP servers). The
+MCP adapter becomes an MCP upstream for agentgateway. No adapter code changes.
 
 ## Consequences
 
-- MCP: delete ~2,400 LOC (MCP server, auth, tool registry), replaced by agentgateway config
-- A2A: keep/rewrite ~500 LOC (A2A adapter over /mesh/), no external dependency
-- Auth: agentgateway provides JWT/OIDC for ALL routes (MCP, A2A, /mesh/)
-- Rate limiting + observability: agentgateway applies uniformly to all protocols
-- Risk: if a better A2A gateway appears, easy to adopt (A2A handler is thin adapter)
-
-## Alternatives Considered
-
-- **agentgateway for both MCP + A2A**: A2A support is empty, adds no value
-- **LiteLLM as unified facade**: A2A support equally thin, plus LiteLLM is
-  primarily an LLM proxy, not a protocol gateway
-- **mcp-gateway-registry (585 stars)**: claims MCP + A2A, but unclear maturity
-- **Build our own MCP server**: unnecessary, solved problem
-- **No facade (expose dispatcher directly)**: loses MCP federation, auth, RBAC
+- No new infrastructure in Phase 1 (nginx already deployed)
+- Full control over protocol handling (add new protocols instantly)
+- No dependency on agentgateway release cycle or maturity
+- Phase 2 path is clean: agentgateway wraps the MCP adapter
+- Custom adapters are small (~800-1300 LOC total) using mature libraries

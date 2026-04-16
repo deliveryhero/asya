@@ -1,56 +1,71 @@
 ---
-title: "ADR: Database for Metadata Only (No Pub/Sub)"
+title: "ADR: PG State-Proxy as Document Store (No Typed Schema)"
 status: accepted
-date: 2026-04-14
+date: 2026-04-16
+supersedes: "ADR: Database for Metadata Only (No Pub/Sub)"
 ---
 
-# ADR: Database for Metadata Only (No Pub/Sub)
+# ADR: PG State-Proxy as Document Store
 
 ## Context
 
-The current gateway uses PostgreSQL for three roles:
+The mesh-api needs a database for message metadata. Options considered:
+1. Direct PG with typed columns + Alembic migrations
+2. Direct PG with JSONB + MessageStore Go interface
+3. PG via state-proxy connector (document store over JSONB)
 
-1. **Task state CRUD** (20-column tasks table, JSONB payload/result)
-2. **Cross-process pub/sub** (pg_notify for api/mesh gateway sync)
-3. **SSE replay history** (task_updates table, 24h retention)
-
-Role 2 causes the 8KB limit, dedicated PG connection, feedback loops, and
-2-second poll fallback. Role 3 adds write amplification (every progress update
-persisted). Role 1 stores full payloads/results that belong in state-proxy.
+The project already has a state-proxy architecture (sidecar connectors for
+S3/GCS/Redis). Extending it to PostgreSQL creates a universal storage
+abstraction reusable across the platform.
 
 ## Decision
 
-**DB stores lightweight task metadata only.** Not used for pub/sub or event
-history. Real-time events delivered via in-process Go channels (SSE and mesh
-callbacks colocated in same pod).
+**Use a PG state-proxy connector as the mesh-api's database.** The mesh-api
+talks to the state-proxy via HTTP over Unix socket. Zero SQL in the mesh-api.
 
-Schema:
+Schema (one table, never changes):
 ```sql
-CREATE TABLE tasks (
-    id TEXT PK, parent_id TEXT, context_id TEXT,
-    status TEXT, actor TEXT, progress DECIMAL(5,2),
-    created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ
+CREATE TABLE IF NOT EXISTS kv (
+    key        TEXT PRIMARY KEY,
+    value      JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_kv_gin ON kv USING gin (value jsonb_path_ops);
 ```
 
-No JSONB columns. No task_updates table. No pg_notify.
-Writes are async fire-and-forget from mesh handlers.
-Reads for SSE catch-up on reconnect and dashboard list queries.
-Payload/result persistence: state-proxy (S3/GCS) via x-sink.
+All message fields (status, actor, progress, context_id, trace_id, parent_id,
+deadline_at, error, message) stored in the JSONB `value` column. No typed
+columns. No Alembic. No migrations.
+
+Expression indexes for hot fields configured via env var:
+```bash
+STATE_PROXY_PG_INDEXES: "status, (deadline_at)::timestamptz"
+```
+Connector auto-creates indexes on startup (`CREATE INDEX CONCURRENTLY`).
+Lock-free, safe on live tables.
+
+The /query endpoint supports Mango-style filter DSL (filter/sort/limit/offset)
+translated to parameterized SQL.
 
 ## Consequences
 
-- pg_notify eliminated (in-process Go channels instead)
-- DB write load reduced (no JSONB, no task_updates, no per-FLY writes)
-- DB could be SQLite for simple deployments, PG for larger ones
-- SSE replay on reconnect reads current status from DB (not event log)
-- ListTasks works (context_id + status indexes)
-- Full task history via state-proxy (x-sink persists there)
+- Zero SQL in mesh-api Go code. No PG driver dependency.
+- Same state-proxy interface as S3/GCS/Redis connectors (swappable).
+- No Alembic, no schema migrations, ever.
+- JSONB storage ~2x overhead vs typed columns (~100 bytes/row, negligible).
+- Expression indexes from env vars give B-tree query performance.
+- Future: DuckDB connector for S3 analytical queries, DynamoDB connector,
+  MongoDB connector -- all implement the same interface.
+- Go PG connector can also be compiled as in-process library for zero-overhead
+  mode (financial/low-latency workloads).
 
 ## Alternatives Considered
 
-- **Redis Pub/Sub instead of pg_notify**: another stateful system to operate,
-  expensive just for ephemeral event delivery
-- **NATS JetStream**: excellent fit but adds a dependency not all deployments use
-- **Embedded NATS**: adds ~15MB binary size, cluster discovery complexity
-- **Keep pg_notify, fix the bugs**: treats symptoms, not root cause (the split)
+- **Typed columns + Alembic**: optimal storage/query but requires migrations,
+  locks the DB to a specific schema, hard to port to NoSQL.
+- **Go MessageStore + PgStore**: same effort (~300 LOC Go) but Go-specific,
+  not reusable by Python services or future Rust services.
+- **Generated columns**: auto-extract from JSONB to typed columns. Elegant but
+  ALTER TABLE locks the table for existing rows. Expression indexes achieve
+  the same query performance without table locks.
