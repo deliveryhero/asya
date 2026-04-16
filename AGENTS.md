@@ -232,6 +232,11 @@ A2A task state mapping: `pending` → `submitted`, `running` → `working`, `suc
 2. Work exclusively in the worktree
 3. Commit, push, create a PR — never merge directly
 
+### DCO Sign-off
+
+All commits **must** include a DCO (Developer Certificate of Origin) sign-off line.
+Always use `git commit -s` (or `git commit --signoff`). CI will reject unsigned commits.
+
 ### Command Hierarchy
 
 1. **Prefer**: `make <target>`
@@ -257,6 +262,42 @@ requested. Updating existing docs to reflect code changes is fine.
 - `docs/` contains only documentation content (.md files). Website assets live in `docs/website/`.
 - Mirrored guides in `usage/` and `setup/` must cross-link each other.
 - `docs/plans/` is gitignored and must never be committed. Use aint for work tracking.
+
+### Documentation Discovery
+
+Every file in `docs/` has a YAML frontmatter `description` field — a grep-friendly one-liner with
+searchable keywords. Use this to find the right doc fast:
+
+```bash
+# Search for a topic across all doc descriptions (fastest)
+grep -r "description:.*routing" docs/ --include="*.md" -l
+
+# Browse all descriptions at a glance
+grep -rn "^description:" docs/ --include="*.md"
+
+# Find docs about a specific component
+grep -r "description:.*sidecar" docs/ --include="*.md" -l
+
+# Find docs about a concept or pattern
+grep -rE "description:.*(fan-out|fan-in|streaming)" docs/ --include="*.md" -l
+```
+
+**Doc sections** (`docs/`):
+
+| Section | Audience | Content |
+|---------|----------|---------|
+| `concepts/` | Everyone | What Asya is, architectural ideas, design principles |
+| `setup/` | Platform engineers | Deployment, Helm config, autoscaling, observability |
+| `usage/` | Data scientists | Tutorials, handler patterns, agentic patterns, debugging |
+| `reference/` | Both | Component specs, API specs, env vars, transport/storage config |
+| `comparisons/` | Evaluators | Asya vs other frameworks (Temporal, LangGraph, Ray, etc.) |
+| `contributing/` | Contributors | Test strategies, cross-component architecture decisions |
+
+**Naming conventions**: `start-*` = getting started tutorials, `guide-*` = how-to guides,
+`ops-*` = operations/debugging, `core-*` = core components, `lab-*` = developer tools,
+`as-*` = category comparisons, `vs-*` = 1:1 deep comparisons.
+
+When you need documentation context, grep descriptions first — don't read files speculatively.
 
 ### Code Comment Policy
 

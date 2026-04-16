@@ -1,3 +1,6 @@
+---
+description: "Debugging: trace envelopes by trace_id, curl the runtime, inspect x-sink/x-sump queues"
+---
 
 # Debugging
 

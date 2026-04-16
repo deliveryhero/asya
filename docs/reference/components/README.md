@@ -1,3 +1,7 @@
+---
+description: "Components index: sidecar, runtime, gateway, crew, crossplane, state proxy, CLI, flow compiler"
+---
+
 # Components
 
 ## Core — Runtime Infrastructure

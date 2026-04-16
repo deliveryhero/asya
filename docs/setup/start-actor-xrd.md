@@ -1,3 +1,7 @@
+---
+description: "Actor XRD deployment: deploy actors using Crossplane AsyncActor composite resource"
+---
+
 # Understanding the AsyncActor CRD
 
 The AsyncActor is the only CRD you need to deploy an actor on Kubernetes.

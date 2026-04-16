@@ -1,3 +1,7 @@
+---
+description: "Deep comparison: Asya vs Dapr — both inject sidecars, different architecture philosophy"
+---
+
 # vs Dapr
 
 ## TL;DR

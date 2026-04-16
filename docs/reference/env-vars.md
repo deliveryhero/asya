@@ -1,3 +1,6 @@
+---
+description: "Environment variables: consolidated reference for all components (sidecar, runtime, gateway, crew, state proxy)"
+---
 
 # Environment Variables
 

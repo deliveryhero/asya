@@ -52,6 +52,7 @@ nav:
     - Quickstart (Kind): setup/start-quickstart.md
     - AWS EKS: setup/start-aws-eks.md
     - GCP GKE: setup/start-gcp-gke.md
+    - Actor XRD (Crossplane): setup/start-actor-xrd.md
   - guides:
     - Helm Charts: setup/guide-helm-charts.md
     - Autoscaling: setup/guide-autoscaling.md
@@ -59,7 +60,7 @@ nav:
     - State Proxy: setup/guide-state-proxy.md
     - Pause/Resume: setup/guide-pause-resume.md
     - Timeouts: setup/guide-timeouts.md
-    - Retries: setup/guide-retries.md
+    - Error Handling: setup/guide-error-handling.md
     - Gateway: setup/guide-gateway.md
   - operations:
     - Observability: setup/ops-observability.md
@@ -80,6 +81,8 @@ nav:
     - State Proxy: usage/guide-state-proxy.md
     - Pause/Resume: usage/guide-pause-resume.md
     - Timeouts: usage/guide-timeouts.md
+    - Error Handling: usage/guide-error-handling.md
+    - Compiler Rules: usage/guide-compiler-rules.md
   - operations:
     - Debugging: usage/ops-debugging.md
 - reference:
@@ -104,6 +107,8 @@ nav:
     - Gateway API: reference/specs/gateway-api.md
     - Flow DSL: reference/specs/flow-dsl.md
     - Error Handling: reference/specs/error-handling.md
+    - Streaming Events: reference/specs/streaming-events.md
+    - Compiler Rules: reference/specs/compiler-rules.md
   - transports:
     - Overview: reference/transports/README.md
     - SQS: reference/transports/sqs.md
@@ -116,6 +121,9 @@ nav:
     - GCS: reference/state-proxy-connectors/gcs.md
     - Redis: reference/state-proxy-connectors/redis.md
     - NATS KV: reference/state-proxy-connectors/nats-kv.md
+  - scalers:
+    - Pub/Sub Scaler: reference/scalers/pubsub.md
+  - Credentials: reference/credentials.md
   - Environment Variables: reference/env-vars.md
 - Comparisons:
   - Overview: comparisons/README.md
@@ -135,6 +143,11 @@ nav:
     - vs KAgent: comparisons/vs-kagent.md
     - vs Ray Serve: comparisons/vs-ray-serve.md
     - vs Kubeflow Pipelines: comparisons/vs-kubeflow-pipelines.md
+- Contributing:
+  - Overview: contributing/README.md
+  - Testing Transport: contributing/testing-transport.md
+  - Testing State Proxy: contributing/testing-state-proxy.md
+  - Testing A2A: contributing/testing-a2a.md
 plugins:
 - shadcn/search:
     prebuild_index: python

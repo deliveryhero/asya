@@ -1,3 +1,7 @@
+---
+description: "Pluggable storage: S3, GCS, Redis, NATS KV backends for state proxy virtual actor memory"
+---
+
 # Pluggable Storage
 
 ## State Proxy Connectors

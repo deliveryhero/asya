@@ -1,3 +1,7 @@
+---
+description: "Streaming guide: FLY events, SSE to gateway, live progress, partial token delivery"
+---
+
 # Streaming
 
 How to stream live progress updates from your actor handlers to gateway clients in real-time.

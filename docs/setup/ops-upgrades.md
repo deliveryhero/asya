@@ -1,3 +1,7 @@
+---
+description: "Upgrades: version upgrade procedures, Helm rollback, CRD migration, breaking changes"
+---
+
 # Upgrades
 
 Version upgrade procedures for Asya🎭 components.

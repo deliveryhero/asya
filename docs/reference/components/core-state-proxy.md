@@ -1,3 +1,7 @@
+---
+description: "State proxy (Go): virtual filesystem sidecar, /state/ paths, S3/GCS/Redis/NATS KV backends"
+---
+
 # State Proxy
 
 ## Overview

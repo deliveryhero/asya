@@ -1,3 +1,7 @@
+---
+description: "AsyncActor CRD: status model, lifecycle phases, Crossplane composition behavior"
+---
+
 # Actor
 
 ![AsyncActor pod anatomy: sidecar + runtime + optional state proxy](../../website/img/actor-anatomy.png)

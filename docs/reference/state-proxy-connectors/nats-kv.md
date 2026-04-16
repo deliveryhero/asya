@@ -1,3 +1,7 @@
+---
+description: "NATS KV connector: NATS JetStream Key-Value config for state proxy, bucket setup"
+---
+
 # NATS KV
 
 NATS JetStream Key-Value connector for state proxy.

@@ -1,3 +1,7 @@
+---
+description: "GCS connector: Google Cloud Storage config for state proxy, bucket setup, Workload Identity"
+---
+
 # GCS
 
 Google Cloud Storage connector for state proxy.

@@ -1,3 +1,7 @@
+---
+description: "Flow DSL: Python control flow (if/else, gather) compiled to flat actor graphs via CPS transform"
+---
+
 # Flow Compiler
 
 The Flow Compiler lets you describe multi-actor pipelines as familiar Python

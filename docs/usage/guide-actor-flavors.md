@@ -1,3 +1,7 @@
+---
+description: "Actor flavors usage: choose GPU/CPU profiles, reference flavors in AsyncActor spec"
+---
+
 # Actor Flavors
 
 Flavors are named, reusable building blocks that platform engineers pre-create

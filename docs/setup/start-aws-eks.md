@@ -1,3 +1,7 @@
+---
+description: "AWS EKS deployment: production setup, IRSA, SQS transport, S3 storage, KEDA on EKS"
+---
+
 # AWS EKS Installation
 
 Production deployment on Amazon EKS.

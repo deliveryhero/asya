@@ -1,3 +1,7 @@
+---
+description: "Actor flavors setup: create EnvironmentConfig resources, GPU/CPU profiles, org-wide defaults"
+---
+
 # Actor Flavors
 
 This guide covers actor flavors from the platform engineer's perspective — how to create, configure, and manage reusable infrastructure presets for actors.

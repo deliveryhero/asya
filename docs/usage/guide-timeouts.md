@@ -1,3 +1,7 @@
+---
+description: "Timeout patterns: set actorTimeout, understand deadline behavior, SLA vs actor timeout"
+---
+
 # Timeouts
 
 How to configure per-actor timeouts in your AsyncActor specs to prevent runaway executions.

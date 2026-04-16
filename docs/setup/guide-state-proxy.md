@@ -1,3 +1,7 @@
+---
+description: "State proxy setup: configure storage backends (S3/GCS/Redis/NATS), Helm values, credentials"
+---
+
 # State Proxy
 
 This guide covers state proxy configuration at the infrastructure level — how to enable persistent state for actors, configure storage backends, and manage credentials.

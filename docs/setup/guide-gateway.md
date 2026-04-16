@@ -1,3 +1,7 @@
+---
+description: "Gateway setup: deploy api/mesh modes, configure auth, PostgreSQL, register MCP tools, A2A agents"
+---
+
 # Gateway
 
 This guide shows how to deploy and configure the Asya gateway, including authentication, tool registration, and multi-mode deployment.

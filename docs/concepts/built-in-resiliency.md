@@ -1,3 +1,7 @@
+---
+description: "Resiliency: durable queues, configurable retry policies, DLQ routing, SLA deadlines, timeouts"
+---
+
 # Built-in Resiliency
 
 Messages in Asya are durably queued. A pod can be evicted, restarted, or

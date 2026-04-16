@@ -1,3 +1,7 @@
+---
+description: "Contributing index: test strategies, architecture decisions, cross-component concerns"
+---
+
 # Contributing
 
 Technical notes for contributors working on the Asya framework. These documents capture implementation details, test strategies, and non-obvious decisions.

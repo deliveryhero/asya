@@ -1,3 +1,7 @@
+---
+description: "Pluggable transports: swap SQS, RabbitMQ, or Pub/Sub via Crossplane without code changes"
+---
+
 # Pluggable Transports
 
 Asya separates message transport from application logic. The same handler code

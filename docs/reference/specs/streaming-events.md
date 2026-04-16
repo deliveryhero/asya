@@ -1,3 +1,7 @@
+---
+description: "Streaming spec: FLY events, SSE delivery, pg_notify cross-process, ephemeral vs persistent"
+---
+
 # Streaming Events Reference
 
 Complete reference for all streaming event types in Asya, how they flow through the

@@ -1,3 +1,7 @@
+---
+description: "HTTP gateway: bridges async actor mesh with synchronous HTTP, A2A protocol, MCP tools"
+---
+
 # HTTP Gateway
 
 The actor mesh is asynchronous by design — messages flow through queues, and
