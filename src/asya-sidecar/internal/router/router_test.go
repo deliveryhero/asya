@@ -4060,3 +4060,516 @@ func TestRouter_StealthMode_NoGatewayRequests(t *testing.T) {
 		}
 	}
 }
+
+// --- Envelope gateway URL tests ---
+
+func TestRouter_EnvelopeGatewayURLOverridesEnvVar(t *testing.T) {
+	envVarHit := false
+	envVarServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		envVarHit = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer envVarServer.Close()
+
+	headerHit := false
+	headerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headerHit = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer headerServer.Close()
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		var env envelopes.Envelope
+		_ = json.Unmarshal(body, &env)
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+			Route:   env.Route.IncrementCurrent(),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    envVarServer.URL,
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "test-header-override",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Headers: map[string]interface{}{
+			envelopes.HeaderGatewayURL: headerServer.URL,
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if envVarHit {
+		t.Error("Env-var gateway should NOT have been hit when envelope header is present")
+	}
+	if !headerHit {
+		t.Error("Envelope-header gateway should have been hit")
+	}
+}
+
+func TestRouter_EnvelopeGatewayURL_FallsBackToEnvVar(t *testing.T) {
+	envVarHit := false
+	envVarServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		envVarHit = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer envVarServer.Close()
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		var env envelopes.Envelope
+		_ = json.Unmarshal(body, &env)
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+			Route:   env.Route.IncrementCurrent(),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    envVarServer.URL,
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	// No x-asya-gateway-url header - should fall back to env var
+	inputMsg := envelopes.Envelope{
+		ID: "test-fallback-envvar",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if !envVarHit {
+		t.Error("Env-var gateway should have been hit when no envelope header is present")
+	}
+}
+
+// --- Pre-flight check tests ---
+
+func TestRouter_PreFlightCheck_Canceled(t *testing.T) {
+	runtimeCalled := false
+
+	gatewayServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/mesh/") {
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(progress.MessageStatus{
+				ID:     "test-canceled-123",
+				Status: "canceled",
+			})
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer gatewayServer.Close()
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    gatewayServer.URL,
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "test-canceled-123",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if runtimeCalled {
+		t.Error("Runtime should NOT have been called for canceled message")
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message to x-sink, got %d", len(mockTransport.sentMessages))
+	}
+
+	if mockTransport.sentMessages[0].queue != "asya-default-x-sink" {
+		t.Errorf("Message sent to %s, expected asya-default-x-sink",
+			mockTransport.sentMessages[0].queue)
+	}
+
+	var sentMsg envelopes.Envelope
+	_ = json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg)
+
+	if sentMsg.Status == nil || sentMsg.Status.Phase != envelopes.PhaseCanceled {
+		t.Errorf("Expected phase=canceled, got %v", sentMsg.Status)
+	}
+	if sentMsg.Status.Reason != envelopes.ReasonPreFlightCanceled {
+		t.Errorf("Expected reason=PreFlightCanceled, got %v", sentMsg.Status.Reason)
+	}
+}
+
+func TestRouter_PreFlightCheck_Paused(t *testing.T) {
+	runtimeCalled := false
+
+	gatewayServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/mesh/") {
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(progress.MessageStatus{
+				ID:     "test-paused-456",
+				Status: "paused",
+			})
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer gatewayServer.Close()
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    gatewayServer.URL,
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "test-paused-456",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if runtimeCalled {
+		t.Error("Runtime should NOT have been called for paused message")
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message to x-sink, got %d", len(mockTransport.sentMessages))
+	}
+
+	var sentMsg envelopes.Envelope
+	_ = json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg)
+
+	if sentMsg.Status == nil || sentMsg.Status.Phase != envelopes.PhasePaused {
+		t.Errorf("Expected phase=paused, got %v", sentMsg.Status)
+	}
+	if sentMsg.Status.Reason != envelopes.ReasonPreFlightPaused {
+		t.Errorf("Expected reason=PreFlightPaused, got %v", sentMsg.Status.Reason)
+	}
+}
+
+func TestRouter_PreFlightCheck_404_ProceedsNormally(t *testing.T) {
+	runtimeCalled := false
+
+	gatewayServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer gatewayServer.Close()
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		var env envelopes.Envelope
+		_ = json.Unmarshal(body, &env)
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+			Route:   env.Route.IncrementCurrent(),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    gatewayServer.URL,
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "test-legacy-123",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if !runtimeCalled {
+		t.Error("Runtime should have been called (pre-flight 404 means proceed)")
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message routed, got %d", len(mockTransport.sentMessages))
+	}
+	if mockTransport.sentMessages[0].queue != "asya-default-next-actor" {
+		t.Errorf("Message sent to %s, expected asya-default-next-actor",
+			mockTransport.sentMessages[0].queue)
+	}
+}
+
+func TestRouter_PreFlightCheck_NetworkError_ProceedsNormally(t *testing.T) {
+	runtimeCalled := false
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		var env envelopes.Envelope
+		_ = json.Unmarshal(body, &env)
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+			Route:   env.Route.IncrementCurrent(),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       5 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    "http://192.0.2.1:1",
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 5*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "test-netfail-123",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if !runtimeCalled {
+		t.Error("Runtime should have been called (pre-flight network error means proceed)")
+	}
+}
+
+func TestRouter_NoGatewayURL_SkipsAllReporting(t *testing.T) {
+	runtimeCalled := false
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		var env envelopes.Envelope
+		_ = json.Unmarshal(body, &env)
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+			Route:   env.Route.IncrementCurrent(),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    "",
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "test-no-gw-123",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if !runtimeCalled {
+		t.Error("Runtime should have been called even without gateway")
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message, got %d", len(mockTransport.sentMessages))
+	}
+	if mockTransport.sentMessages[0].queue != "asya-default-next-actor" {
+		t.Errorf("Routed to %s, expected asya-default-next-actor",
+			mockTransport.sentMessages[0].queue)
+	}
+}
+
+func TestRouter_EnvelopeHeaderEnablesReportingWithoutEnvVar(t *testing.T) {
+	// When ASYA_GATEWAY_URL is empty but the envelope has x-asya-gateway-url,
+	// mesh status reporting should still be enabled.
+	headerHit := false
+	headerServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headerHit = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer headerServer.Close()
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		var env envelopes.Envelope
+		_ = json.Unmarshal(body, &env)
+		return []runtime.RuntimeResponse{{
+			Payload: json.RawMessage(`{"ok": true}`),
+			Route:   env.Route.IncrementCurrent(),
+		}}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    "", // no env var
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "test-header-only",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Headers: map[string]interface{}{
+			envelopes.HeaderGatewayURL: headerServer.URL,
+		},
+		Payload: json.RawMessage(`{"x": 1}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if !headerHit {
+		t.Error("Header gateway should have been hit even without ASYA_GATEWAY_URL env var")
+	}
+}

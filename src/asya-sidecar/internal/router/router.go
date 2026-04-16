@@ -1301,7 +1301,7 @@ func (r *Router) handleSLAExpiry(ctx context.Context, msg envelopes.Envelope, st
 // If envelope.Status already has a terminal phase (succeeded/failed),
 // it is preserved. Otherwise, PhaseSucceeded/ReasonCompleted is stamped.
 func (r *Router) sendToSinkQueue(ctx context.Context, message envelopes.Envelope) error {
-	if message.Status == nil || (message.Status.Phase != envelopes.PhaseSucceeded && message.Status.Phase != envelopes.PhaseFailed) {
+	if message.Status == nil || (message.Status.Phase != envelopes.PhaseSucceeded && message.Status.Phase != envelopes.PhaseFailed && message.Status.Phase != envelopes.PhaseCanceled && message.Status.Phase != envelopes.PhasePaused) {
 		now := time.Now().UTC().Format(time.RFC3339)
 		createdAt := now
 		if message.Status != nil {
