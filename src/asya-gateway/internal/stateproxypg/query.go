@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+// ErrInvalidFieldName is returned when a filter or sort field name
+// contains characters outside the allowed identifier pattern.
+var ErrInvalidFieldName = fmt.Errorf("invalid field name")
+
+func validateFieldName(field string) error {
+	if !validFieldName.MatchString(field) {
+		return fmt.Errorf("%w: %q", ErrInvalidFieldName, field)
+	}
+	return nil
+}
+
 // QueryRequest is the JSON body for POST /query.
 type QueryRequest struct {
 	Prefix string         `json:"prefix,omitempty"`
@@ -32,7 +43,7 @@ var topLevelColumns = map[string]bool{
 
 // buildFilterSQL constructs a parameterized SELECT query from a QueryRequest.
 // Returns the SQL string and a slice of positional parameters.
-func buildFilterSQL(req QueryRequest) (string, []any) {
+func buildFilterSQL(req QueryRequest) (string, []any, error) {
 	var conditions []string
 	var args []any
 	paramIdx := 1
@@ -46,6 +57,9 @@ func buildFilterSQL(req QueryRequest) (string, []any) {
 
 	// Build filter conditions from Mango-style filter map
 	for field, val := range req.Filter {
+		if err := validateFieldName(field); err != nil {
+			return "", nil, err
+		}
 		conds, newArgs, newIdx := buildFieldCondition(field, val, paramIdx)
 		conditions = append(conditions, conds...)
 		args = append(args, newArgs...)
@@ -68,6 +82,9 @@ func buildFilterSQL(req QueryRequest) (string, []any) {
 			if strings.HasPrefix(s, "-") {
 				desc = true
 				field = s[1:]
+			}
+			if err := validateFieldName(field); err != nil {
+				return "", nil, err
 			}
 			var col string
 			if topLevelColumns[field] {
@@ -95,13 +112,13 @@ func buildFilterSQL(req QueryRequest) (string, []any) {
 	}
 
 	if req.Count {
-		return "SELECT count(*) FROM kv" + whereClause, args
+		return "SELECT count(*) FROM kv" + whereClause, args, nil
 	}
 
 	sql := "SELECT key, value, created_at, updated_at FROM kv" +
 		whereClause + orderClause + limitClause
 
-	return sql, args
+	return sql, args, nil
 }
 
 // buildFieldCondition translates a single Mango field filter into SQL conditions.
@@ -199,16 +216,22 @@ func toStringSlice(v any) []string {
 // Query executes a Mango-style filter query against the kv table.
 func (c *Connector) Query(ctx context.Context, req QueryRequest) (*QueryResponse, error) {
 	if req.Count {
-		sql, args := buildFilterSQL(req)
+		sql, args, err := buildFilterSQL(req)
+		if err != nil {
+			return nil, err
+		}
 		var total int
-		err := c.pool.QueryRow(ctx, sql, args...).Scan(&total)
+		err = c.pool.QueryRow(ctx, sql, args...).Scan(&total)
 		if err != nil {
 			return nil, fmt.Errorf("query count: %w", err)
 		}
 		return &QueryResponse{Total: total}, nil
 	}
 
-	sql, args := buildFilterSQL(req)
+	sql, args, err := buildFilterSQL(req)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := c.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)

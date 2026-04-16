@@ -25,15 +25,14 @@ type mockSender struct {
 }
 
 type sentEnvelope struct {
-	actor     string
-	namespace string
-	body      []byte
+	actor string
+	body  []byte
 }
 
-func (m *mockSender) Send(_ context.Context, actor, namespace string, body []byte) error {
+func (m *mockSender) Send(_ context.Context, actor string, body []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.sent = append(m.sent, sentEnvelope{actor: actor, namespace: namespace, body: body})
+	m.sent = append(m.sent, sentEnvelope{actor: actor, body: body})
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/store"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
@@ -58,6 +59,9 @@ func (h *Handler) HandleEventsGet(w http.ResponseWriter, r *http.Request, id str
 	ch := h.store.Subscribe(id)
 	defer h.store.Unsubscribe(id, ch)
 
+	keepalive := time.NewTicker(15 * time.Second)
+	defer keepalive.Stop()
+
 	ctx := r.Context()
 	for {
 		select {
@@ -69,6 +73,9 @@ func (h *Handler) HandleEventsGet(w http.ResponseWriter, r *http.Request, id str
 			if event.Type == "status" && event.Status.IsTerminal() {
 				return
 			}
+		case <-keepalive.C:
+			fmt.Fprintf(w, ":keepalive\n\n")
+			flusher.Flush()
 		case <-ctx.Done():
 			return
 		}
@@ -98,8 +105,10 @@ func (h *Handler) HandleEventsPost(w http.ResponseWriter, r *http.Request, id st
 		// Update store with monotonic ordering
 		err := h.store.UpdateStatus(r.Context(), id, event.Status, event.Data)
 		if errors.Is(err, store.ErrStaleStatus) {
-			// Stale status update - silently ignore per spec
+			// Stale status update - return 204 without publishing to subscribers
 			slog.Debug("Stale status update ignored", "id", id, "status", event.Status)
+			w.WriteHeader(http.StatusNoContent)
+			return
 		} else if errors.Is(err, store.ErrNotFound) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return

@@ -110,8 +110,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Dispatch to actor queue
-	namespace := r.URL.Query().Get("namespace")
-	if err := h.sender.Send(r.Context(), actor, namespace, envelopeBytes); err != nil {
+	if err := h.sender.Send(r.Context(), actor, envelopeBytes); err != nil {
 		slog.Error("Failed to send envelope to queue", "error", err, "actor", actor)
 		http.Error(w, `{"error":"failed to dispatch message"}`, http.StatusInternalServerError)
 		return

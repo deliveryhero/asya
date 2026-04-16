@@ -25,7 +25,7 @@ func NewQueueClientSender(client queue.Client, namespace string) *QueueClientSen
 // Send dispatches an envelope to the actor's queue.
 // It unmarshals the raw envelope JSON into a types.Envelope, sets the route,
 // and delegates to queue.Client.SendMessage.
-func (s *QueueClientSender) Send(ctx context.Context, actor, namespace string, envelopeJSON []byte) error {
+func (s *QueueClientSender) Send(ctx context.Context, actor string, envelopeJSON []byte) error {
 	// Parse the envelope from raw JSON
 	var raw struct {
 		ID      string         `json:"id"`
@@ -46,14 +46,6 @@ func (s *QueueClientSender) Send(ctx context.Context, actor, namespace string, e
 		Headers: raw.Headers,
 		Payload: raw.Payload,
 	}
-
-	// Use provided namespace or fall back to default
-	ns := namespace
-	if ns == "" {
-		ns = s.namespace
-	}
-	// The queue client uses the namespace internally via its config
-	_ = ns
 
 	return s.client.SendMessage(ctx, envelope)
 }

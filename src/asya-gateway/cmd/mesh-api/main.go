@@ -127,44 +127,56 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintln(w, "OK")
 }
 
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+// requireEnv returns the value of the environment variable or exits with an error.
+func requireEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		slog.Error("Required env var missing", "var", key)
+		os.Exit(1)
 	}
-	return defaultValue
+	return value
 }
 
 func initQueueClient(ctx context.Context) (queue.Client, error) {
-	pubsubProjectID := getEnv("ASYA_PUBSUB_PROJECT_ID", "")
-	sqsEndpoint := getEnv("ASYA_SQS_ENDPOINT", "")
-	rabbitmqURL := getEnv("ASYA_RABBITMQ_URL", "")
+	transport := os.Getenv("ASYA_QUEUE_TRANSPORT")
+	if transport == "" {
+		slog.Error("Required env var missing", "var", "ASYA_QUEUE_TRANSPORT")
+		os.Exit(1)
+	}
 
-	if pubsubProjectID != "" {
-		pubsubEndpoint := getEnv("ASYA_PUBSUB_ENDPOINT", "")
-		namespace := getEnv("ASYA_NAMESPACE", "default")
-		slog.Info("Using Pub/Sub transport", "projectID", pubsubProjectID, "namespace", namespace, "endpoint", pubsubEndpoint)
+	switch transport {
+	case "pubsub":
+		projectID := requireEnv("ASYA_PUBSUB_PROJECT_ID")
+		namespace := requireEnv("ASYA_NAMESPACE")
+		endpoint := os.Getenv("ASYA_PUBSUB_ENDPOINT")
+		slog.Info("Using Pub/Sub transport", "projectID", projectID, "namespace", namespace, "endpoint", endpoint)
 
 		return queue.NewPubSubClient(ctx, queue.PubSubConfig{
-			ProjectID: pubsubProjectID,
-			Endpoint:  pubsubEndpoint,
+			ProjectID: projectID,
+			Endpoint:  endpoint,
 			Namespace: namespace,
 		})
-	}
 
-	if sqsEndpoint != "" || rabbitmqURL == "" {
-		sqsRegion := getEnv("ASYA_SQS_REGION", "us-east-1")
-		namespace := getEnv("ASYA_NAMESPACE", "default")
-		slog.Info("Using SQS transport", "region", sqsRegion, "namespace", namespace, "endpoint", sqsEndpoint)
+	case "sqs":
+		region := requireEnv("ASYA_SQS_REGION")
+		namespace := requireEnv("ASYA_NAMESPACE")
+		endpoint := os.Getenv("ASYA_SQS_ENDPOINT")
+		slog.Info("Using SQS transport", "region", region, "namespace", namespace, "endpoint", endpoint)
 
 		return queue.NewSQSClient(ctx, queue.SQSConfig{
-			Region:    sqsRegion,
-			Endpoint:  sqsEndpoint,
+			Region:    region,
+			Endpoint:  endpoint,
 			Namespace: namespace,
 		})
+
+	case "rabbitmq":
+		rabbitmqURL := requireEnv("ASYA_RABBITMQ_URL")
+		rabbitmqExchange := requireEnv("ASYA_RABBITMQ_EXCHANGE")
+		slog.Info("Using RabbitMQ transport", "url", rabbitmqURL, "exchange", rabbitmqExchange)
+
+		return queue.NewRabbitMQClientPooled(rabbitmqURL, rabbitmqExchange, 20)
+
+	default:
+		return nil, fmt.Errorf("unknown queue transport: %q (expected pubsub, sqs, or rabbitmq)", transport)
 	}
-
-	rabbitmqExchange := getEnv("ASYA_RABBITMQ_EXCHANGE", "asya")
-	slog.Info("Using RabbitMQ transport", "url", rabbitmqURL, "exchange", rabbitmqExchange)
-
-	return queue.NewRabbitMQClientPooled(rabbitmqURL, rabbitmqExchange, 20)
 }

@@ -84,6 +84,7 @@ func handleRead(w http.ResponseWriter, r *http.Request, conn *Connector, key str
 }
 
 func handleWrite(w http.ResponseWriter, r *http.Request, conn *Connector, key string) {
+	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "failed to read body", http.StatusBadRequest)
@@ -93,7 +94,17 @@ func handleWrite(w http.ResponseWriter, r *http.Request, conn *Connector, key st
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
-	if err := conn.Write(r.Context(), key, body); err != nil {
+	ifStatus := r.URL.Query().Get("if_status")
+	if ifStatus != "" {
+		err = conn.WriteConditional(r.Context(), key, body, ifStatus)
+		if errors.Is(err, ErrConditionFailed) {
+			http.Error(w, "condition failed: status mismatch", http.StatusConflict)
+			return
+		}
+	} else {
+		err = conn.Write(r.Context(), key, body)
+	}
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -140,12 +151,17 @@ func handleList(w http.ResponseWriter, r *http.Request, conn *Connector, prefix 
 }
 
 func handleQuery(w http.ResponseWriter, r *http.Request, conn *Connector) {
+	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
 	var req QueryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}
 	resp, err := conn.Query(r.Context(), req)
+	if errors.Is(err, ErrInvalidFieldName) {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		slog.Error("Query failed", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

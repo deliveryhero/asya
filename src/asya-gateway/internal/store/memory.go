@@ -88,7 +88,13 @@ func (m *MemoryStore) List(_ context.Context, params types.ListParams) ([]*types
 	defer m.mu.RUnlock()
 
 	var filtered []*types.Message
-	for _, msg := range m.messages {
+	for id, msg := range m.messages {
+		if params.Prefix != "" {
+			pfx := strings.TrimPrefix(params.Prefix, "msg/")
+			if pfx != "" && !strings.HasPrefix(id, pfx) {
+				continue
+			}
+		}
 		// Apply status filter if present
 		if statusVal, ok := params.Filters["status"]; ok {
 			if s, ok := statusVal.(string); ok && string(msg.Status) != s {

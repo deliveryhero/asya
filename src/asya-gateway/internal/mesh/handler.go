@@ -19,7 +19,7 @@ type Handler struct {
 
 // EnvelopeSender dispatches envelopes to actor queues.
 type EnvelopeSender interface {
-	Send(ctx context.Context, actor, namespace string, envelope []byte) error
+	Send(ctx context.Context, actor string, envelope []byte) error
 }
 
 // NewHandler creates a new mesh API handler.
@@ -126,8 +126,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// readJSON decodes a JSON request body.
+// readJSON decodes a JSON request body, limiting it to 10MB.
 func readJSON(r *http.Request, v any) error {
+	r.Body = http.MaxBytesReader(nil, r.Body, 10*1024*1024)
 	return json.NewDecoder(r.Body).Decode(v)
 }
 

@@ -48,6 +48,9 @@ func (c *Connector) Read(ctx context.Context, key string) (*KVRow, error) {
 	return &kv, nil
 }
 
+// ErrConditionFailed is returned when a conditional write's precondition is not met.
+var ErrConditionFailed = errors.New("condition failed")
+
 // Write upserts a key-value pair. Updates updated_at on conflict.
 func (c *Connector) Write(ctx context.Context, key string, value json.RawMessage) error {
 	_, err := c.pool.Exec(ctx,
@@ -56,6 +59,23 @@ func (c *Connector) Write(ctx context.Context, key string, value json.RawMessage
 		key, value)
 	if err != nil {
 		return fmt.Errorf("write %q: %w", key, err)
+	}
+	return nil
+}
+
+// WriteConditional upserts a key-value pair only if the current value's
+// "status" field matches ifStatus. Returns ErrConditionFailed if the
+// precondition is not met (row exists but status differs).
+func (c *Connector) WriteConditional(ctx context.Context, key string, value json.RawMessage, ifStatus string) error {
+	ct, err := c.pool.Exec(ctx,
+		`UPDATE kv SET value = $2, updated_at = now()
+		 WHERE key = $1 AND value->>'status' = $3`,
+		key, value, ifStatus)
+	if err != nil {
+		return fmt.Errorf("conditional write %q: %w", key, err)
+	}
+	if ct.RowsAffected() == 0 {
+		return fmt.Errorf("conditional write %q: %w", key, ErrConditionFailed)
 	}
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"time"
@@ -104,8 +103,13 @@ func (s *StateProxyStore) Get(ctx context.Context, id string) (*types.Message, e
 }
 
 // UpdateStatus updates a message's status with monotonic ordering enforcement.
+// Uses conditional write (if_status) to prevent TOCTOU races. Retries once on
+// 409 Conflict (another writer advanced the status concurrently).
 func (s *StateProxyStore) UpdateStatus(ctx context.Context, id string, status types.MessageStatus, data json.RawMessage) error {
-	// Read current state
+	return s.updateStatusAttempt(ctx, id, status, data, 1)
+}
+
+func (s *StateProxyStore) updateStatusAttempt(ctx context.Context, id string, status types.MessageStatus, data json.RawMessage, retries int) error {
 	current, err := s.Get(ctx, id)
 	if err != nil {
 		return err
@@ -116,6 +120,8 @@ func (s *StateProxyStore) UpdateStatus(ctx context.Context, id string, status ty
 		return ErrStaleStatus
 	}
 
+	prevStatus := current.Status
+
 	// Merge status and data into current value
 	current.Status = status
 	if data != nil {
@@ -123,15 +129,14 @@ func (s *StateProxyStore) UpdateStatus(ctx context.Context, id string, status ty
 	}
 	current.UpdatedAt = time.Now().UTC()
 
-	// Write back
 	val := buildKVValue(current)
 	body, err := json.Marshal(val)
 	if err != nil {
 		return fmt.Errorf("marshal update: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut,
-		baseURL+"/keys/"+keyPrefix+id, bytes.NewReader(body))
+	url := fmt.Sprintf("%s/keys/%s%s?if_status=%s", baseURL, keyPrefix, id, string(prevStatus))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("update request: %w", err)
 	}
@@ -142,6 +147,13 @@ func (s *StateProxyStore) UpdateStatus(ctx context.Context, id string, status ty
 		return fmt.Errorf("update: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusConflict {
+		if retries > 0 {
+			return s.updateStatusAttempt(ctx, id, status, data, retries-1)
+		}
+		return ErrStaleStatus
+	}
 
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("update: unexpected status %d", resp.StatusCode)
@@ -284,16 +296,10 @@ func parseKVRow(id string, value json.RawMessage, createdAt, updatedAt time.Time
 		status = types.MessageStatus(s)
 	}
 
-	// Read the full response body so we can use it as-is for raw data
-	bodyBytes, err := io.ReadAll(bytes.NewReader(value))
-	if err != nil {
-		return nil, fmt.Errorf("read value: %w", err)
-	}
-
 	return &types.Message{
 		ID:        id,
 		Status:    status,
-		Data:      json.RawMessage(bodyBytes),
+		Data:      value,
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
 	}, nil
