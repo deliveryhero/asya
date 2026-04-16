@@ -10,6 +10,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,6 +45,7 @@ type Router struct {
 	progressReporter *progress.Reporter
 	gatewayURL       string
 	tracer           trace.Tracer
+	reporters        sync.Map // gateway URL -> *progress.Reporter
 }
 
 // NewRouter creates a new router instance
@@ -184,16 +186,22 @@ func (r *Router) resolveGatewayURL(msg *envelopes.Envelope) string {
 
 // getReporter returns a progress.Reporter for the given envelope.
 // If the envelope carries x-asya-gateway-url, a reporter targeting that URL is
-// returned. Otherwise falls back to the router's default reporter (which may be nil).
+// returned (cached per URL to avoid repeated allocations). Otherwise falls back
+// to the router's default reporter (which may be nil).
 func (r *Router) getReporter(msg *envelopes.Envelope) *progress.Reporter {
-	envelopeURL := r.resolveGatewayURL(msg)
-	if envelopeURL == "" {
+	url := r.resolveGatewayURL(msg)
+	if url == "" {
 		return nil
 	}
-	if r.progressReporter != nil && r.progressReporter.GetGatewayURL() == envelopeURL {
+	if url == r.gatewayURL && r.progressReporter != nil {
 		return r.progressReporter
 	}
-	return progress.NewReporter(envelopeURL, r.actorName)
+	if cached, ok := r.reporters.Load(url); ok {
+		return cached.(*progress.Reporter)
+	}
+	reporter := progress.NewReporter(url, r.actorName)
+	r.reporters.Store(url, reporter)
+	return reporter
 }
 
 // isMeshStatusEnabled returns true when gateway mesh-status reporting is active for this envelope.
@@ -1574,123 +1582,6 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *envelope
 	}
 
 	slog.Info("Reported final status to gateway", "id", msg.ID, "status", status,
-		"actor", currentActorName, "actor_idx", currentActorIdx)
-	return nil
-}
-
-// reportFinalStatus reports final message status to gateway (legacy version without message context)
-// Deprecated: Use reportFinalStatusWithMessage instead
-func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayload json.RawMessage, duration time.Duration) error {
-	if r.progressReporter == nil {
-		return nil
-	}
-
-	// Parse result payload to extract the actual result
-	var result interface{}
-	if len(resultPayload) > 0 {
-		if err := json.Unmarshal(resultPayload, &result); err != nil {
-			slog.Warn("Failed to parse result payload", "error", err)
-			result = nil
-		}
-	}
-
-	// Determine status from queue name
-	var status string
-	var errorMsg string
-	var errorDetails interface{}
-	var route envelopes.Route
-	var currentActorIdx *int
-	var currentActorName string
-
-	switch r.actorName {
-	case r.sinkQueue:
-		status = statusSucceeded
-	case r.sumpQueue:
-		status = statusFailed
-		// For x-sump, extract error info and route from payload
-		type errorPayload struct {
-			Error   string      `json:"error"`
-			Details interface{} `json:"details"`
-			Route   struct {
-				Prev []string `json:"prev"`
-				Curr string   `json:"curr"`
-				Next []string `json:"next"`
-			} `json:"route"`
-		}
-
-		if resultBytes, err := json.Marshal(result); err == nil {
-			var payload errorPayload
-			if err := json.Unmarshal(resultBytes, &payload); err == nil {
-				errorMsg = payload.Error
-				errorDetails = payload.Details
-				route.Prev = payload.Route.Prev
-				route.Curr = payload.Route.Curr
-				route.Next = payload.Route.Next
-
-				if payload.Route.Curr != "" {
-					currentActorName = payload.Route.Curr
-					idx := len(payload.Route.Prev)
-					currentActorIdx = &idx
-				}
-			} else {
-				slog.Warn("Failed to unmarshal error payload", "error", err)
-			}
-		} else {
-			slog.Warn("Failed to marshal result for parsing", "error", err)
-		}
-	default:
-		slog.Warn("reportFinalStatus called on non-end actor", "queue", r.actorName)
-		return nil
-	}
-
-	// Build final status payload
-	finalPayload := map[string]interface{}{
-		"id":        msgID,
-		"status":    status,
-		"timestamp": time.Now().Format(time.RFC3339),
-	}
-
-	if status == statusSucceeded {
-		finalPayload["progress"] = 1.0
-		// Use the message payload as the result
-		if result != nil {
-			finalPayload["result"] = result
-		}
-	} else {
-		if errorMsg != "" {
-			finalPayload["error"] = errorMsg
-		}
-		if errorDetails != nil {
-			finalPayload["error_details"] = errorDetails
-		}
-		if route.Curr != "" || len(route.Prev) > 0 {
-			finalPayload["prev"] = route.Prev
-			finalPayload["curr"] = route.Curr
-			finalPayload["next"] = route.Next
-		}
-		if currentActorIdx != nil {
-			finalPayload["current_actor_idx"] = *currentActorIdx
-		}
-		if currentActorName != "" {
-			finalPayload["current_actor_name"] = currentActorName
-		}
-	}
-
-	// Send to gateway via unified PostEvent with legacy fallback
-	payloadBytes, err := json.Marshal(finalPayload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal final status: %w", err)
-	}
-
-	if err := r.progressReporter.PostEvent(ctx, msgID, progress.MeshEvent{
-		Type:   progress.EventTypeStatus,
-		Status: status,
-		Data:   payloadBytes,
-	}); err != nil {
-		return err
-	}
-
-	slog.Info("Reported final status to gateway", "id", msgID, "status", status,
 		"actor", currentActorName, "actor_idx", currentActorIdx)
 	return nil
 }

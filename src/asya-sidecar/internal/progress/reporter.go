@@ -51,10 +51,23 @@ type ProgressUpdate struct {
 	PauseMetadata json.RawMessage `json:"pause_metadata,omitempty"`  // x-asya-pause header content for HITL
 }
 
-// ReportProgress sends a progress update to the gateway
+// ReportProgress sends a progress update to the gateway via the unified endpoint.
 func (r *Reporter) ReportProgress(ctx context.Context, id string, update ProgressUpdate) error {
+	data, err := json.Marshal(update)
+	if err != nil {
+		return fmt.Errorf("failed to marshal progress update: %w", err)
+	}
+
+	return r.PostEvent(ctx, id, MeshEvent{
+		Type:   EventTypeStatus,
+		Status: string(update.Status),
+		Data:   data,
+	})
+}
+
+// reportProgressLegacy sends a progress update directly to the legacy /mesh/{id}/progress endpoint.
+func (r *Reporter) reportProgressLegacy(ctx context.Context, id string, update ProgressUpdate) error {
 	if id == "" {
-		// No id in message, skip progress reporting
 		return nil
 	}
 
@@ -65,7 +78,7 @@ func (r *Reporter) ReportProgress(ctx context.Context, id string, update Progres
 
 	url := fmt.Sprintf("%s/mesh/%s/progress", r.gatewayURL, id)
 
-	slog.Info("Sending progress update to gateway",
+	slog.Info("Sending progress update to gateway (legacy)",
 		"task_id", id,
 		"status", update.Status,
 		"curr", update.Curr,
@@ -178,7 +191,7 @@ func (r *Reporter) PostEvent(ctx context.Context, id string, event MeshEvent) er
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
 		slog.Warn("Failed to POST event to mesh-api", "id", id, "error", err)
-		return r.postEventLegacyFallback(ctx, id, event)
+		return fmt.Errorf("failed to POST event to mesh-api: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -199,7 +212,7 @@ func (r *Reporter) PostEvent(ctx context.Context, id string, event MeshEvent) er
 func (r *Reporter) postEventLegacyFallback(ctx context.Context, id string, event MeshEvent) error {
 	switch event.Type {
 	case EventTypeFly:
-		return r.ForwardFly(ctx, id, event.Data)
+		return r.forwardFlyLegacy(ctx, id, event.Data)
 	case EventTypeStatus:
 		if event.Status == "succeeded" || event.Status == "failed" {
 			url := fmt.Sprintf("%s/mesh/%s/final", r.gatewayURL, id)
@@ -219,7 +232,7 @@ func (r *Reporter) postEventLegacyFallback(ctx context.Context, id string, event
 			}
 			return nil
 		}
-		return r.ReportProgress(ctx, id, ProgressUpdate{
+		return r.reportProgressLegacy(ctx, id, ProgressUpdate{
 			Status:  ProgressStatus(event.Status),
 			Message: "status update via legacy fallback",
 		})
@@ -343,9 +356,16 @@ func (r *Reporter) CreateMesh(ctx context.Context, id, parentID string, route en
 	return nil
 }
 
-// ForwardFly sends a FLY event to the gateway for live SSE delivery.
-// Used for streaming token-by-token output from generator handlers to connected clients.
+// ForwardFly sends a FLY event to the gateway via the unified endpoint.
 func (r *Reporter) ForwardFly(ctx context.Context, taskID string, payload json.RawMessage) error {
+	return r.PostEvent(ctx, taskID, MeshEvent{
+		Type: EventTypeFly,
+		Data: payload,
+	})
+}
+
+// forwardFlyLegacy sends a FLY event directly to the legacy /mesh/{id}/fly endpoint.
+func (r *Reporter) forwardFlyLegacy(ctx context.Context, taskID string, payload json.RawMessage) error {
 	if taskID == "" {
 		return nil
 	}

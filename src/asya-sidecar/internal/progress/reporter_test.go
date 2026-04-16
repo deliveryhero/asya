@@ -42,37 +42,29 @@ func TestNewReporter(t *testing.T) {
 
 func TestReportProgress_Success(t *testing.T) {
 	receivedRequests := 0
-	var receivedUpdate ProgressUpdate
+	var receivedEvent MeshEvent
 
-	// Create mock server
+	// Create mock server — ReportProgress now delegates to PostEvent
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedRequests++
 
-		// Verify request method and path
 		if r.Method != http.MethodPost {
 			t.Errorf("Method = %v, want POST", r.Method)
 		}
 
-		if r.URL.Path != "/mesh/test-message-123/progress" {
-			t.Errorf("Path = %v, want /mesh/test-message-123/progress", r.URL.Path)
+		if r.URL.Path != "/api/v1/mesh/test-message-123/events" {
+			t.Errorf("Path = %v, want /api/v1/mesh/test-message-123/events", r.URL.Path)
 		}
 
-		// Verify content type
 		if r.Header.Get("Content-Type") != "application/json" {
 			t.Errorf("Content-Type = %v, want application/json", r.Header.Get("Content-Type"))
 		}
 
-		// Decode request body
-		if err := json.NewDecoder(r.Body).Decode(&receivedUpdate); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&receivedEvent); err != nil {
 			t.Errorf("Failed to decode request body: %v", err)
 		}
 
-		// Send success response
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":           "ok",
-			"progress_percent": 50.0,
-		})
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -97,7 +89,20 @@ func TestReportProgress_Success(t *testing.T) {
 		t.Errorf("Received %d requests, want 1", receivedRequests)
 	}
 
-	// Verify received update
+	if receivedEvent.Type != EventTypeStatus {
+		t.Errorf("Event type = %v, want status", receivedEvent.Type)
+	}
+
+	if receivedEvent.Status != string(StatusProcessing) {
+		t.Errorf("Event status = %v, want processing", receivedEvent.Status)
+	}
+
+	// Verify the data contains the update
+	var receivedUpdate ProgressUpdate
+	if err := json.Unmarshal(receivedEvent.Data, &receivedUpdate); err != nil {
+		t.Fatalf("Failed to unmarshal event data: %v", err)
+	}
+
 	if receivedUpdate.Curr != "processor" {
 		t.Errorf("Received curr = %v, want processor", receivedUpdate.Curr)
 	}
@@ -120,7 +125,7 @@ func TestReportProgress_EmptyID(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestReceived = true
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -136,7 +141,7 @@ func TestReportProgress_EmptyID(t *testing.T) {
 	ctx := context.Background()
 	err := reporter.ReportProgress(ctx, "", update)
 
-	// Should not return error (graceful skip)
+	// Should not return error (PostEvent skips empty IDs)
 	if err != nil {
 		t.Errorf("ReportProgress returned error: %v", err)
 	}
@@ -166,15 +171,15 @@ func TestReportProgress_ServerError(t *testing.T) {
 	ctx := context.Background()
 	err := reporter.ReportProgress(ctx, "test-job", update)
 
-	// Should not return error (non-blocking)
-	if err != nil {
-		t.Errorf("ReportProgress returned error: %v", err)
+	// PostEvent returns error for non-2xx/non-404 status codes
+	if err == nil {
+		t.Error("ReportProgress should return error for server error")
 	}
 }
 
 func TestReportProgress_NetworkError(t *testing.T) {
 	// Use invalid URL to simulate network error
-	reporter := NewReporter("http://invalid-host-that-does-not-exist:99999", "test-actor")
+	reporter := NewReporter("http://192.0.2.1:1", "test-actor")
 
 	update := ProgressUpdate{
 		Prev:   []string{},
@@ -183,12 +188,13 @@ func TestReportProgress_NetworkError(t *testing.T) {
 		Status: StatusReceived,
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	err := reporter.ReportProgress(ctx, "test-job", update)
 
-	// Should not return error (non-blocking)
-	if err != nil {
-		t.Errorf("ReportProgress returned error: %v", err)
+	// PostEvent now returns error on network failure (no legacy fallback)
+	if err == nil {
+		t.Error("ReportProgress should return error for network error")
 	}
 }
 
@@ -196,7 +202,7 @@ func TestReportProgress_ContextCancellation(t *testing.T) {
 	// Create slow server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second)
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -215,9 +221,9 @@ func TestReportProgress_ContextCancellation(t *testing.T) {
 
 	err := reporter.ReportProgress(ctx, "test-job", update)
 
-	// Should not return error (non-blocking)
-	if err != nil {
-		t.Errorf("ReportProgress returned error: %v", err)
+	// PostEvent returns error on context cancellation (network error path)
+	if err == nil {
+		t.Error("ReportProgress should return error for context cancellation")
 	}
 }
 
@@ -233,13 +239,11 @@ func TestReportProgress_AllStatuses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(tt.status), func(t *testing.T) {
-			var receivedStatus ProgressStatus
+			var receivedEvent MeshEvent
 
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				var update ProgressUpdate
-				_ = json.NewDecoder(r.Body).Decode(&update)
-				receivedStatus = update.Status
-				w.WriteHeader(http.StatusOK)
+				_ = json.NewDecoder(r.Body).Decode(&receivedEvent)
+				w.WriteHeader(http.StatusNoContent)
 			}))
 			defer server.Close()
 
@@ -259,8 +263,8 @@ func TestReportProgress_AllStatuses(t *testing.T) {
 				t.Errorf("ReportProgress returned error: %v", err)
 			}
 
-			if receivedStatus != tt.status {
-				t.Errorf("Received status = %v, want %v", receivedStatus, tt.status)
+			if receivedEvent.Status != string(tt.status) {
+				t.Errorf("Received event status = %v, want %v", receivedEvent.Status, tt.status)
 			}
 		})
 	}
@@ -270,7 +274,7 @@ func TestReportProgress_ConcurrentCalls(t *testing.T) {
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestCount.Add(1)
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -305,13 +309,13 @@ func TestReportProgress_ConcurrentCalls(t *testing.T) {
 }
 
 func TestReportProgress_WithTimingMetrics(t *testing.T) {
-	var receivedUpdate ProgressUpdate
+	var receivedEvent MeshEvent
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := json.NewDecoder(r.Body).Decode(&receivedUpdate); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&receivedEvent); err != nil {
 			t.Errorf("Failed to decode request body: %v", err)
 		}
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -338,6 +342,12 @@ func TestReportProgress_WithTimingMetrics(t *testing.T) {
 		t.Errorf("ReportProgress returned error: %v", err)
 	}
 
+	// Extract the update from the event data
+	var receivedUpdate ProgressUpdate
+	if err := json.Unmarshal(receivedEvent.Data, &receivedUpdate); err != nil {
+		t.Fatalf("Failed to unmarshal event data: %v", err)
+	}
+
 	// Verify timing fields were sent
 	if receivedUpdate.DurationMs == nil {
 		t.Error("DurationMs was not sent")
@@ -352,7 +362,7 @@ func TestReportProgress_WithTimingMetrics(t *testing.T) {
 	}
 }
 
-func TestReportProgress_RetriesOnFailure(t *testing.T) {
+func TestReportProgressLegacy_RetriesOnFailure(t *testing.T) {
 	attemptCount := 0
 	var receivedUpdate ProgressUpdate
 
@@ -384,11 +394,11 @@ func TestReportProgress_RetriesOnFailure(t *testing.T) {
 
 	ctx := context.Background()
 	start := time.Now()
-	err := reporter.ReportProgress(ctx, "test-message-123", update)
+	err := reporter.reportProgressLegacy(ctx, "test-message-123", update)
 	duration := time.Since(start)
 
 	if err != nil {
-		t.Errorf("ReportProgress returned error: %v", err)
+		t.Errorf("reportProgressLegacy returned error: %v", err)
 	}
 
 	// Should have retried 3 times total (2 failures + 1 success)
@@ -408,7 +418,7 @@ func TestReportProgress_RetriesOnFailure(t *testing.T) {
 	}
 }
 
-func TestReportProgress_RetriesUpToMaxAttempts(t *testing.T) {
+func TestReportProgressLegacy_RetriesUpToMaxAttempts(t *testing.T) {
 	attemptCount := 0
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -428,11 +438,11 @@ func TestReportProgress_RetriesUpToMaxAttempts(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := reporter.ReportProgress(ctx, "test-message-123", update)
+	err := reporter.reportProgressLegacy(ctx, "test-message-123", update)
 
 	// Should not return error (non-blocking)
 	if err != nil {
-		t.Errorf("ReportProgress returned error: %v", err)
+		t.Errorf("reportProgressLegacy returned error: %v", err)
 	}
 
 	// Should have retried 5 times (maxRetries = 5)
@@ -441,7 +451,7 @@ func TestReportProgress_RetriesUpToMaxAttempts(t *testing.T) {
 	}
 }
 
-func TestReportProgress_RespectsContextCancellationDuringRetry(t *testing.T) {
+func TestReportProgressLegacy_RespectsContextCancellationDuringRetry(t *testing.T) {
 	attemptCount := 0
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -464,11 +474,11 @@ func TestReportProgress_RespectsContextCancellationDuringRetry(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	err := reporter.ReportProgress(ctx, "test-message-123", update)
+	err := reporter.reportProgressLegacy(ctx, "test-message-123", update)
 
 	// Should not return error (non-blocking)
 	if err != nil {
-		t.Errorf("ReportProgress returned error: %v", err)
+		t.Errorf("reportProgressLegacy returned error: %v", err)
 	}
 
 	// Should have stopped after context cancellation (likely 1-2 attempts)
@@ -479,14 +489,14 @@ func TestReportProgress_RespectsContextCancellationDuringRetry(t *testing.T) {
 
 func TestReportProgress_SucceedsOnFirstAttempt(t *testing.T) {
 	attemptCount := 0
-	var receivedUpdate ProgressUpdate
+	var receivedEvent MeshEvent
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attemptCount++
-		if err := json.NewDecoder(r.Body).Decode(&receivedUpdate); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&receivedEvent); err != nil {
 			t.Errorf("Failed to decode request body: %v", err)
 		}
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -509,18 +519,23 @@ func TestReportProgress_SucceedsOnFirstAttempt(t *testing.T) {
 		t.Errorf("ReportProgress returned error: %v", err)
 	}
 
-	// Should succeed on first attempt
+	// Should succeed on first attempt via PostEvent
 	if attemptCount != 1 {
 		t.Errorf("Expected 1 attempt, got %d", attemptCount)
 	}
 
-	// Should not have delayed (no retries)
+	// Should not have delayed
 	maxExpectedDuration := 100 * time.Millisecond
 	if duration > maxExpectedDuration {
-		t.Errorf("Duration %v exceeds expected maximum %v (no retries should occur)", duration, maxExpectedDuration)
+		t.Errorf("Duration %v exceeds expected maximum %v", duration, maxExpectedDuration)
 	}
 
-	// Verify update was received
+	// Verify event data contains the update
+	var receivedUpdate ProgressUpdate
+	if err := json.Unmarshal(receivedEvent.Data, &receivedUpdate); err != nil {
+		t.Fatalf("Failed to unmarshal event data: %v", err)
+	}
+
 	if receivedUpdate.Curr != "processor" {
 		t.Errorf("Received curr = %v, want processor", receivedUpdate.Curr)
 	}
@@ -937,20 +952,20 @@ func TestPostEvent_EmptyID_Skipped(t *testing.T) {
 	}
 }
 
-func TestPostEvent_NetworkError_FallsBackToLegacy(t *testing.T) {
-	// When PostEvent fails to connect to the unified endpoint, it attempts
-	// legacy fallback. Both fail here (unreachable host), so the legacy
-	// fallback also fails. For FLY events, ForwardFly returns an error.
+func TestPostEvent_NetworkError_ReturnsError(t *testing.T) {
+	// When PostEvent fails to connect to the unified endpoint, it returns the
+	// error directly without falling back to legacy endpoints.
 	reporter := NewReporter("http://192.0.2.1:1", "test-actor")
 
-	err := reporter.PostEvent(context.Background(), "abc123", MeshEvent{
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := reporter.PostEvent(ctx, "abc123", MeshEvent{
 		Type: EventTypeFly,
 		Data: json.RawMessage(`{"text":"token"}`),
 	})
 
-	// FLY fallback calls ForwardFly which returns an error on network failure
 	if err == nil {
-		t.Error("PostEvent should return error for unreachable host with FLY fallback")
+		t.Error("PostEvent should return error for unreachable host")
 	}
 }
 
@@ -1086,7 +1101,7 @@ func TestReportProgress_SetsEnvelopeIDHeader(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedEnvelopeID = r.Header.Get("X-Asya-Envelope-ID")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -1110,10 +1125,12 @@ func TestReportProgress_SetsEnvelopeIDHeader(t *testing.T) {
 
 func TestForwardFly_SetsEnvelopeIDHeader(t *testing.T) {
 	var receivedEnvelopeID string
+	var receivedPath string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedEnvelopeID = r.Header.Get("X-Asya-Envelope-ID")
-		w.WriteHeader(http.StatusOK)
+		receivedPath = r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
 
@@ -1122,6 +1139,11 @@ func TestForwardFly_SetsEnvelopeIDHeader(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("ForwardFly returned error: %v", err)
+	}
+
+	// ForwardFly now delegates to PostEvent, which uses the unified endpoint
+	if receivedPath != "/api/v1/mesh/fly-id-456/events" {
+		t.Errorf("path = %s, want /api/v1/mesh/fly-id-456/events", receivedPath)
 	}
 
 	if receivedEnvelopeID != "fly-id-456" {
