@@ -232,6 +232,11 @@ A2A task state mapping: `pending` → `submitted`, `running` → `working`, `suc
 2. Work exclusively in the worktree
 3. Commit, push, create a PR — never merge directly
 
+### DCO Sign-off
+
+All commits **must** include a DCO (Developer Certificate of Origin) sign-off line.
+Always use `git commit -s` (or `git commit --signoff`). CI will reject unsigned commits.
+
 ### Command Hierarchy
 
 1. **Prefer**: `make <target>`
@@ -274,7 +279,7 @@ grep -rn "^description:" docs/ --include="*.md"
 grep -r "description:.*sidecar" docs/ --include="*.md" -l
 
 # Find docs about a concept or pattern
-grep -r "description:.*fan-out\|fan-in\|streaming" docs/ --include="*.md" -l
+grep -rE "description:.*(fan-out|fan-in|streaming)" docs/ --include="*.md" -l
 ```
 
 **Doc sections** (`docs/`):
