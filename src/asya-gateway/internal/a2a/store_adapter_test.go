@@ -84,7 +84,7 @@ func TestStoreAdapterSave(t *testing.T) {
 		},
 	}
 
-	version, err := adapter.Save(context.Background(), a2aTask, a2aTask, a2alib.TaskVersionMissing)
+	version, err := adapter.Save(context.Background(), a2aTask, a2aTask, nil, a2alib.TaskVersionMissing)
 	require.NoError(t, err)
 	assert.NotEqual(t, a2alib.TaskVersionMissing, version)
 
@@ -699,7 +699,7 @@ func TestStoreAdapterSave_SkipsDBForArtifactAppend(t *testing.T) {
 	}
 
 	prevVersion := a2alib.TaskVersion(42)
-	version, err := adapter.Save(context.Background(), a2aTask, artifactEvent, prevVersion)
+	version, err := adapter.Save(context.Background(), a2aTask, artifactEvent, nil, prevVersion)
 	require.NoError(t, err)
 	assert.Equal(t, prevVersion, version)
 
@@ -746,7 +746,7 @@ func TestStoreAdapterSave_SkipsDBForNewArtifact(t *testing.T) {
 	}
 
 	prevVersion := a2alib.TaskVersion(10)
-	version, err := adapter.Save(context.Background(), a2aTask, artifactEvent, prevVersion)
+	version, err := adapter.Save(context.Background(), a2aTask, artifactEvent, nil, prevVersion)
 	require.NoError(t, err)
 	assert.Equal(t, prevVersion, version)
 }
@@ -775,7 +775,7 @@ func TestStoreAdapterSave_StatusEventsStillWriteToDB(t *testing.T) {
 
 	statusEvent := a2alib.NewStatusUpdateEvent(a2aTask, a2alib.TaskStateWorking, nil)
 
-	version, err := adapter.Save(context.Background(), a2aTask, statusEvent, a2alib.TaskVersionMissing)
+	version, err := adapter.Save(context.Background(), a2aTask, statusEvent, nil, a2alib.TaskVersionMissing)
 	require.NoError(t, err)
 	assert.NotEqual(t, a2alib.TaskVersionMissing, version)
 

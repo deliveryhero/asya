@@ -6,7 +6,7 @@ replace github.com/deliveryhero/asya/asya-sidecar => ../../../src/asya-sidecar
 
 require (
 	github.com/deliveryhero/asya/asya-sidecar v0.0.0-00010101000000-000000000000
-	golang.org/x/net v0.52.0
+	golang.org/x/net v0.53.0
 )
 
 require (
@@ -61,11 +61,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/api v0.247.0 // indirect
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
