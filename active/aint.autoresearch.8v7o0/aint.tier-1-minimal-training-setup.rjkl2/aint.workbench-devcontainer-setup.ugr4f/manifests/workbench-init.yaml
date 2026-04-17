@@ -72,6 +72,12 @@ data:
       echo "[+] installing node.js + claude code"
       su dev -c 'curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "/home/dev/.local/bin"'
       su dev -c 'export PATH="/home/dev/.local/bin:$PATH" && eval "$(/home/dev/.local/bin/fnm env)" && fnm install --lts && npm install -g @anthropic-ai/claude-code'
+      FNM_NODE=$(find /home/dev/.local/share/fnm/node-versions -maxdepth 3 -name bin -type d | head -1)
+      if [ -n "$FNM_NODE" ]; then
+        ln -sf "$FNM_NODE/claude" /home/dev/.local/bin/claude
+        ln -sf "$FNM_NODE/node" /home/dev/.local/bin/node
+        ln -sf "$FNM_NODE/npm" /home/dev/.local/bin/npm
+      fi
     fi
 
     if ! command -v git-aint &>/dev/null; then
