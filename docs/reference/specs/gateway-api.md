@@ -35,6 +35,12 @@ Complete reference for all `asya-gateway` HTTP endpoints. Routes are split acros
 
 ## External API Routes (api deployment)
 
+!!! note "Rearchitected adapters"
+    In the new architecture, A2A routes are served by the standalone
+    `a2a-adapter` binary (:8083) and MCP routes by `mcp-adapter` (:8082).
+    Both use mesh-api as their backend via the two-step dispatch pattern.
+    The routes and request/response formats are unchanged.
+
 ### A2A Protocol
 
 #### `GET /.well-known/agent.json`

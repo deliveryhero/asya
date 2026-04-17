@@ -46,10 +46,26 @@ linters:
     rules:
     - linters:
       - gosec
+      text: "G120"
+      path: internal/oauth/
+    - linters:
+      - gosec
+      text: "G118"
+      path: internal/mcp/registry\.go
+    - linters:
+      - gosec
+      text: "G705"
+      path: internal/mesh/events\.go
+    - linters:
       - revive
-      - staticcheck
+      path: ^(internal/a2a/|internal/queue/|pkg/types/)
+    - linters:
       - nolintlint
-      path: ^(cmd/gateway/|cmd/mesh-api/|internal/a2a/|internal/mcp/|internal/mesh/|internal/oauth/|internal/queue/|pkg/types/)
+      path: internal/queue/
+    - linters:
+      - staticcheck
+      text: "QF1011"
+      path: cmd/gateway/
     - linters:
       - errcheck
       - goconst
