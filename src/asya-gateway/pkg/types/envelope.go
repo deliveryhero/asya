@@ -8,6 +8,7 @@ import (
 // EnvelopeStatus represents the current state of an envelope's journey through the mesh.
 type EnvelopeStatus string
 
+// Envelope lifecycle statuses.
 const (
 	EnvelopeStatusPending      EnvelopeStatus = "pending"
 	EnvelopeStatusRunning      EnvelopeStatus = "running"

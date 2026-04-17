@@ -109,7 +109,7 @@ func (c *RabbitMQClient) SendMessage(ctx context.Context, envelope *types.Envelo
 	return nil
 }
 
-// rabbitMQMessage wraps amqp.Delivery to implement QueueMessage
+// rabbitMQMessage wraps amqp.Delivery to implement Message
 type rabbitMQMessage struct {
 	delivery amqp.Delivery
 }
@@ -123,7 +123,7 @@ func (m *rabbitMQMessage) DeliveryTag() uint64 {
 }
 
 // Receive receives a message from the specified queue
-func (c *RabbitMQClient) Receive(ctx context.Context, queueName string) (QueueMessage, error) {
+func (c *RabbitMQClient) Receive(ctx context.Context, queueName string) (Message, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -167,7 +167,7 @@ func (c *RabbitMQClient) Receive(ctx context.Context, queueName string) (QueueMe
 }
 
 // Ack acknowledges a message
-func (c *RabbitMQClient) Ack(ctx context.Context, msg QueueMessage) error {
+func (c *RabbitMQClient) Ack(ctx context.Context, msg Message) error {
 	rmqMsg, ok := msg.(*rabbitMQMessage)
 	if !ok {
 		return fmt.Errorf("invalid message type")

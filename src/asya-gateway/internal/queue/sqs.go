@@ -150,7 +150,7 @@ func (c *SQSClient) resolveQueueURL(ctx context.Context, queueName string) (stri
 	return queueURL, nil
 }
 
-// sqsMessage wraps SQS message for the QueueMessage interface
+// sqsMessage wraps SQS message for the Message interface
 type sqsMessage struct {
 	body          []byte
 	deliveryTag   uint64
@@ -205,7 +205,7 @@ func (c *SQSClient) SendMessage(ctx context.Context, envelope *types.Envelope) e
 }
 
 // Receive receives a message from the specified queue
-func (c *SQSClient) Receive(ctx context.Context, queueName string) (QueueMessage, error) {
+func (c *SQSClient) Receive(ctx context.Context, queueName string) (Message, error) {
 	queueURL, err := c.resolveQueueURL(ctx, queueName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve queue URL: %w", err)
@@ -246,7 +246,7 @@ func (c *SQSClient) Receive(ctx context.Context, queueName string) (QueueMessage
 }
 
 // Ack acknowledges a message by deleting it from the queue
-func (c *SQSClient) Ack(ctx context.Context, msg QueueMessage) error {
+func (c *SQSClient) Ack(ctx context.Context, msg Message) error {
 	sqsMsg, ok := msg.(*sqsMessage)
 	if !ok {
 		return fmt.Errorf("invalid message type: expected *sqsMessage")

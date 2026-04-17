@@ -107,7 +107,6 @@ crew:
     enabled: true
     name: x-sink
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:
@@ -129,7 +128,6 @@ crew:
     enabled: true
     name: x-sump
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:

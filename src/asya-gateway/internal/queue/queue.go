@@ -59,8 +59,8 @@ func NewActorEnvelope(envelope *types.Envelope) (ActorEnvelope, error) {
 	return msg, nil
 }
 
-// QueueMessage represents a message received from a queue
-type QueueMessage interface {
+// Message represents a message received from a queue
+type Message interface {
 	Body() []byte
 	DeliveryTag() uint64
 }
@@ -68,7 +68,7 @@ type QueueMessage interface {
 // Client defines the interface for sending and receiving messages from queues
 type Client interface {
 	SendMessage(ctx context.Context, envelope *types.Envelope) error
-	Receive(ctx context.Context, queueName string) (QueueMessage, error)
-	Ack(ctx context.Context, msg QueueMessage) error
+	Receive(ctx context.Context, queueName string) (Message, error)
+	Ack(ctx context.Context, msg Message) error
 	Close() error
 }
