@@ -5,11 +5,16 @@ run:
   tests: true
 linters:
   enable:
+  - errcheck
   - goconst
   - gocyclo
+  - govet
   - gosec
+  - ineffassign
   - misspell
   - nolintlint
+  - revive
+  - staticcheck
   settings:
     errcheck:
       check-type-assertions: true

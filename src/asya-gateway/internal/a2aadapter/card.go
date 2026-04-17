@@ -46,17 +46,19 @@ func (p *CardProducer) Card(_ context.Context) (*a2alib.AgentCard, error) {
 	version := envOr("ASYA_A2A_VERSION", "1.0.0")
 	publicURL := envOr("ASYA_A2A_PUBLIC_URL", "")
 
-	// Determine default I/O modes from first agent with modes set
 	defaultInputModes := []string{"application/json"}
 	defaultOutputModes := []string{"application/json"}
 	for _, agent := range agents {
 		if len(agent.InputModes) > 0 {
 			defaultInputModes = agent.InputModes
+			break
 		}
+	}
+	for _, agent := range agents {
 		if len(agent.OutputModes) > 0 {
 			defaultOutputModes = agent.OutputModes
+			break
 		}
-		break
 	}
 
 	// Determine streaming from any agent

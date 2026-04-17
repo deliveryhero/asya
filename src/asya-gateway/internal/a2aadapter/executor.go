@@ -341,11 +341,5 @@ func messageToHistoryEntry(msg *a2alib.Message) any {
 	if msg == nil {
 		return map[string]any{}
 	}
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return map[string]any{"error": "failed to serialize message"}
-	}
-	var entry any
-	_ = json.Unmarshal(data, &entry)
-	return entry
+	return msg
 }

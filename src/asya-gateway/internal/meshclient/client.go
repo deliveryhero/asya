@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/sseclient"
@@ -64,7 +65,7 @@ func (c *Client) Create(ctx context.Context, actor string, req CreateRequest) (*
 		return nil, fmt.Errorf("marshal create request: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/api/v1/mesh/?actor=%s", c.localURL, actor)
+	url := fmt.Sprintf("%s/api/v1/mesh/?actor=%s", c.localURL, url.QueryEscape(actor))
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create HTTP request: %w", err)
@@ -91,7 +92,7 @@ func (c *Client) Create(ctx context.Context, actor string, req CreateRequest) (*
 
 // Get retrieves the current status of a mesh message.
 func (c *Client) Get(ctx context.Context, id string) (*MessageStatus, error) {
-	url := fmt.Sprintf("%s/api/v1/mesh/%s", c.localURL, id)
+	url := fmt.Sprintf("%s/api/v1/mesh/%s", c.localURL, url.PathEscape(id))
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create GET request: %w", err)
@@ -121,13 +122,13 @@ func (c *Client) Get(ctx context.Context, id string) (*MessageStatus, error) {
 // SubscribeEvents opens an SSE stream for the given message ID via Ingress
 // (hash-routed by X-Asya-Envelope-ID header).
 func (c *Client) SubscribeEvents(ctx context.Context, id string) (<-chan sseclient.Event, <-chan error) {
-	url := fmt.Sprintf("%s/api/v1/mesh/%s/events", c.ingressURL, id)
+	url := fmt.Sprintf("%s/api/v1/mesh/%s/events", c.ingressURL, url.PathEscape(id))
 	return sseclient.Subscribe(ctx, url, id)
 }
 
 // Cancel sends a DELETE request to cancel a mesh message.
 func (c *Client) Cancel(ctx context.Context, id string) error {
-	url := fmt.Sprintf("%s/api/v1/mesh/%s", c.localURL, id)
+	url := fmt.Sprintf("%s/api/v1/mesh/%s", c.localURL, url.PathEscape(id))
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return fmt.Errorf("create DELETE request: %w", err)

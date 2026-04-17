@@ -8,7 +8,16 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
+
+var sseClient = &http.Client{
+	Timeout: 0, // SSE streams are long-lived; per-request context handles cancellation
+	Transport: &http.Transport{
+		IdleConnTimeout:   120 * time.Second,
+		DisableKeepAlives: false,
+	},
+}
 
 // Event represents a parsed SSE event from the mesh API.
 type Event struct {
@@ -75,7 +84,7 @@ func Subscribe(ctx context.Context, url string, envelopeID string) (<-chan Event
 		req.Header.Set("Accept", "text/event-stream")
 		req.Header.Set("X-Asya-Envelope-ID", envelopeID)
 
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := sseClient.Do(req)
 		if err != nil {
 			errCh <- fmt.Errorf("SSE connect: %w", err)
 			return
@@ -99,6 +108,7 @@ func Subscribe(ctx context.Context, url string, envelopeID string) (<-chan Event
 // parseSSE reads an SSE stream and sends parsed events to the channel.
 func parseSSE(ctx context.Context, r io.Reader, events chan<- Event) error {
 	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	var eventType string
 	var dataLines []string
 
@@ -115,9 +125,13 @@ func parseSSE(ctx context.Context, r io.Reader, events chan<- Event) error {
 		if line == "" {
 			if eventType != "" && len(dataLines) > 0 {
 				data := strings.Join(dataLines, "\n")
-				events <- Event{
+				select {
+				case events <- Event{
 					Type: eventType,
 					Data: json.RawMessage(data),
+				}:
+				case <-ctx.Done():
+					return ctx.Err()
 				}
 			}
 			eventType = ""

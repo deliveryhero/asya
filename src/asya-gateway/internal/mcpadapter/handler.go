@@ -231,7 +231,8 @@ func statusToCallToolResult(status sseclient.StatusData) *mcp.CallToolResult {
 		return mcp.NewToolResultError("task was canceled")
 
 	case "paused":
-		return mcp.NewToolResultText(fmt.Sprintf(`{"status":"paused","message":"%s"}`, status.Message))
+		pausedJSON, _ := json.Marshal(map[string]string{"status": "paused", "message": status.Message})
+		return mcp.NewToolResultText(string(pausedJSON))
 
 	default:
 		return mcp.NewToolResultError(fmt.Sprintf("unexpected status: %s", status.Status))
