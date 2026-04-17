@@ -1,0 +1,38 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workbench-role
+  namespace: atem
+rules:
+  - apiGroups: ["asya.sh"]
+    resources: ["asyncactors"]
+    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workbench-binding
+  namespace: atem
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: atem
+roleRef:
+  kind: Role
+  name: workbench-role
+  apiGroup: rbac.authorization.k8s.io

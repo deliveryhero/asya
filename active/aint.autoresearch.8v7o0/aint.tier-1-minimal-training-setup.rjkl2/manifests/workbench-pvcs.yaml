@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workbench-work
+  namespace: atem
+  labels:
+    app: workbench
+    dh_app: asya
+    dh_squad: aimc
+    dh_tribe: foodscience
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workbench-storage
+  namespace: atem
+  labels:
+    app: workbench
+    dh_app: asya
+    dh_squad: aimc
+    dh_tribe: foodscience
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 200Gi

@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workbench
+  namespace: atem
+  labels:
+    app: workbench
+    dh_app: asya
+    dh_squad: aimc
+    dh_tribe: foodscience
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: workbench
+  template:
+    metadata:
+      labels:
+        app: workbench
+        dh_app: asya
+        dh_squad: aimc
+        dh_tribe: foodscience
+    spec:
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: workbench
+          image: mcr.microsoft.com/devcontainers/base:ubuntu
+          command: ["sleep", "infinity"]
+          volumeMounts:
+            - name: work
+              mountPath: /home/dev
+            - name: storage
+              mountPath: /storage
+            - name: gcp-creds
+              mountPath: /secrets/gcp
+              readOnly: true
+          env:
+            - name: HOME
+              value: /home/dev
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secrets/gcp/key.json
+            - name: CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE
+              value: /secrets/gcp/key.json
+            - name: CLAUDE_CODE_USE_VERTEX
+              value: "1"
+            - name: CLOUD_ML_REGION
+              value: europe-west1
+            - name: ANTHROPIC_VERTEX_PROJECT_ID
+              value: foodsci-img-gen-dev-1407-1448
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+            limits:
+              cpu: "4"
+              memory: 16Gi
+      volumes:
+        - name: work
+          persistentVolumeClaim:
+            claimName: workbench-work
+        - name: storage
+          persistentVolumeClaim:
+            claimName: workbench-storage
+        - name: gcp-creds
+          secret:
+            secretName: gcp-vertex-ai-key
