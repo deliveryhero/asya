@@ -86,6 +86,15 @@ data:
       su dev -c 'curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/home/dev/.local'
     fi
 
+    # --- GCP auth (activate SA if key exists and not already activated) ---
+    if [ -f /secrets/gcp/key.json ]; then
+      export PATH="/home/dev/.local/google-cloud-sdk/bin:$PATH"
+      if ! su dev -c 'gcloud auth list 2>/dev/null | grep -q ACTIVE'; then
+        su dev -c 'gcloud auth activate-service-account --key-file=/secrets/gcp/key.json'
+        echo "[+] GCP service account activated"
+      fi
+    fi
+
     chown -R dev:dev /home/dev 2>/dev/null || true
 
     echo "[+] workbench init complete"
