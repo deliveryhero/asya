@@ -11,9 +11,6 @@ include:
 - path: ../../../shared/compose/rabbitmq.yml
 - path: ../../../shared/compose/minio.yml
 - path: ../../../shared/compose/postgres.yml
-# Asya gateway (mesh-api + pg-kv)
-- path: ../../../shared/compose/asya/gateway.yml
-  env_file: .env.rabbitmq-minio
 # Asya components:
 - path: ../../../shared/compose/asya/testing-actors.yml
   env_file: .env.rabbitmq-minio
@@ -22,6 +19,10 @@ include:
 
 services:
   gateway:
+    extends:
+      file: ../../../shared/compose/asya/gateway.yml
+      service: gateway
+    env_file: .env.rabbitmq-minio
     depends_on:
       pg-kv:
         condition: service_started
@@ -29,6 +30,11 @@ services:
         condition: service_healthy
       queue-setup:
         condition: service_completed_successfully
+
+  pg-kv:
+    extends:
+      file: ../../../shared/compose/asya/gateway.yml
+      service: pg-kv
 
   tester:
     extends:
@@ -50,6 +56,7 @@ services:
         condition: service_completed_successfully
 
 volumes:
+  stateproxy-socket:
   asya-echo-sockets:
   asya-doubler-sockets:
   asya-incrementer-sockets:

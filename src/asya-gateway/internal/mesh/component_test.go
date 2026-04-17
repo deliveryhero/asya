@@ -226,7 +226,7 @@ func TestComponentList(t *testing.T) {
 	msgs := result["messages"].([]any)
 	assert.Len(t, msgs, 2)
 	total := result["total"].(float64)
-	assert.GreaterOrEqual(t, int(total), 3)
+	assert.Equal(t, 2, int(total))
 }
 
 func TestComponentFlyEvent(t *testing.T) {

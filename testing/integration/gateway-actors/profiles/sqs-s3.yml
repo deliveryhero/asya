@@ -11,9 +11,6 @@ include:
 - path: ../../../shared/compose/sqs.yml
 - path: ../../../shared/compose/s3.yml
 - path: ../../../shared/compose/postgres.yml
-# Asya gateway (mesh-api + pg-kv)
-- path: ../../../shared/compose/asya/gateway.yml
-  env_file: .env.sqs-s3
 # Asya components:
 - path: ../../../shared/compose/asya/testing-actors.yml
   env_file: .env.sqs-s3
@@ -22,6 +19,10 @@ include:
 
 services:
   gateway:
+    extends:
+      file: ../../../shared/compose/asya/gateway.yml
+      service: gateway
+    env_file: .env.sqs-s3
     depends_on:
       pg-kv:
         condition: service_started
@@ -29,6 +30,11 @@ services:
         condition: service_healthy
       queue-setup:
         condition: service_completed_successfully
+
+  pg-kv:
+    extends:
+      file: ../../../shared/compose/asya/gateway.yml
+      service: pg-kv
 
   tester:
     extends:
@@ -52,6 +58,7 @@ services:
         condition: service_completed_successfully
 
 volumes:
+  stateproxy-socket:
   asya-echo-sockets:
   asya-doubler-sockets:
   asya-incrementer-sockets:

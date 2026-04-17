@@ -139,14 +139,6 @@ gateway:
       description: "Echo back input"
     inputModes: [text/plain, application/json]
     outputModes: [text/plain, application/json]
-  - name: ASYA_A2A_API_KEY
-    value: "test-api-key-e2e"
-  - name: ASYA_A2A_JWT_JWKS_URL
-    value: "http://asya-jwks-server.asya-e2e.svc.cluster.local/jwks.json"
-  - name: ASYA_A2A_JWT_ISSUER
-    value: "https://test-issuer.e2e"
-  - name: ASYA_A2A_JWT_AUDIENCE
-    value: "asya-gateway-e2e"
 
 crossplane:
   transport: pubsub
