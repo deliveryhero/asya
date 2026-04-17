@@ -1,10 +1,13 @@
 ---
 title: "PR3: Sidecar changes (envelope gateway URL + unified events + pre-flight)"
-status: pushed
-priority: 1
-dependencies: [9bb3j]
-tags: [gateway-rearchitect]
+status: merged
+priority: 1 # high
+tags:
+  - gateway-rearchitect
+dependencies:
+  - 9bb3j
 ---
+
 
 Update asya-sidecar to work with new mesh-api: read gateway URL from envelope
 header, unified event POST, pre-flight cancel/pause check. ~200 LOC changes
