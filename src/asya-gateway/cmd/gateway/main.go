@@ -324,6 +324,13 @@ func registerOAuthRoutes(mux *http.ServeMux, oauthSrv *oauth.Server) {
 
 func registerMeshRoutes(mux *http.ServeMux, meshHandler *mcp.Handler) {
 	if meshHandler != nil {
+		mux.HandleFunc("/api/v1/mesh/", func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/events") {
+				meshHandler.HandleMeshEventsAPI(w, r)
+			} else {
+				meshHandler.HandleMeshStatusAPI(w, r)
+			}
+		})
 		mux.HandleFunc("/mesh/config-reload", meshHandler.HandleMeshConfigReload)
 		mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasSuffix(r.URL.Path, "/stream") {

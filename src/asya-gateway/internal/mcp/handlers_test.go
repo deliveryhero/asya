@@ -1283,3 +1283,158 @@ func TestHandleMeshCreate_DuplicateID(t *testing.T) {
 		t.Error("Should not allow duplicate task ID")
 	}
 }
+
+func TestHandleMeshStatusAPI(t *testing.T) {
+	store := envelopestore.NewStore()
+	handler := NewHandler(store, nil)
+
+	task := &types.Envelope{
+		ID:     "api-status-1",
+		Status: types.EnvelopeStatusRunning,
+	}
+	_ = store.Create(task)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/mesh/api-status-1", nil)
+	rr := httptest.NewRecorder()
+	handler.HandleMeshStatusAPI(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rr.Code)
+	}
+
+	var resp map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["id"] != "api-status-1" {
+		t.Errorf("id = %v, want api-status-1", resp["id"])
+	}
+}
+
+func TestHandleMeshStatusAPI_NotFound(t *testing.T) {
+	store := envelopestore.NewStore()
+	handler := NewHandler(store, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/mesh/nonexistent", nil)
+	rr := httptest.NewRecorder()
+	handler.HandleMeshStatusAPI(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("got status %d, want 404", rr.Code)
+	}
+}
+
+func TestHandleMeshEventsAPI_FlyEvent(t *testing.T) {
+	store := envelopestore.NewStore()
+	handler := NewHandler(store, nil)
+
+	event := meshEvent{
+		Type: "fly",
+		Data: json.RawMessage(`{"text":"hello"}`),
+	}
+	body, _ := json.Marshal(event)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mesh/fly-test-1/events", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.HandleMeshEventsAPI(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rr.Code)
+	}
+}
+
+func TestHandleMeshEventsAPI_StatusEvent_Progress(t *testing.T) {
+	store := envelopestore.NewStore()
+	handler := NewHandler(store, nil)
+
+	task := &types.Envelope{
+		ID:     "progress-test-1",
+		Status: types.EnvelopeStatusRunning,
+	}
+	_ = store.Create(task)
+
+	progressData, _ := json.Marshal(types.EnvelopeProgressUpdate{
+		Prev:   []string{},
+		Curr:   "actor-a",
+		Next:   []string{"actor-b"},
+		Status: "processing",
+	})
+	event := meshEvent{
+		Type:   "status",
+		Status: "processing",
+		Data:   progressData,
+	}
+	body, _ := json.Marshal(event)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mesh/progress-test-1/events", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.HandleMeshEventsAPI(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rr.Code)
+	}
+}
+
+func TestHandleMeshEventsAPI_StatusEvent_Final(t *testing.T) {
+	store := envelopestore.NewStore()
+	handler := NewHandler(store, nil)
+
+	task := &types.Envelope{
+		ID:     "final-test-1",
+		Status: types.EnvelopeStatusRunning,
+	}
+	_ = store.Create(task)
+
+	finalData, _ := json.Marshal(map[string]interface{}{
+		"id":     "final-test-1",
+		"status": "succeeded",
+		"result": map[string]string{"output": "done"},
+	})
+	event := meshEvent{
+		Type:   "status",
+		Status: "succeeded",
+		Data:   finalData,
+	}
+	body, _ := json.Marshal(event)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mesh/final-test-1/events", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.HandleMeshEventsAPI(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rr.Code)
+	}
+}
+
+func TestHandleMeshEventsAPI_UnknownType(t *testing.T) {
+	store := envelopestore.NewStore()
+	handler := NewHandler(store, nil)
+
+	event := meshEvent{Type: "invalid"}
+	body, _ := json.Marshal(event)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mesh/test-1/events", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.HandleMeshEventsAPI(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("got status %d, want 400", rr.Code)
+	}
+}
+
+func TestHandleMeshEventsAPI_MethodNotAllowed(t *testing.T) {
+	store := envelopestore.NewStore()
+	handler := NewHandler(store, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/mesh/test-1/events", nil)
+	rr := httptest.NewRecorder()
+	handler.HandleMeshEventsAPI(rr, req)
+
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("got status %d, want 405", rr.Code)
+	}
+}
