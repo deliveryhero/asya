@@ -80,6 +80,11 @@ data:
         -o /home/dev/.local/bin/git-aint && chmod +x /home/dev/.local/bin/git-aint
     fi
 
+    if ! command -v gcloud &>/dev/null; then
+      echo "[+] installing gcloud CLI"
+      su dev -c 'curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/home/dev/.local'
+    fi
+
     chown -R dev:dev /home/dev 2>/dev/null || true
 
     echo "[+] workbench init complete"

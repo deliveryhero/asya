@@ -44,7 +44,7 @@ spec:
             - name: HOME
               value: /home/dev
             - name: PATH
-              value: /home/dev/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+              value: /home/dev/.local/bin:/home/dev/.local/google-cloud-sdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /secrets/gcp/key.json
             - name: CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE
