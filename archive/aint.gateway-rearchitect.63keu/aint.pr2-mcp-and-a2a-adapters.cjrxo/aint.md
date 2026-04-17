@@ -1,10 +1,13 @@
 ---
 title: "PR2: MCP adapter + A2A adapter"
-status: open
-priority: 1
-dependencies: [9bb3j]
-tags: [gateway-rearchitect]
+status: merged
+priority: 1 # high
+tags:
+  - gateway-rearchitect
+dependencies:
+  - 9bb3j
 ---
+
 
 MCP Streamable HTTP adapter (mark3labs/mcp-go) and A2A JSON-RPC adapter
 (a2aproject/a2a-go v2). Single PR — both are small (~800-1300 LOC combined),
