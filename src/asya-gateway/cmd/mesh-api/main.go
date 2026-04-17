@@ -84,8 +84,13 @@ func main() {
 	}
 	defer func() { _ = queueClient.Close() }()
 
+	prefix := os.Getenv("ASYA_MESH_API_PREFIX")
+	if prefix == "" {
+		prefix = "/api/v1"
+	}
+
 	sender := mesh.NewQueueClientSender(queueClient)
-	handler := mesh.NewHandler(msgStore, sender, gatewayURL)
+	handler := mesh.NewHandler(msgStore, sender, gatewayURL, prefix)
 
 	// External server (port 8080)
 	extMux := http.NewServeMux()

@@ -203,6 +203,7 @@ Unix socket.
 | `ASYA_STATEPROXY_SOCKET` | Unix socket path to pg-kv | _(required)_ |
 | `ASYA_INTERNAL_URL` | URL sidecars use for callbacks (stamped as `x-asya-gateway-url`) | _(required)_ |
 | `ASYA_NAMESPACE` | Kubernetes namespace for queue name prefix | `""` |
+| `ASYA_MESH_API_PREFIX` | HTTP route prefix for mesh API (e.g. `/api/v1`, or `""` for unprefixed) | `/api/v1` |
 | `ASYA_LOG_LEVEL` | Log level | _(unset)_ |
 
 ### Transport (same as gateway)

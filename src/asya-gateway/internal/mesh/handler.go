@@ -15,6 +15,7 @@ type Handler struct {
 	store      store.MessageStore
 	sender     EnvelopeSender
 	gatewayURL string // stamped into envelope headers as x-asya-gateway-url
+	meshPath   string // full route prefix including /mesh/, e.g. "/api/v1/mesh/"
 }
 
 // EnvelopeSender dispatches envelopes to actor queues.
@@ -22,9 +23,12 @@ type EnvelopeSender interface {
 	Send(ctx context.Context, actor string, envelope []byte) error
 }
 
-// NewHandler creates a new mesh API handler.
-func NewHandler(s store.MessageStore, sender EnvelopeSender, gatewayURL string) *Handler {
-	return &Handler{store: s, sender: sender, gatewayURL: gatewayURL}
+// NewHandler creates a new mesh API handler. The prefix is prepended to
+// /mesh/ routes (e.g. "/api/v1" gives "/api/v1/mesh/"). Pass "" for
+// unprefixed routes ("/mesh/").
+func NewHandler(s store.MessageStore, sender EnvelopeSender, gatewayURL, prefix string) *Handler {
+	meshPath := prefix + "/mesh/"
+	return &Handler{store: s, sender: sender, gatewayURL: gatewayURL, meshPath: meshPath}
 }
 
 // RegisterExternal registers external API routes (port 8080).
@@ -35,9 +39,8 @@ func NewHandler(s store.MessageStore, sender EnvelopeSender, gatewayURL string) 
 //	GET    /api/v1/mesh/{id}/events -> SSE Subscribe
 //	DELETE /api/v1/mesh/{id}       -> Cancel
 func (h *Handler) RegisterExternal(mux *http.ServeMux) {
-	mux.HandleFunc("/api/v1/mesh/", func(w http.ResponseWriter, r *http.Request) {
-		// Parse path: /api/v1/mesh/, /api/v1/mesh/{id}, /api/v1/mesh/{id}/events
-		path := strings.TrimPrefix(r.URL.Path, "/api/v1/mesh/")
+	mux.HandleFunc(h.meshPath, func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, h.meshPath)
 
 		// Root: /api/v1/mesh/
 		if path == "" {
@@ -91,8 +94,8 @@ func (h *Handler) RegisterExternal(mux *http.ServeMux) {
 //	POST   /api/v1/mesh/{id}/events -> Publish event (sidecar)
 //	GET    /api/v1/mesh/{id}        -> Get (sidecar heartbeat)
 func (h *Handler) RegisterInternal(mux *http.ServeMux) {
-	mux.HandleFunc("/api/v1/mesh/", func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, "/api/v1/mesh/")
+	mux.HandleFunc(h.meshPath, func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, h.meshPath)
 		if path == "" {
 			http.NotFound(w, r)
 			return

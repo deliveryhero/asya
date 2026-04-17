@@ -45,7 +45,7 @@ func (m *mockSender) lastSent() sentEnvelope {
 func setupTestHandler() (*Handler, *store.MemoryStore, *mockSender) {
 	s := store.NewMemoryStore()
 	sender := &mockSender{}
-	h := NewHandler(s, sender, "http://internal.test:8081")
+	h := NewHandler(s, sender, "http://internal.test:8081", "/api/v1")
 	return h, s, sender
 }
 
