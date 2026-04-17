@@ -5,12 +5,12 @@ COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(subst $(PROJECT_ROOT)/,,$(CURDIR))
 $(shell mkdir -p $(COVERAGE_DIR))
 
 build:
-	go build -o bin/state-proxy-pg ./cmd/state-proxy-pg/
+	go build -o bin/pg-kv ./cmd/pg-kv/
 
 test:
 	go test -coverprofile=$(COVERAGE_DIR)/cov.out -covermode=set -v ./...
 	@test -f $(COVERAGE_DIR)/cov.out && echo "[+] Coverage: $(COVERAGE_DIR)/cov.out" || echo "[-] Coverage not generated"
-	@echo "[+] Success: state-proxy-pg unit tests"
+	@echo "[+] Success: pg-kv unit tests"
 
 test-unit: test
 

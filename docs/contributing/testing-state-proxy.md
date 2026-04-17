@@ -79,7 +79,7 @@ emulator. The connector process runs alongside a minimal runtime stub that
 exercises the connector's `read`/`write`/`cas` operations via Unix socket.
 
 The PG connector has its own component test profile in `testing/component/mesh-api/`
-which runs Docker Compose with PostgreSQL + SQS + state-proxy-pg + mesh-api:
+which runs Docker Compose with PostgreSQL + SQS + pg-kv + mesh-api:
 ```bash
 make -C testing/component/mesh-api test
 ```

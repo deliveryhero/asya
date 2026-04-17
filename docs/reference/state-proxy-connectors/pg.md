@@ -14,7 +14,7 @@ storing envelope metadata, status, and payload data.
 ## Architecture
 
 ```
-mesh-api  ──HTTP/Unix socket──►  state-proxy-pg  ──pgx──►  PostgreSQL
+mesh-api  ──HTTP/Unix socket──►  pg-kv  ──pgx──►  PostgreSQL
 (port 8080/8081)                  (CONNECTOR_SOCKET)         (kv table)
 ```
 

@@ -191,7 +191,7 @@ Source: `src/asya-gateway/cmd/mesh-api/main.go`
 
 The mesh-api is a standalone HTTP server for the `/api/v1/mesh/` envelope API.
 It exposes two ports: external (client-facing CRUD + SSE) and internal (sidecar
-event publishing). Persistence is delegated to a state-proxy-pg sidecar over
+event publishing). Persistence is delegated to a pg-kv sidecar over
 Unix socket.
 
 ### Core
@@ -200,7 +200,7 @@ Unix socket.
 |----------|-------------|---------|
 | `ASYA_MESH_EXTERNAL_PORT` | External API listen port | _(required)_ |
 | `ASYA_MESH_INTERNAL_PORT` | Internal sidecar listen port | _(required)_ |
-| `ASYA_STATEPROXY_SOCKET` | Unix socket path to state-proxy-pg | _(required)_ |
+| `ASYA_STATEPROXY_SOCKET` | Unix socket path to pg-kv | _(required)_ |
 | `ASYA_INTERNAL_URL` | URL sidecars use for callbacks (stamped as `x-asya-gateway-url`) | _(required)_ |
 | `ASYA_NAMESPACE` | Kubernetes namespace for queue name prefix | `""` |
 | `ASYA_LOG_LEVEL` | Log level | _(unset)_ |
@@ -218,9 +218,9 @@ Uses the same queue transport env vars as asya-gateway (`ASYA_QUEUE_TRANSPORT`,
 
 ---
 
-## state-proxy-pg
+## pg-kv
 
-Source: `src/asya-state-proxy/go/cmd/state-proxy-pg/main.go`
+Source: `src/asya-state-proxy/go/cmd/pg-kv/main.go`
 
 Go-based PostgreSQL state proxy connector. Runs as a sidecar alongside
 asya-mesh-api, serving KV operations and Mango-style queries over a Unix socket.

@@ -65,13 +65,13 @@ services:
       echo '[+] SQS mesh-api test queues created';
       "
 
-  state-proxy-pg:
+  pg-kv:
     build:
       context: ../../../../src/asya-state-proxy
-      dockerfile: Dockerfile.pg
+      dockerfile: Dockerfile.pg-kv
       target: builder
     logging: *default-logging
-    command: ["go", "run", "./cmd/state-proxy-pg/"]
+    command: ["go", "run", "./cmd/pg-kv/"]
     environment:
       CONNECTOR_SOCKET: /tmp/stateproxy.sock
       STATE_PROXY_PG_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
@@ -109,7 +109,7 @@ services:
       retries: 20
       start_period: 15s
     depends_on:
-      state-proxy-pg:
+      pg-kv:
         condition: service_started
       queue-setup:
         condition: service_healthy

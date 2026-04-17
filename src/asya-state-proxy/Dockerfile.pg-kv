@@ -12,10 +12,10 @@ COPY go/ .
 # Build binary
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    CGO_ENABLED=0 GOOS=linux go build -o /state-proxy-pg ./cmd/state-proxy-pg/
+    CGO_ENABLED=0 GOOS=linux go build -o /pg-kv ./cmd/pg-kv/
 
 # Runtime image
 FROM alpine:3.20
 RUN apk --no-cache add ca-certificates
-COPY --from=builder /state-proxy-pg /state-proxy-pg
-ENTRYPOINT ["/state-proxy-pg"]
+COPY --from=builder /pg-kv /pg-kv
+ENTRYPOINT ["/pg-kv"]

@@ -206,7 +206,7 @@ func ListenUnixSocket(ctx context.Context, socketPath string, handler http.Handl
 	// Graceful shutdown when context is canceled
 	go func() {
 		<-ctx.Done()
-		slog.Info("Shutting down state-proxy-pg HTTP server")
+		slog.Info("Shutting down pg-kv HTTP server")
 		_ = server.Close()
 	}()
 

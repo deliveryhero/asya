@@ -23,7 +23,7 @@ type StateProxyStore struct {
 	hub    *subscribers.Hub
 }
 
-// NewStateProxyStore creates a store that talks to state-proxy-pg
+// NewStateProxyStore creates a store that talks to the pg-kv connector
 // at the given Unix socket path.
 func NewStateProxyStore(socketPath string) *StateProxyStore {
 	transport := &http.Transport{

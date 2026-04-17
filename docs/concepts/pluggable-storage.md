@@ -73,7 +73,7 @@ class S3Passthrough(StateProxyConnector):
 ```
 
 Available connectors: `s3-passthrough`, `s3-buffered-lww`, `s3-buffered-cas`,
-`gcs-buffered-lww`, `gcs-buffered-cas`, `redis-buffered-cas`, `state-proxy-pg`
+`gcs-buffered-lww`, `gcs-buffered-cas`, `redis-buffered-cas`, `pg-kv`
 (Go). Each is a separate Docker image selected at deployment time.
 
 ## Consistency Guarantees

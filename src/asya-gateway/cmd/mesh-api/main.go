@@ -37,7 +37,7 @@ func main() {
 	// Required env vars (no defaults per project policy):
 	//   ASYA_MESH_EXTERNAL_PORT  - external API port (e.g. 8080)
 	//   ASYA_MESH_INTERNAL_PORT  - internal sidecar port (e.g. 8081)
-	//   ASYA_STATEPROXY_SOCKET   - Unix socket path to state-proxy-pg
+	//   ASYA_STATEPROXY_SOCKET   - Unix socket path to pg-kv connector
 	//   ASYA_INTERNAL_URL        - URL sidecars use for callbacks
 	//                              (stamped as x-asya-gateway-url)
 	extPort := os.Getenv("ASYA_MESH_EXTERNAL_PORT")
