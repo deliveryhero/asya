@@ -2867,10 +2867,24 @@
 </tr>
 <tr>
 <td><code>GET</code></td>
+<td><code>/api/v1/mesh/{id}</code></td>
+<td>mesh</td>
+<td>Network isolation</td>
+<td>Sidecar (pre-flight check)</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/mesh/{id}/events</code></td>
+<td>mesh</td>
+<td>Network isolation</td>
+<td>Sidecar (all status + FLY events)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
 <td><code>/mesh/{id}</code></td>
 <td>mesh</td>
 <td>Network isolation</td>
-<td>Sidecar, asya-lab</td>
+<td>asya-lab</td>
 </tr>
 <tr>
 <td><code>GET</code></td>
@@ -2878,34 +2892,6 @@
 <td>mesh</td>
 <td>Network isolation</td>
 <td>Sidecar, asya-lab</td>
-</tr>
-<tr>
-<td><code>GET</code></td>
-<td><code>/mesh/{id}/active</code></td>
-<td>mesh</td>
-<td>Network isolation</td>
-<td>Sidecar</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/mesh/{id}/progress</code></td>
-<td>mesh</td>
-<td>Network isolation</td>
-<td>Sidecar</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/mesh/{id}/final</code></td>
-<td>mesh</td>
-<td>Network isolation</td>
-<td>x-sink, x-sump</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/mesh/{id}/fly</code></td>
-<td>mesh</td>
-<td>Network isolation</td>
-<td>Sidecar (FLY events)</td>
 </tr>
 <tr>
 <td><code>POST</code></td>
@@ -3335,65 +3321,80 @@ data: {&quot;type&quot;:&quot;text_delta&quot;,&quot;token&quot;:&quot;Hello&quo
 <p>⚠️ <strong>FLY events are ephemeral</strong> — they are broadcast in real-time via PG LISTEN/NOTIFY but not persisted. Clients connecting after task completion will NOT see historical FLY events, only progress and status updates.</p>
 <p>The SSE event type defaults to <code>partial</code>. If the FLY payload contains an A2A-specific key (<code>artifact_update</code>, <code>status_update</code>, or <code>message</code>), the event type matches that key.</p>
 <hr />
-<h4 id="get-meshidactive"><code>GET /mesh/{id}/active</code><a class="headerlink" href="#get-meshidactive" title="Permanent link">#</a></h4>
-<p>Allows sidecars to check whether a task is still accepting updates (not timed out or completed).</p>
-<p><strong>Response</strong> <code>200</code>: <code>{ "active": true }</code>
-<strong>Response</strong> <code>410 Gone</code>: <code>{ "active": false }</code></p>
+<h4 id="get-apiv1meshid"><code>GET /api/v1/mesh/{id}</code><a class="headerlink" href="#get-apiv1meshid" title="Permanent link">#</a></h4>
+<p>Pre-flight check. The sidecar calls this before processing to detect canceled or paused messages. If the response indicates <code>canceled</code> or <code>paused</code>, the sidecar skips processing and routes the envelope to <code>x-sink</code>.</p>
+<p><strong>Response</strong> <code>200 application/json</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;task-abc&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Status values</strong>: <code>pending</code>, <code>running</code>, <code>succeeded</code>, <code>failed</code>, <code>paused</code>, <code>canceled</code>.</p>
+<p><strong>Error</strong> <code>404</code> — task not found (sidecar proceeds with normal processing).</p>
 <hr />
-<h4 id="post-meshidprogress"><code>POST /mesh/{id}/progress</code><a class="headerlink" href="#post-meshidprogress" title="Permanent link">#</a></h4>
-<p>Reports per-actor progress. Called by the sidecar at three checkpoints: <code>received</code> -&gt; <code>processing</code> -&gt; <code>completed</code>.</p>
-<p><strong>Progress formula</strong>: <code>(len(prev) + status_weight) x 100 / total_actors</code></p>
+<h4 id="post-apiv1meshidevents"><code>POST /api/v1/mesh/{id}/events</code><a class="headerlink" href="#post-apiv1meshidevents" title="Permanent link">#</a></h4>
+<p>Unified event endpoint. All sidecar-to-gateway communication (progress updates, FLY streaming tokens, final status) goes through this single endpoint. The <code>type</code> field distinguishes event kinds.</p>
+<p><strong>Request</strong> <code>application/json</code>:</p>
+<p>Status event (progress update):
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;prev&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;actor-a&quot;</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;curr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;actor-b&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;next&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;actor-c&quot;</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;actor-b: processing input&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>FLY event (ephemeral streaming token):
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fly&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello&quot;</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>Final status event (from x-sink/x-sump):
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;succeeded&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;task-abc&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;succeeded&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;output&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processed text&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p><strong>Response</strong> <code>204</code> — event accepted.</p>
+<p>FLY events are delivered to SSE subscribers via in-process Go channels. FLY events are NOT written to the database — they exist only in memory during task execution.</p>
+<p><strong>Status ordering</strong>: The mesh-api enforces monotonic status progression. Status events with a lower-order status than the current one are silently dropped:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Actor state</th>
-<th><code>status_weight</code></th>
+<th>Order</th>
+<th>Statuses</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>received</code></td>
-<td>0.1</td>
+<td>0</td>
+<td><code>pending</code></td>
 </tr>
 <tr>
-<td><code>processing</code></td>
-<td>0.5</td>
+<td>1</td>
+<td><code>running</code></td>
 </tr>
 <tr>
-<td><code>completed</code></td>
-<td>1.0</td>
+<td>2</td>
+<td><code>paused</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>succeeded</code>, <code>failed</code>, <code>canceled</code> (terminal)</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>Request</strong> <code>application/json</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;prev&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;actor-a&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;curr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;actor-b&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;next&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;actor-c&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;actor-b: processing input&quot;</span>
-<span class="p">}</span>
-</code></pre></div>
-<p><strong>Response</strong> <code>200</code>: <code>{ "status": "ok", "progress_percent": 38.3 }</code></p>
-<hr />
-<h4 id="post-meshidfinal"><code>POST /mesh/{id}/final</code><a class="headerlink" href="#post-meshidfinal" title="Permanent link">#</a></h4>
-<p>Reports final task status. Called by <code>x-sink</code> (on success) or <code>x-sump</code> (on failure).</p>
-<p><strong>Request</strong> <code>application/json</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;task-abc&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;succeeded&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;output&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processed text&quot;</span><span class="w"> </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;current_actor_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;x-sink&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;s3_uri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;s3://bucket/task-abc/result.json&quot;</span><span class="w"> </span><span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
-<p><strong>Response</strong> <code>200</code>: <code>{ "status": "ok" }</code></p>
-<hr />
-<h4 id="post-meshidfly"><code>POST /mesh/{id}/fly</code><a class="headerlink" href="#post-meshidfly" title="Permanent link">#</a></h4>
-<p>Broadcasts ephemeral FLY events from the sidecar to SSE clients. Body limited to 1 MiB. The <code>type</code> field determines the SSE event type (defaults to <code>partial</code>).</p>
-<p>FLY events are broadcast via PG LISTEN/NOTIFY for cross-process delivery (mesh → api gateway) and via in-process <code>NotifyFLY</code> channels for same-process subscribers. Events are NOT written to the database — they exist only in memory during task execution.</p>
-<p><strong>Request</strong> <code>application/json</code> — arbitrary JSON, passed through verbatim.</p>
-<p><strong>Response</strong> <code>200</code> — empty body.</p>
+<p>Once a message reaches a terminal status, no other status can overwrite it. FLY events have no ordering constraint — they are appended in arrival order.</p>
 <hr />
 <h4 id="post-meshconfig-reload"><code>POST /mesh/config-reload</code><a class="headerlink" href="#post-meshconfig-reload" title="Permanent link">#</a></h4>
 <p>Triggers immediate reload of tool registry from ConfigMaps. Used after deploying new AsyncActor resources.</p>

@@ -2812,6 +2812,45 @@
 <li><code>payload</code> (required): User data processed by actors</li>
 <li><code>headers</code> (optional): Routing metadata (trace IDs, priorities)</li>
 </ul>
+<h3 id="envelope-status-ordering">Envelope Status Ordering<a class="headerlink" href="#envelope-status-ordering" title="Permanent link">#</a></h3>
+<p>The mesh-api enforces monotonic status progression. When a status event arrives, the mesh-api compares it against the current status and silently drops stale updates:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Statuses</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td><code>pending</code></td>
+<td>Created, not yet picked up</td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>running</code></td>
+<td>Being processed by an actor</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>paused</code></td>
+<td>Waiting for external input (HITL)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>succeeded</code>, <code>failed</code>, <code>canceled</code></td>
+<td>Terminal — no further transitions</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Valid transitions</strong>:
+<div class="highlight"><pre><span></span><code>pending → running → succeeded
+pending → running → failed
+pending → running → paused → running → succeeded
+</code></pre></div></p>
+<p>Status never goes backward. Terminal statuses (<code>succeeded</code>, <code>failed</code>, <code>canceled</code>) are all order 3 — once terminal, no other status can overwrite. If two <code>running</code> updates arrive simultaneously, the second overwrites with the same value (idempotent). FLY events have no ordering constraint — they are appended in arrival order.</p>
 <h3 id="sidecar-managed-headers">Sidecar-Managed Headers<a class="headerlink" href="#sidecar-managed-headers" title="Permanent link">#</a></h3>
 <p>These headers are automatically managed by the sidecar and should not be
 overwritten by user handlers:</p>
@@ -2830,6 +2869,31 @@ overwritten by user handlers:</p>
 <tr>
 <td><code>tracestate</code></td>
 <td>W3C Trace Context state (auto-injected when tracing enabled)</td>
+</tr>
+<tr>
+<td><code>x-asya-first-attempt</code></td>
+<td>RFC3339 timestamp of the first processing attempt (stamped on first attempt, preserved across retries; used for <code>maxDuration</code> evaluation)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="gateway-stamped-headers">Gateway-Stamped Headers<a class="headerlink" href="#gateway-stamped-headers" title="Permanent link">#</a></h3>
+<p>These headers are stamped by the gateway when creating the envelope and read
+by the sidecar during processing:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Header</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x-asya-gateway-url</code></td>
+<td>Internal gateway URL for sidecar callbacks. Stamped by the gateway dispatcher. Sidecar uses this for progress reporting, event posting, and pre-flight checks. Falls back to <code>ASYA_GATEWAY_URL</code> env var if absent. Validated against SSRF: only <code>http</code>/<code>https</code> schemes with non-empty hosts are accepted.</td>
+</tr>
+<tr>
+<td><code>x-asya-mesh-status</code></td>
+<td>Set to <code>"off"</code> to suppress all gateway status reporting for this envelope (stealth mode).</td>
 </tr>
 </tbody>
 </table></div>
@@ -3003,40 +3067,51 @@ Namespace: <code>example-ecommerce</code>
 - Actor <code>infer</code> completed → 66%
 - Actor <code>post</code> completed → 100% (final status from <code>x-sink</code>)</p>
 <h3 id="progress-update-flow">Progress Update Flow<a class="headerlink" href="#progress-update-flow" title="Permanent link">#</a></h3>
+<p>All sidecar-to-gateway communication uses the unified events endpoint
+<code>POST /api/v1/mesh/{id}/events</code>.</p>
 <div class="highlight"><pre><span></span><code>Sidecar                    Gateway                    Client
 -------                    -------                    ------
+0. Pre-flight check
+   └─&gt; GET /api/v1/mesh/{id}
+       If canceled/paused → route to x-sink, skip processing
+
 1. Receive from queue
-   └─&gt; POST /mesh/{id}/progress
-       {status: &quot;received&quot;, current_actor_idx: 0}
+   └─&gt; POST /api/v1/mesh/{id}/events
+       {type: &quot;status&quot;, status: &quot;received&quot;, data: {...}}
                            └─&gt; Update DB: running
                            └─&gt; SSE: progress 10%
 
 2. Send to runtime
-   └─&gt; POST /mesh/{id}/progress
-       {status: &quot;processing&quot;, current_actor_idx: 0}
+   └─&gt; POST /api/v1/mesh/{id}/events
+       {type: &quot;status&quot;, status: &quot;processing&quot;, data: {...}}
                            └─&gt; SSE: progress 15%
 
-3. Runtime returns
-   └─&gt; POST /mesh/{id}/progress
-       {status: &quot;completed&quot;, current_actor_idx: 0}
+3. Runtime streams FLY tokens
+   └─&gt; POST /api/v1/mesh/{id}/events
+       {type: &quot;fly&quot;, data: {&quot;text&quot;: &quot;token...&quot;}}
+                           └─&gt; SSE: partial event (ephemeral)
+
+4. Runtime returns
+   └─&gt; POST /api/v1/mesh/{id}/events
+       {type: &quot;status&quot;, status: &quot;completed&quot;, data: {...}}
                            └─&gt; SSE: progress 33%
 
-4. Route to next actor...
+5. Route to next actor...
 </code></pre></div>
 <h3 id="final-status-reporting">Final Status Reporting<a class="headerlink" href="#final-status-reporting" title="Permanent link">#</a></h3>
 <p><strong>Success path</strong>:
 <div class="highlight"><pre><span></span><code>Actor N completes → Sidecar routes to x-sink
   → x-sink persists to S3
-  → x-sink reports: POST /mesh/{id}/final
-     {status: &quot;succeeded&quot;, result: {...}}
+  → x-sink reports: POST /api/v1/mesh/{id}/events
+     {type: &quot;status&quot;, status: &quot;succeeded&quot;, data: {...}}
   → Gateway updates: status=succeeded, progress=100%
   → SSE: final success event
 </code></pre></div></p>
 <p><strong>Error path</strong>:
 <div class="highlight"><pre><span></span><code>Runtime error → Sidecar retries per resiliency policy
   → If exhausted/non-retryable → Sidecar routes to x-sink (phase: failed)
-  → x-sink reports: POST /mesh/{id}/final
-     {status: &quot;failed&quot;, error: &quot;...&quot;}
+  → x-sink reports: POST /api/v1/mesh/{id}/events
+     {type: &quot;status&quot;, status: &quot;failed&quot;, data: {...}}
   → x-sink dispatches to hooks → x-sump (final terminal)
   → Gateway updates: status=failed
   → SSE: final error event
@@ -4275,10 +4350,22 @@ document.querySelectorAll('.typography img').forEach(function(img) {
         </a>
         
         
+        <a href="#envelope-status-ordering"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Envelope Status Ordering
+        </a>
+        
         <a href="#sidecar-managed-headers"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
             Sidecar-Managed Headers
+        </a>
+        
+        <a href="#gateway-stamped-headers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Gateway-Stamped Headers
         </a>
         
         

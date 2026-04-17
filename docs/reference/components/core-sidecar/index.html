@@ -2833,7 +2833,22 @@
 - Long polling from queue (configurable wait time)
 - Parse JSON message structure
 - Validate route information</p>
-<h3 id="2-processing-phase">2. Processing Phase<a class="headerlink" href="#2-processing-phase" title="Permanent link">#</a></h3>
+<h3 id="2-gateway-url-resolution">2. Gateway URL Resolution<a class="headerlink" href="#2-gateway-url-resolution" title="Permanent link">#</a></h3>
+<p><div class="highlight"><pre><span></span><code>Envelope header x-asya-gateway-url → fallback ASYA_GATEWAY_URL env var → empty (no reporting)
+</code></pre></div>
+- Envelope header takes precedence over env var
+- SSRF validation: only <code>http</code>/<code>https</code> schemes with non-empty hosts accepted
+- Invalid header values logged and ignored (falls back to env var)
+- Per-URL reporter instances cached via <code>sync.Map</code> to avoid repeated allocations
+- <strong>If no gateway URL is available</strong> (neither header nor env var): all reporting is silently skipped — no pre-flight check, no progress updates, no FLY forwarding, no final status. The sidecar processes messages and routes them normally without any gateway interaction.</p>
+<h3 id="3-pre-flight-check">3. Pre-Flight Check<a class="headerlink" href="#3-pre-flight-check" title="Permanent link">#</a></h3>
+<p><div class="highlight"><pre><span></span><code>Router → GET /api/v1/mesh/{id} → canceled/paused? → route to x-sink
+</code></pre></div>
+- Before calling the runtime, the sidecar checks the gateway for the envelope's current status
+- If <code>canceled</code> or <code>paused</code>: skip processing, preserve original <code>CreatedAt</code>/<code>DeadlineAt</code> timestamps, route to x-sink
+- If gateway unreachable, returns 404, or any error: proceed with normal processing
+- 2-second timeout to avoid blocking on slow gateway</p>
+<h3 id="4-processing-phase">4. Processing Phase<a class="headerlink" href="#4-processing-phase" title="Permanent link">#</a></h3>
 <p><div class="highlight"><pre><span></span><code>Router → Runtime Client → Unix Socket → Actor Runtime
 </code></pre></div>
 - Extract payload from message
@@ -2845,7 +2860,14 @@
   - Empty response (abort)
   - Error response
   - Timeout (no response)</p>
-<h3 id="3-routing-phase">3. Routing Phase<a class="headerlink" href="#3-routing-phase" title="Permanent link">#</a></h3>
+<h3 id="5-event-reporting">5. Event Reporting<a class="headerlink" href="#5-event-reporting" title="Permanent link">#</a></h3>
+<p><div class="highlight"><pre><span></span><code>Router → POST /api/v1/mesh/{id}/events
+</code></pre></div>
+All sidecar-to-gateway communication uses the unified events endpoint:
+- Status events: <code>{type: "status", status: "received|processing|completed", data: {...}}</code>
+- FLY events: <code>{type: "fly", data: {...}}</code> (ephemeral streaming tokens from runtime)
+- Final events: <code>{type: "status", status: "succeeded|failed", data: {...}}</code> (from x-sink/x-sump)</p>
+<h3 id="6-routing-phase">6. Routing Phase<a class="headerlink" href="#6-routing-phase" title="Permanent link">#</a></h3>
 <p><div class="highlight"><pre><span></span><code>Router → Route Management → Transport.Send() → Next Queue
 </code></pre></div>
 - Increment route.current counter
@@ -2854,7 +2876,7 @@
   - Happy-end if route complete or empty response
   - Error-end if error or timeout
 - Send message(s) to destination queue(s)</p>
-<h3 id="4-acknowledgment-phase">4. Acknowledgment Phase<a class="headerlink" href="#4-acknowledgment-phase" title="Permanent link">#</a></h3>
+<h3 id="7-acknowledgment-phase">7. Acknowledgment Phase<a class="headerlink" href="#7-acknowledgment-phase" title="Permanent link">#</a></h3>
 <p><div class="highlight"><pre><span></span><code>Router → Transport.Ack/Nack()
 </code></pre></div>
 - ACK on successful processing
@@ -3089,7 +3111,7 @@ or
 <tr>
 <td><code>ASYA_GATEWAY_URL</code></td>
 <td><code>""</code></td>
-<td>Gateway URL for progress reporting (optional)</td>
+<td>Gateway URL for progress reporting (fallback; envelope header <code>x-asya-gateway-url</code> takes precedence)</td>
 </tr>
 <tr>
 <td><code>ASYA_RABBITMQ_URL</code></td>
@@ -4822,22 +4844,40 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             1. Receive Phase
         </a>
         
-        <a href="#2-processing-phase"
+        <a href="#2-gateway-url-resolution"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            2. Processing Phase
+            2. Gateway URL Resolution
         </a>
         
-        <a href="#3-routing-phase"
+        <a href="#3-pre-flight-check"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            3. Routing Phase
+            3. Pre-Flight Check
         </a>
         
-        <a href="#4-acknowledgment-phase"
+        <a href="#4-processing-phase"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            4. Acknowledgment Phase
+            4. Processing Phase
+        </a>
+        
+        <a href="#5-event-reporting"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            5. Event Reporting
+        </a>
+        
+        <a href="#6-routing-phase"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            6. Routing Phase
+        </a>
+        
+        <a href="#7-acknowledgment-phase"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            7. Acknowledgment Phase
         </a>
         
         
