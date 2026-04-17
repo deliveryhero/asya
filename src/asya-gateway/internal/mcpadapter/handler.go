@@ -166,7 +166,13 @@ func (h *Handler) createToolHandler(cfg ToolConfig) server.ToolHandlerFunc {
 
 		events, errCh := h.meshClient.SubscribeEvents(sseCtx, createResp.ID)
 
-		// Step 3: Relay mesh events
+		// Extract progress token from request metadata (if client sent one)
+		var progressToken mcp.ProgressToken
+		if request.Params.Meta != nil {
+			progressToken = request.Params.Meta.ProgressToken
+		}
+
+		// Step 3: Relay mesh events as MCP notifications
 		var finalResult *mcp.CallToolResult
 		for evt := range events {
 			switch evt.Type {
@@ -179,10 +185,30 @@ func (h *Handler) createToolHandler(cfg ToolConfig) server.ToolHandlerFunc {
 				if sseclient.IsTerminal(status.Status) || sseclient.IsInterrupted(status.Status) {
 					finalResult = statusToCallToolResult(status)
 					sseCancel()
+					continue
+				}
+
+				// Non-terminal status → progress notification
+				if progressToken != nil && cfg.Progress {
+					_ = h.mcpServer.SendNotificationToClient(ctx,
+						"notifications/progress",
+						map[string]any{
+							"progressToken": progressToken,
+							"progress":      status.Progress,
+							"total":         100.0,
+							"message":       status.Message,
+						})
 				}
 
 			case "fly":
-				slog.Debug("FLY event received", "id", createResp.ID)
+				// FLY → log notification to the calling client
+				_ = h.mcpServer.SendLogMessageToClient(ctx, mcp.LoggingMessageNotification{
+					Params: mcp.LoggingMessageNotificationParams{
+						Level:  mcp.LoggingLevelInfo,
+						Logger: cfg.Name,
+						Data:   json.RawMessage(evt.Data),
+					},
+				})
 			}
 		}
 

@@ -66,9 +66,9 @@ func IsInterrupted(status string) bool {
 // to the returned channel. The channel is closed when the stream ends, the
 // context is canceled, or an error occurs. The error (if any) is sent on errCh.
 //
-// The caller must provide the X-Asya-Envelope-ID header for consistent hash
-// routing via Ingress.
-func Subscribe(ctx context.Context, url string, envelopeID string) (<-chan Event, <-chan error) {
+// Consistent hash routing is handled by nginx extracting the envelope ID from
+// the URL path — no custom header is needed.
+func Subscribe(ctx context.Context, url string) (<-chan Event, <-chan error) {
 	events := make(chan Event, 32)
 	errCh := make(chan error, 1)
 
@@ -82,7 +82,6 @@ func Subscribe(ctx context.Context, url string, envelopeID string) (<-chan Event
 			return
 		}
 		req.Header.Set("Accept", "text/event-stream")
-		req.Header.Set("X-Asya-Envelope-ID", envelopeID)
 
 		resp, err := sseClient.Do(req)
 		if err != nil {

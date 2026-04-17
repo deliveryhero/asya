@@ -30,7 +30,7 @@ func TestParseSSE_StatusAndFly(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	events, errCh := sseclient.Subscribe(ctx, srv.URL, "test-id")
+	events, errCh := sseclient.Subscribe(ctx, srv.URL)
 
 	var collected []sseclient.Event
 	for evt := range events {
@@ -70,7 +70,7 @@ func TestParseSSE_SkipsKeepaliveComments(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	events, errCh := sseclient.Subscribe(ctx, srv.URL, "test-id")
+	events, errCh := sseclient.Subscribe(ctx, srv.URL)
 
 	var collected []sseclient.Event
 	for evt := range events {
@@ -82,10 +82,10 @@ func TestParseSSE_SkipsKeepaliveComments(t *testing.T) {
 	assert.Equal(t, "status", collected[0].Type)
 }
 
-func TestSubscribe_SetsEnvelopeIDHeader(t *testing.T) {
-	var receivedHeader string
+func TestSubscribe_SetsAcceptHeader(t *testing.T) {
+	var receivedAccept string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedHeader = r.Header.Get("X-Asya-Envelope-ID")
+		receivedAccept = r.Header.Get("Accept")
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("event: status\ndata: {\"status\":\"succeeded\"}\n\n"))
 	}))
@@ -94,11 +94,11 @@ func TestSubscribe_SetsEnvelopeIDHeader(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	events, _ := sseclient.Subscribe(ctx, srv.URL, "envelope-42")
+	events, _ := sseclient.Subscribe(ctx, srv.URL)
 	for range events {
 	}
 
-	assert.Equal(t, "envelope-42", receivedHeader)
+	assert.Equal(t, "text/event-stream", receivedAccept)
 }
 
 func TestSubscribe_NonOKStatus(t *testing.T) {
@@ -111,7 +111,7 @@ func TestSubscribe_NonOKStatus(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	events, errCh := sseclient.Subscribe(ctx, srv.URL, "bad-id")
+	events, errCh := sseclient.Subscribe(ctx, srv.URL)
 	for range events {
 	}
 

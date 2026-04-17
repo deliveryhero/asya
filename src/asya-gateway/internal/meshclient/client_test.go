@@ -98,9 +98,9 @@ func TestCancel_Success(t *testing.T) {
 }
 
 func TestSubscribeEvents_ViaIngress(t *testing.T) {
-	var receivedEnvelopeID string
+	var receivedPath string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedEnvelopeID = r.Header.Get("X-Asya-Envelope-ID")
+		receivedPath = r.URL.Path
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("event: status\ndata: {\"status\":\"succeeded\"}\n\n"))
 	}))
@@ -121,5 +121,5 @@ func TestSubscribeEvents_ViaIngress(t *testing.T) {
 
 	assert.NoError(t, <-errCh)
 	assert.Equal(t, []string{"status"}, collected)
-	assert.Equal(t, "msg-001", receivedEnvelopeID)
+	assert.Equal(t, "/api/v1/mesh/msg-001/events", receivedPath)
 }

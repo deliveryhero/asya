@@ -123,7 +123,7 @@ func (c *Client) Get(ctx context.Context, id string) (*MessageStatus, error) {
 // (hash-routed by X-Asya-Envelope-ID header).
 func (c *Client) SubscribeEvents(ctx context.Context, id string) (<-chan sseclient.Event, <-chan error) {
 	url := fmt.Sprintf("%s/api/v1/mesh/%s/events", c.ingressURL, url.PathEscape(id))
-	return sseclient.Subscribe(ctx, url, id)
+	return sseclient.Subscribe(ctx, url)
 }
 
 // Cancel sends a DELETE request to cancel a mesh message.
