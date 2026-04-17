@@ -1,10 +1,11 @@
 ---
 title: "PR1: PG state-proxy connector + asya-mesh-api core"
-status: open
-priority: 1
-dependencies: []
-tags: [gateway-rearchitect]
+status: merged
+priority: 1 # high
+tags:
+  - gateway-rearchitect
 ---
+
 
 PG state-proxy connector (Go, KV + /query) and asya-mesh-api core binary
 (/api/v1/mesh/). Single PR — the connector has no standalone value without
