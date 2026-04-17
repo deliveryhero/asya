@@ -23,7 +23,7 @@ import (
 //	DELETE /keys/{key}     -> Delete
 //	GET    /keys/          -> List (with ?prefix=)
 //	POST   /query          -> Query
-func NewHTTPHandler(conn *Connector) http.Handler {
+func NewHTTPHandler(conn ServerConnector) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +70,7 @@ func NewHTTPHandler(conn *Connector) http.Handler {
 	return mux
 }
 
-func handleRead(w http.ResponseWriter, r *http.Request, conn *Connector, key string) {
+func handleRead(w http.ResponseWriter, r *http.Request, conn ServerConnector, key string) {
 	row, err := conn.Read(r.Context(), key)
 	if errors.Is(err, ErrNotFound) {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -84,7 +84,7 @@ func handleRead(w http.ResponseWriter, r *http.Request, conn *Connector, key str
 	_ = json.NewEncoder(w).Encode(row)
 }
 
-func handleWrite(w http.ResponseWriter, r *http.Request, conn *Connector, key string) {
+func handleWrite(w http.ResponseWriter, r *http.Request, conn ServerConnector, key string) {
 	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -113,7 +113,7 @@ func handleWrite(w http.ResponseWriter, r *http.Request, conn *Connector, key st
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleExists(w http.ResponseWriter, r *http.Request, conn *Connector, key string) {
+func handleExists(w http.ResponseWriter, r *http.Request, conn ServerConnector, key string) {
 	exists, err := conn.Exists(r.Context(), key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -126,7 +126,7 @@ func handleExists(w http.ResponseWriter, r *http.Request, conn *Connector, key s
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleDelete(w http.ResponseWriter, r *http.Request, conn *Connector, key string) {
+func handleDelete(w http.ResponseWriter, r *http.Request, conn ServerConnector, key string) {
 	err := conn.Delete(r.Context(), key)
 	if errors.Is(err, ErrNotFound) {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -139,7 +139,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request, conn *Connector, key s
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleList(w http.ResponseWriter, r *http.Request, conn *Connector, prefix string) {
+func handleList(w http.ResponseWriter, r *http.Request, conn ServerConnector, prefix string) {
 	keys, err := conn.List(r.Context(), prefix)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -152,7 +152,7 @@ func handleList(w http.ResponseWriter, r *http.Request, conn *Connector, prefix 
 	_ = json.NewEncoder(w).Encode(map[string]any{"keys": keys})
 }
 
-func handleQuery(w http.ResponseWriter, r *http.Request, conn *Connector) {
+func handleQuery(w http.ResponseWriter, r *http.Request, conn ServerConnector) {
 	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
 	var req QueryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
