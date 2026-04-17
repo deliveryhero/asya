@@ -21,7 +21,7 @@ spec:
       MESH_URL="http://{{ include "asya-gateway.meshApi.fullname" . }}:{{ .Values.service.meshApi.port }}"
 
       echo "[.] Creating test message..."
-      CREATE_RESP=$(curl -sf -X POST "$MESH_URL/api/v1/mesh/?actor=test-nonexistent" \
+      CREATE_RESP=$(curl -sf -X POST "$MESH_URL/api/v1/mesh/?actor=test-echo" \
         -H "Content-Type: application/json" \
         -d '{"payload":{"test":true},"headers":{},"timeout":60}')
       MSG_ID=$(echo "$CREATE_RESP" | jq -r '.id')
