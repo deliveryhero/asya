@@ -86,7 +86,7 @@ database:
   password: ""
   existingSecret: ""
   existingSecretKey: password
-  sslMode: disable
+  sslMode: disable # use "require" in production
 
 # --- Transport (mesh-api needs queue publish) ---
 transports:

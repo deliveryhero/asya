@@ -112,7 +112,7 @@ spec:
               key: password
         {{- end }}
         - name: STATE_PROXY_PG_URL
-          value: "postgresql://{{ .Values.database.username }}:$(DB_PASSWORD)@{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}?sslmode={{ .Values.database.sslMode }}"
+          value: "host={{ .Values.database.host }} port={{ .Values.database.port }} dbname={{ .Values.database.name }} user={{ .Values.database.username }} password=$(DB_PASSWORD) sslmode={{ .Values.database.sslMode }}"
         livenessProbe:
           exec:
             command: ["/bin/sh", "-c", "test -S {{ .Values.stateProxy.mesh.socketDir }}/state-proxy.sock"]

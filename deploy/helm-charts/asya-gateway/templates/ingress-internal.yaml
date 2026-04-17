@@ -8,6 +8,11 @@ metadata:
     app.kubernetes.io/component: ingress-internal
   annotations:
     nginx.ingress.kubernetes.io/upstream-hash-by: "$envelope_id"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      map $uri $envelope_id {
+          ~^/api/v1/mesh/([^/]+) $1;
+          default "";
+      }
     {{- with .Values.ingress.internalAnnotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
