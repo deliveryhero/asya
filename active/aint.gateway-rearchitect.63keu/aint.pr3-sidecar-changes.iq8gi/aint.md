@@ -1,6 +1,6 @@
 ---
 title: "PR3: Sidecar changes (envelope gateway URL + unified events + pre-flight)"
-status: open
+status: pushed
 priority: 1
 dependencies: [9bb3j]
 tags: [gateway-rearchitect]
