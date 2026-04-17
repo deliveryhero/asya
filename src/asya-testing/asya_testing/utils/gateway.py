@@ -14,7 +14,6 @@ FAIL-FAST: ASYA_GATEWAY_URL must be set by docker-compose.
 import json
 import logging
 import os
-import re
 import time
 
 import requests
@@ -46,15 +45,22 @@ class GatewayTestHelper:
         gateway_url: str | None = None,
         progress_method: str = "sse",
         mesh_gateway_url: str | None = None,
+        mcp_url: str | None = None,
     ):
         if gateway_url is None:
             gateway_url = os.getenv("ASYA_MESH_API_URL") or require_env("ASYA_GATEWAY_URL")
         if mesh_gateway_url is None:
             mesh_gateway_url = os.getenv("ASYA_MESH_API_INTERNAL_URL", gateway_url)
+        # MCP adapter runs on a separate port in the new multi-container gateway.
+        # Fall back to gateway_url/tools/call for backward compat with old single-container gateway.
+        if mcp_url is None:
+            mcp_url = os.getenv("ASYA_MCP_URL", gateway_url)
         self.gateway_url = gateway_url
         self.mesh_gateway_url = mesh_gateway_url
-        self.tools_url = f"{gateway_url}/tools/call"
-        self.tasks_url = f"{mesh_gateway_url}/mesh"
+        self.mcp_url = mcp_url
+        # tools_url is the new mesh-api dispatch endpoint; legacy tests use actor name as tool name
+        self.tools_url = f"{gateway_url}/api/v1/mesh/"
+        self.tasks_url = f"{gateway_url}/api/v1/mesh"
         self.progress_method = progress_method
         logger.debug(f"Initialized GatewayTestHelper with progress_method={progress_method}")
 
@@ -65,68 +71,34 @@ class GatewayTestHelper:
         timeout: int = 10,
     ) -> dict:
         """
-        Call an MCP tool via REST API.
+        Dispatch a task to an actor via the mesh API.
 
-        Returns dict with structure:
-        {
-            "result": {
-                "task_id": "<uuid>",  # or "id" for compatibility
-                "message": "<response text>"
-            }
-        }
+        Uses POST /api/v1/mesh/?actor={tool_name} (new multi-container gateway).
+        Returns a dict compatible with the old MCP /tools/call response shape.
         """
-        logger.debug(f"Calling tool: {tool_name} with arguments: {arguments}")
-
-        payload = {
-            "name": tool_name,
-            "arguments": arguments,
-        }
+        logger.debug(f"Dispatching actor task: {tool_name} with arguments: {arguments}")
 
         response = requests.post(
             self.tools_url,
-            json=payload,
+            params={"actor": tool_name},
+            json={"payload": arguments, "timeout": timeout},
             timeout=timeout,
         )
-        logger.debug(f"Tool call response status: {response.status_code}")
+        logger.debug(f"Dispatch response status: {response.status_code}")
         response.raise_for_status()
 
-        mcp_result = response.json()
-        logger.debug(f"MCP result: {mcp_result}")
-
-        if mcp_result.get("isError", False):
-            error_text = ""
-            if "content" in mcp_result and len(mcp_result["content"]) > 0:
-                error_text = mcp_result["content"][0].get("text", "")
-            raise RuntimeError(f"MCP tool call failed: {error_text}")
-
-        text_content = ""
-        if "content" in mcp_result and len(mcp_result["content"]) > 0:
-            text_content = mcp_result["content"][0].get("text", "")
-
-        task_id = None
-        response_data = {}
-
-        try:
-            response_data = json.loads(text_content)
-            task_id = response_data.get("task_id")
-            logger.debug(f"Extracted task_id from JSON: {task_id}")
-        except (json.JSONDecodeError, ValueError):
-            logger.warning(f"Could not parse response as JSON, falling back to regex: {text_content[:100]}")
-            if "Envelope created successfully with ID:" in text_content:
-                match = re.search(r"ID: ([a-f0-9-]+)", text_content)
-                if match:
-                    task_id = match.group(1)
-                    logger.debug(f"Extracted task_id via regex: {task_id}")
-                    response_data = {"message": text_content}
+        data = response.json()
+        task_id = data.get("id")
+        logger.debug(f"Dispatched task ID: {task_id}")
 
         return {
             "result": {
                 "task_id": task_id,
                 "id": task_id,
-                "message": response_data.get("message", text_content),
-                "status_url": response_data.get("status_url"),
-                "stream_url": response_data.get("stream_url"),
-                "metadata": response_data.get("metadata"),
+                "message": f"Envelope created successfully with ID: {task_id}",
+                "status_url": f"{self.tasks_url}/{task_id}",
+                "stream_url": f"{self.tasks_url}/{task_id}/events",
+                "metadata": None,
             }
         }
 
@@ -153,7 +125,7 @@ class GatewayTestHelper:
         updates = []
 
         response = requests.get(
-            f"{self.tasks_url}/{task_id}/stream",
+            f"{self.tasks_url}/{task_id}/events",
             stream=True,
             timeout=timeout,
             headers={"Accept": "text/event-stream"},
@@ -165,7 +137,8 @@ class GatewayTestHelper:
 
         try:
             for event in client.events():
-                if event.event == "update" and event.data:
+                # New mesh-api emits event: status; old gateway emitted event: update
+                if event.event in ("update", "status") and event.data:
                     data = json.loads(event.data)
                     logger.debug(
                         f"SSE event: {event.event} data={event.data[:100] if len(event.data) > 100 else event.data}"
@@ -176,7 +149,7 @@ class GatewayTestHelper:
 
                     updates.append(data)
 
-                    if data.get("status") in ["succeeded", "failed"]:
+                    if data.get("status") in ["succeeded", "failed", "canceled"]:
                         logger.debug(f"Final status reached: {data.get('status')}")
                         break
 
@@ -240,7 +213,7 @@ class GatewayTestHelper:
                     f"HTTP poll update: status={update['status']} progress={update['progress_percent']} actor={current_actor} message={message}"
                 )
 
-            if task["status"] in ["succeeded", "failed", "unknown"]:
+            if task["status"] in ["succeeded", "failed", "canceled", "unknown"]:
                 logger.debug(f"Final status reached via HTTP polling: {task['status']}")
                 break
 
@@ -280,7 +253,7 @@ class GatewayTestHelper:
         result: dict[str, list] = {"partial": [], "update": []}
 
         response = requests.get(
-            f"{self.tasks_url}/{task_id}/stream",
+            f"{self.tasks_url}/{task_id}/events",
             stream=True,
             timeout=timeout,
             headers={"Accept": "text/event-stream"},
@@ -296,13 +269,13 @@ class GatewayTestHelper:
                     f"SSE event type={event.event} data={event.data[:100] if event.data and len(event.data) > 100 else event.data}"
                 )
 
-                if event.event == "partial" and event.data:
+                if event.event in ("partial", "fly") and event.data:
                     data = json.loads(event.data)
                     # Unwrap the {"payload": ...} wrapper from runtime SSE
                     if "payload" in data and len(data) == 1:
                         data = data["payload"]
                     result["partial"].append(data)
-                elif event.event == "update" and event.data:
+                elif event.event in ("update", "status") and event.data:
                     data = json.loads(event.data)
 
                     if "actor" not in data and "current_actor_name" in data:
@@ -310,7 +283,7 @@ class GatewayTestHelper:
 
                     result["update"].append(data)
 
-                    if data.get("status") in ["succeeded", "failed"]:
+                    if data.get("status") in ["succeeded", "failed", "canceled"]:
                         logger.debug(f"Final status reached: {data.get('status')}")
                         break
 
@@ -337,7 +310,7 @@ class GatewayTestHelper:
         result: dict[str, list] = {"partial": [], "update": []}
 
         response = requests.get(
-            f"{self.tasks_url}/{task_id}/stream",
+            f"{self.tasks_url}/{task_id}/events",
             stream=True,
             timeout=timeout,
             headers={"Accept": "text/event-stream"},
@@ -352,18 +325,18 @@ class GatewayTestHelper:
                     f"SSE event type={event.event} data={event.data[:100] if event.data and len(event.data) > 100 else event.data}"
                 )
 
-                if event.event == "partial" and event.data:
+                if event.event in ("partial", "fly") and event.data:
                     data = json.loads(event.data)
                     if "payload" in data and len(data) == 1:
                         data = data["payload"]
                     result["partial"].append(data)
-                elif event.event == "update" and event.data:
+                elif event.event in ("update", "status") and event.data:
                     data = json.loads(event.data)
                     if "actor" not in data and "current_actor_name" in data:
                         data["actor"] = data["current_actor_name"]
                     result["update"].append(data)
 
-                    if data.get("status") in ["succeeded", "failed"]:
+                    if data.get("status") in ["succeeded", "failed", "canceled"]:
                         logger.debug(f"Final status reached: {data.get('status')}")
                         break
         except Exception as e:
@@ -390,7 +363,7 @@ class GatewayTestHelper:
             task = self.get_task_status(task_id)
             elapsed = time.time() - start_time
 
-            if task["status"] in ["succeeded", "failed", "unknown"]:
+            if task["status"] in ["succeeded", "failed", "canceled", "unknown"]:
                 logger.info(f"Task completed after {elapsed:.2f}s with status: {task['status']}")
                 return task
             i += 1
