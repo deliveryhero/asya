@@ -14,7 +14,7 @@ data:
 
     # --- System packages (ephemeral, reinstalled on each pod start) ---
     apt-get update -qq
-    apt-get install -y -qq openssh-server netcat-openbsd sudo git curl tmux jq unzip build-essential > /dev/null 2>&1
+    apt-get install -y -qq openssh-server netcat-openbsd sudo git curl tmux jq unzip build-essential vim > /dev/null 2>&1
 
     # --- Create 'dev' user with sudo, home on PVC ---
     if ! id dev &>/dev/null; then
