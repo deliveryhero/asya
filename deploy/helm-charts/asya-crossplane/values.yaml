@@ -113,8 +113,6 @@ sidecar:
   runtimeMountPath: "/opt/asya/asya_runtime.py"
   # Name of the ConfigMap containing asya_runtime.py
   runtimeConfigMap: "asya-runtime"
-  # Gateway URL for progress reporting (leave empty to disable)
-  gatewayURL: ""
   # AWS credentials secret name to inject into sidecar (for non-IRSA environments)
   awsCredsSecret: ""
   # Auto-compute SQS endpoint as http://localstack-sqs.{namespace}:4566

@@ -251,7 +251,6 @@ spec:
             {{`{{- $runtimeConfigMap := "`}}{{ .Values.sidecar.runtimeConfigMap | default "asya-runtime" }}{{`" -}}`}}
             {{`{{- $sidecarImage := "`}}{{ .Values.sidecar.image | default "ghcr.io/deliveryhero/asya-sidecar:latest" }}{{`" -}}`}}
             {{`{{- $sidecarImagePullPolicy := "`}}{{ .Values.sidecar.imagePullPolicy | default "IfNotPresent" }}{{`" -}}`}}
-            {{`{{- $gatewayURL := "`}}{{ .Values.sidecar.gatewayURL }}{{`" -}}`}}
             {{`{{- $tracingEndpoint := "`}}{{ .Values.sidecar.tracingEndpoint }}{{`" -}}`}}
             {{`{{- $socketPath := printf "%s/asya-runtime.sock" $socketDir -}}`}}
             {{`{{- $isSystemActor := or (eq $actorName "x-sink") (eq $actorName "x-sump") (eq $actorName "happy-end") (eq $actorName "error-end") -}}`}}
@@ -413,10 +412,6 @@ spec:
                           - name: ASYA_RABBITMQ_URL
                             value: {{ .Values.sidecar.rabbitmqURL | quote }}
                           {{- end }}
-                          {{`{{- if ne $gatewayURL "" }}`}}
-                          - name: ASYA_GATEWAY_URL
-                            value: {{`{{ $gatewayURL }}`}}
-                          {{`{{- end }}`}}
                           {{`{{- if $isSystemActor }}`}}
                           - name: ASYA_IS_END_ACTOR
                             value: "true"
