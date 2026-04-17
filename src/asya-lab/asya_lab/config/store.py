@@ -22,12 +22,9 @@ from omegaconf import DictConfig, OmegaConf
 try:
     from omegaconf import ListMergeMode
 
-    _MERGE_EXTEND_KW: dict = {"list_merge_mode": ListMergeMode.EXTEND}
+    _HAS_LIST_MERGE_MODE = True
 except ImportError:
-    # omegaconf <2.4 does not have ListMergeMode; fall back to default
-    # list-replace semantics so that ``uv tool install`` works with the
-    # latest *stable* omegaconf (2.3.x).
-    _MERGE_EXTEND_KW = {}
+    _HAS_LIST_MERGE_MODE = False
 
 from asya_lab.config.discovery import collect_asya_dirs
 
@@ -35,6 +32,34 @@ from asya_lab.config.discovery import collect_asya_dirs
 log = logging.getLogger(__name__)
 
 _RELATIVE_PATH_PATTERN = re.compile(r"^\./")
+
+
+def _merge_extend(*configs: DictConfig) -> DictConfig:
+    """OmegaConf.merge with list-extend semantics on all omegaconf versions."""
+    if _HAS_LIST_MERGE_MODE:
+        return OmegaConf.merge(*configs, list_merge_mode=ListMergeMode.EXTEND)
+    # omegaconf <2.4: collect all list-valued paths from raw containers
+    # (resolve=False avoids triggering interpolation), merge normally
+    # (which replaces lists), then patch replaced lists back to concatenated
+    list_paths: dict[str, list] = {}
+    for cfg in configs:
+        raw = OmegaConf.to_container(cfg, resolve=False)
+        if isinstance(raw, dict):
+            _collect_lists(raw, "", list_paths)
+    merged = OmegaConf.merge(*configs)
+    for dotted, items in list_paths.items():
+        if len(items) >= 2:
+            OmegaConf.update(merged, dotted, [x for lst in items for x in lst])
+    return merged
+
+
+def _collect_lists(raw: dict, prefix: str, out: dict[str, list]) -> None:
+    for key, val in raw.items():
+        dotted = f"{prefix}.{key}" if prefix else key
+        if isinstance(val, list):
+            out.setdefault(dotted, []).append(val)
+        elif isinstance(val, dict):
+            _collect_lists(val, dotted, out)
 
 
 class ConfigStore:
@@ -109,7 +134,7 @@ class ConfigStore:
         if len(per_dir_configs) == 1:
             self._cfg = per_dir_configs[0]
         else:
-            self._cfg = OmegaConf.merge(*per_dir_configs, **_MERGE_EXTEND_KW)
+            self._cfg = _merge_extend(*per_dir_configs)
 
     def _load_asya_dir(self, asya_dir: Path) -> DictConfig:
         """Load all config files from a single .asya/ directory.
@@ -132,7 +157,7 @@ class ConfigStore:
                     continue
                 self._resolve_relative_paths(cfg, base_dir=asya_dir.parent)
                 self._sources[f] = cfg
-                result = OmegaConf.merge(result, cfg, **_MERGE_EXTEND_KW)
+                result = _merge_extend(result, cfg)
             else:
                 if isinstance(cfg, DictConfig):
                     self._resolve_relative_paths(cfg, base_dir=asya_dir.parent)
@@ -148,7 +173,7 @@ class ConfigStore:
                 if leaf_key in current:
                     existing = OmegaConf.create({leaf_key: current[leaf_key]})
                     new = OmegaConf.create({leaf_key: cfg})
-                    merged = OmegaConf.merge(existing, new, **_MERGE_EXTEND_KW)
+                    merged = _merge_extend(existing, new)
                     current[leaf_key] = merged[leaf_key]
                 else:
                     current[leaf_key] = cfg
