@@ -13,7 +13,7 @@ over-upscaling classifier. Plain Deployment + 2 PVCs (not Coder).
 - **Actor namespace**: `atem`
 - **System namespace**: `asya-system` (Crossplane + asya-crossplane chart)
 - **AWS profile**: `aimc-test` (aliases: `aws-test`, `ktest`, `helm-test`)
-- **IAM user with EKS access**: `gcp-test-user` (cluster-admin via EKS access entry)
+- **EKS access**: via `FederatedAdministratorRole` (assumed role, not direct user access entry)
 
 ## Auth Chain (AWS to GCP)
 
@@ -28,6 +28,11 @@ Existing Pod Identity associations in `atem` namespace:
 The workbench pod needs:
 1. **AWS access**: S3 (dataset sync), SQS (optional, for triggering flows)
 2. **GCP access**: BigQuery (load data), Vertex AI (Claude Code via Vertex)
+
+**GCP WIF status: UNVERIFIED.** The `asya-actor` role has S3/SQS/SecretsManager
+but we haven't confirmed it can exchange tokens for GCP credentials. Check
+Terraform (`cimt-aimc-infra-terraform/terraform/apps/aimenu-sdxl-aws/iam.tf`)
+for a WIF pool + provider config that trusts the EKS OIDC issuer.
 
 Options:
 - Use existing `default` SA in `atem` (already has `asya-actor` Pod Identity)
@@ -115,29 +120,42 @@ spec:
 
 Run inside the pod (`kubectl exec -it workbench-xxx -- bash`):
 
+**Ephemeral installs warning**: the base image is ephemeral — pod restart loses
+everything outside PVC mounts (`/home/dev`, `/storage`). Install tools to
+`/home/dev/.local/` where possible. For a durable setup, bake a custom image.
+
 ```bash
 #!/bin/bash
 set -euo pipefail
 
-# System packages
-apt-get update && apt-get install -y git curl tmux jq openssh-server
-
-# uv (Python package manager)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+export HOME=/home/dev
 export PATH="$HOME/.local/bin:$PATH"
 
-# Python tools
-uv tool install tensorboard
-uv tool install fiftyone
+# System packages (ephemeral — lost on pod restart)
+apt-get update && apt-get install -y git curl tmux jq openssh-server
+
+# Node.js (required for Claude Code)
+curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$HOME/.local/bin"
+eval "$(fnm env)" && fnm install --lts
 
 # Claude Code CLI (via Vertex AI)
 npm install -g @anthropic-ai/claude-code
-# Configure for Vertex: CLAUDE_CODE_USE_VERTEX=1, CLOUD_ML_REGION, ANTHROPIC_VERTEX_PROJECT_ID
+# Required env vars:
+#   CLAUDE_CODE_USE_VERTEX=1
+#   CLOUD_ML_REGION=europe-west1  (or your region)
+#   ANTHROPIC_VERTEX_PROJECT_ID=<gcp-project-id>
+
+# uv (Python package manager) — installs to ~/.local/bin (persisted on PVC)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Python tools
+uv tool install tensorboard
+uv pip install --python 3.13 fiftyone  # fiftyone is a library, not a CLI tool
 
 # kubectl + helm (for deploying actors from workbench)
 curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-install kubectl /usr/local/bin/
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+install kubectl "$HOME/.local/bin/"
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | HELM_INSTALL_DIR="$HOME/.local/bin" bash
 
 # asya CLI
 cd /home/dev && git clone https://github.com/asyacore/asya.git
@@ -147,8 +165,9 @@ cd asya && uv sync
 # (install from https://github.com/atemate/git-aint)
 
 # GCP CLI (for BQ data loading)
-curl https://sdk.cloud.google.com | bash
-# gcloud auth: should pick up WIF via Pod Identity → GCP token exchange
+curl https://sdk.cloud.google.com | bash -s -- --install-dir="$HOME/.local"
+# gcloud auth: verify WIF works — Pod Identity → STS → GCP token exchange
+# Test: gcloud auth print-access-token (should work if WIF is configured)
 ```
 
 ## Access the Workbench
@@ -172,6 +191,9 @@ kubectl --context aimc-test-eu-1-blue port-forward -n atem deploy/workbench 2222
 - SQS queues: `asya-atem-smoke-test`, `asya-atem-x-sink`, `asya-atem-x-sump`
 - Sidecar image: `ghcr.io/deliveryhero/asya-sidecar:1.0.9`
 - KEDA in `keda` namespace (v2.14.2, DO NOT upgrade)
+- **No gateway deployed** — `asya-gateway` Helm release is NOT listed in
+  `eks-stg-setup.md`. Must deploy before triggering flows. Alternatively,
+  send messages directly to SQS for tier 1 (bypass gateway).
 
 ## Training Workflow (after workbench is up)
 
