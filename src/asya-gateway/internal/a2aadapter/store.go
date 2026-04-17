@@ -8,6 +8,7 @@ import (
 	a2alib "github.com/a2aproject/a2a-go/a2a"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/meshclient"
+	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // StoreAdapter wraps the mesh-api HTTP client to implement a2asrv.TaskStore.
@@ -59,7 +60,7 @@ func (s *StoreAdapter) Get(ctx context.Context, taskID a2alib.TaskID) (*a2alib.T
 	}
 
 	// Synthesize result artifact for succeeded tasks
-	if status.Status == "succeeded" && status.Data != nil {
+	if status.Status == string(types.MessageStatusSucceeded) && status.Data != nil {
 		var data map[string]any
 		if json.Unmarshal(status.Data, &data) == nil {
 			if result, ok := data["result"]; ok && result != nil {

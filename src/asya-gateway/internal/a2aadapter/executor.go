@@ -13,6 +13,7 @@ import (
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/meshclient"
 	"github.com/deliveryhero/asya/asya-gateway/internal/sseclient"
+	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // flyArtifactID is the deterministic artifact ID used for FLY streaming chunks.
@@ -118,7 +119,7 @@ func (e *Executor) Execute(
 				}
 
 				// Write result artifact for succeeded tasks
-				if status.Status == "succeeded" && status.Result != nil {
+				if status.Status == string(types.MessageStatusSucceeded) && status.Result != nil {
 					writeResultArtifact(ctx, reqCtx, eq, status.Result)
 				}
 
@@ -129,7 +130,7 @@ func (e *Executor) Execute(
 			}
 
 			// Non-terminal: write working status
-			if status.Status == "running" {
+			if status.Status == string(types.MessageStatusRunning) {
 				_ = eq.Write(ctx, a2alib.NewStatusUpdateEvent(reqCtx, a2alib.TaskStateWorking, nil))
 			}
 

@@ -42,16 +42,19 @@ func (h *Handler) MCPServer() *server.MCPServer {
 	return h.mcpServer
 }
 
-// SyncTools re-registers all tools from the registry with the MCP server.
-// Called on startup and after each hot-reload.
+// SyncTools atomically replaces all tools in the MCP server with the current
+// registry contents. Removes stale tools that were deleted from the ConfigMap.
 func (h *Handler) SyncTools() {
 	tools := h.registry.Tools()
 
+	serverTools := make([]server.ServerTool, 0, len(tools))
 	for _, toolCfg := range tools {
-		mcpTool := buildMCPTool(toolCfg)
-		handler := h.createToolHandler(toolCfg)
-		h.mcpServer.AddTool(mcpTool, handler)
+		serverTools = append(serverTools, server.ServerTool{
+			Tool:    buildMCPTool(toolCfg),
+			Handler: h.createToolHandler(toolCfg),
+		})
 	}
+	h.mcpServer.SetTools(serverTools...)
 
 	slog.Info("MCP tools synced", "count", len(tools))
 }

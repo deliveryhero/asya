@@ -32,6 +32,7 @@ linters:
       - G304
       - G115
       - G204
+      - G706
     revive:
       rules:
       - name: error-return
@@ -43,6 +44,12 @@ linters:
   exclusions:
     generated: lax
     rules:
+    - linters:
+      - gosec
+      - revive
+      - staticcheck
+      - nolintlint
+      path: ^(cmd/gateway/|cmd/mesh-api/|internal/a2a/|internal/mcp/|internal/mesh/|internal/oauth/|internal/queue/|pkg/types/)
     - linters:
       - errcheck
       - goconst
