@@ -44,7 +44,7 @@
 
 
 
-<meta name="description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, crew, state proxy)">
+<meta name="description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)">
 
 
 
@@ -61,7 +61,7 @@
 
 
 
-<meta property="og:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, crew, state proxy)">
+<meta property="og:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)">
 
 
 
@@ -78,7 +78,7 @@
 
 
 
-<meta name="twitter:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, crew, state proxy)">
+<meta name="twitter:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)">
 
 
 
@@ -1868,6 +1868,23 @@
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/reference/specs/mesh-api/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Mesh API
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+    
+    <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/reference/specs/flow-dsl/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -2150,6 +2167,23 @@
 
         
         NATS KV
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+    
+    <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/reference/state-proxy-connectors/pg/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        PostgreSQL
         
 
         
@@ -3325,6 +3359,111 @@ production use.</p>
 </tbody>
 </table></div>
 <hr />
+<h2 id="asya-mesh-api">asya-mesh-api<a class="headerlink" href="#asya-mesh-api" title="Permanent link">#</a></h2>
+<p>Source: <code>src/asya-gateway/cmd/mesh-api/main.go</code></p>
+<p>The mesh-api is a standalone HTTP server for the <code>/api/v1/mesh/</code> envelope API.
+It exposes two ports: external (client-facing CRUD + SSE) and internal (sidecar
+event publishing). Persistence is delegated to a pg-kv sidecar over
+Unix socket.</p>
+<h3 id="core_2">Core<a class="headerlink" href="#core_2" title="Permanent link">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ASYA_MESH_EXTERNAL_PORT</code></td>
+<td>External API listen port</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_MESH_INTERNAL_PORT</code></td>
+<td>Internal sidecar listen port</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_STATEPROXY_SOCKET</code></td>
+<td>Unix socket path to pg-kv</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_INTERNAL_URL</code></td>
+<td>URL sidecars use for callbacks (stamped as <code>x-asya-gateway-url</code>)</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_NAMESPACE</code></td>
+<td>Kubernetes namespace for queue name prefix</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>ASYA_MESH_API_PREFIX</code></td>
+<td>HTTP route prefix for mesh API (e.g. <code>/api/v1</code>, or <code>""</code> for unprefixed)</td>
+<td><code>/api/v1</code></td>
+</tr>
+<tr>
+<td><code>ASYA_LOG_LEVEL</code></td>
+<td>Log level</td>
+<td><em>(unset)</em></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="transport-same-as-gateway">Transport (same as gateway)<a class="headerlink" href="#transport-same-as-gateway" title="Permanent link">#</a></h3>
+<p>Uses the same queue transport env vars as asya-gateway (<code>ASYA_QUEUE_TRANSPORT</code>,
+<code>ASYA_RABBITMQ_URL</code>, <code>ASYA_SQS_ENDPOINT</code>, <code>ASYA_PUBSUB_PROJECT_ID</code>, etc.).</p>
+<h3 id="tracing">Tracing<a class="headerlink" href="#tracing" title="Permanent link">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OTEL_EXPORTER_OTLP_ENDPOINT</code></td>
+<td>OTLP exporter endpoint</td>
+<td><em>(unset)</em></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="pg-kv">pg-kv<a class="headerlink" href="#pg-kv" title="Permanent link">#</a></h2>
+<p>Source: <code>src/asya-state-proxy/go/cmd/pg-kv/main.go</code></p>
+<p>Go-based PostgreSQL state proxy connector. Runs as a sidecar alongside
+asya-mesh-api, serving KV operations and Mango-style queries over a Unix socket.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CONNECTOR_SOCKET</code></td>
+<td>Unix socket path</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>STATE_PROXY_PG_URL</code></td>
+<td>PostgreSQL connection string</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>STATE_PROXY_PG_INDEXES</code></td>
+<td>Comma-separated expression index specs (e.g. <code>status,(deadline_at)::timestamptz</code>)</td>
+<td><code>""</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
 <h2 id="asya-crew">asya-crew<a class="headerlink" href="#asya-crew" title="Permanent link">#</a></h2>
 <p>Source: <code>src/asya-crew/asya_crew/</code></p>
 <h3 id="shared">Shared<a class="headerlink" href="#shared" title="Permanent link">#</a></h3>
@@ -4233,6 +4372,13 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
+<a class="text-lg font-medium" href="../specs/mesh-api/"
+    style="padding-left: 32px">
+    Mesh API
+</a>
+
+
+
 <a class="text-lg font-medium" href="../specs/flow-dsl/"
     style="padding-left: 32px">
     Flow DSL
@@ -4355,6 +4501,13 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 <a class="text-lg font-medium" href="../state-proxy-connectors/nats-kv/"
     style="padding-left: 32px">
     NATS KV
+</a>
+
+
+
+<a class="text-lg font-medium" href="../state-proxy-connectors/pg/"
+    style="padding-left: 32px">
+    PostgreSQL
 </a>
 
 
@@ -4720,6 +4873,42 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             MCP configuration
         </a>
         
+        
+
+        
+        <a href="#asya-mesh-api"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            asya-mesh-api
+        </a>
+        
+        
+        <a href="#core_2"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Core
+        </a>
+        
+        <a href="#transport-same-as-gateway"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Transport (same as gateway)
+        </a>
+        
+        <a href="#tracing"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Tracing
+        </a>
+        
+        
+
+        
+        <a href="#pg-kv"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            pg-kv
+        </a>
         
 
         
