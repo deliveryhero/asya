@@ -24,11 +24,11 @@ spec:
         dh_tribe: foodscience
     spec:
       serviceAccountName: default
-      terminationGracePeriodSeconds: 300
+      terminationGracePeriodSeconds: 10
       containers:
         - name: workbench
-          image: mcr.microsoft.com/devcontainers/base:ubuntu
-          command: ["sleep", "infinity"]
+          image: ubuntu:24.04
+          command: ["/bin/bash", "/etc/workbench/init.sh"]
           volumeMounts:
             - name: work
               mountPath: /home/dev
@@ -37,9 +37,14 @@ spec:
             - name: gcp-creds
               mountPath: /secrets/gcp
               readOnly: true
+            - name: init-script
+              mountPath: /etc/workbench
+              readOnly: true
           env:
             - name: HOME
               value: /home/dev
+            - name: PATH
+              value: /home/dev/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /secrets/gcp/key.json
             - name: CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE
@@ -67,3 +72,7 @@ spec:
         - name: gcp-creds
           secret:
             secretName: gcp-vertex-ai-key
+        - name: init-script
+          configMap:
+            name: workbench-init
+            defaultMode: 0755

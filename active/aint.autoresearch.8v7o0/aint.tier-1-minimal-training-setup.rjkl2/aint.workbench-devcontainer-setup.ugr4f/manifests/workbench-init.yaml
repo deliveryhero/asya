@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workbench-init
+  namespace: atem
+data:
+  init.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    echo "[+] workbench init starting"
+
+    # --- System packages (ephemeral, reinstalled on each pod start) ---
+    apt-get update -qq
+    apt-get install -y -qq openssh-server netcat-openbsd sudo git curl tmux jq unzip > /dev/null 2>&1
+
+    # --- Create 'dev' user with sudo, home on PVC ---
+    if ! id dev &>/dev/null; then
+      groupadd -g 1000 dev 2>/dev/null || true
+      useradd -d /home/dev -s /bin/bash -u 1000 -g 1000 --no-create-home dev 2>/dev/null || \
+        useradd -d /home/dev -s /bin/bash --no-create-home dev
+    fi
+    echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev
+    chmod 440 /etc/sudoers.d/dev
+    chown dev:dev /home/dev
+
+    # --- SSH server ---
+    mkdir -p /run/sshd
+    ssh-keygen -A 2>/dev/null
+
+    if [ -f /home/dev/.ssh/authorized_keys ]; then
+      chmod 700 /home/dev/.ssh
+      chmod 600 /home/dev/.ssh/authorized_keys
+      chown -R dev:dev /home/dev/.ssh
+      echo "[+] authorized_keys loaded from PVC"
+    else
+      echo "[!] no /home/dev/.ssh/authorized_keys found — SSH key auth disabled"
+      echo "[!] to fix: kubectl exec into pod, run:"
+      echo "[!]   mkdir -p /home/dev/.ssh && echo 'YOUR_KEY' > /home/dev/.ssh/authorized_keys"
+    fi
+
+    sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+    sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+    sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+    /usr/sbin/sshd
+    echo "[+] sshd started"
+
+    # --- Persistent tools (installed to PVC, skipped if already present) ---
+    export HOME=/home/dev
+    export PATH="/home/dev/.local/bin:$PATH"
+
+    if ! command -v uv &>/dev/null; then
+      echo "[+] installing uv"
+      su dev -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+    fi
+
+    if ! command -v kubectl &>/dev/null; then
+      echo "[+] installing kubectl"
+      curl -sLO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      install kubectl /home/dev/.local/bin/
+      rm kubectl
+    fi
+
+    if ! command -v helm &>/dev/null; then
+      echo "[+] installing helm"
+      curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | HELM_INSTALL_DIR="/home/dev/.local/bin" bash -s -- --no-sudo
+    fi
+
+    if ! command -v claude &>/dev/null; then
+      echo "[+] installing node.js + claude code"
+      su dev -c 'curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "/home/dev/.local/bin"'
+      su dev -c 'export PATH="/home/dev/.local/bin:$PATH" && eval "$(/home/dev/.local/bin/fnm env)" && fnm install --lts && npm install -g @anthropic-ai/claude-code'
+    fi
+
+    if ! command -v git-aint &>/dev/null; then
+      echo "[+] installing git-aint"
+      curl -sL https://github.com/atemate/git-aint/releases/latest/download/git-aint-linux-amd64 \
+        -o /home/dev/.local/bin/git-aint && chmod +x /home/dev/.local/bin/git-aint
+    fi
+
+    chown -R dev:dev /home/dev 2>/dev/null || true
+
+    echo "[+] workbench init complete"
+
+    # Keep container alive (handle SIGTERM for clean shutdown)
+    trap 'exit 0' SIGTERM
+    sleep infinity &
+    wait
