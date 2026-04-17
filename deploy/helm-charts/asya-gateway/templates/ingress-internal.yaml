@@ -1,0 +1,31 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}-internal
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ingress-internal
+  annotations:
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$envelope_id"
+    {{- with .Values.ingress.internalAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+  - {{- with .Values.ingress.internalHost }}
+    host: {{ . }}
+    {{- end }}
+    http:
+      paths:
+      - path: /api/v1/mesh/
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "asya-gateway.meshApiInt.fullname" . }}
+            port:
+              number: {{ .Values.service.meshApiInternal.port }}
+{{- end }}

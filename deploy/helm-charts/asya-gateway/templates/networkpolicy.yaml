@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}-internal
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "asya-gateway.selectorLabels" . | nindent 6 }}
+  policyTypes:
+  - Ingress
+  ingress:
+  # External ports (8080, 8082, 8083): allow from anywhere
+  - ports:
+    - port: 8080
+      protocol: TCP
+    {{- if .Values.mcp.enabled }}
+    - port: 8082
+      protocol: TCP
+    {{- end }}
+    {{- if .Values.a2a.enabled }}
+    - port: 8083
+      protocol: TCP
+    {{- end }}
+  # Internal port (8081): only from pods in the same namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: {{ .Release.Namespace }}
+    ports:
+    - port: 8081
+      protocol: TCP
+{{- end }}
