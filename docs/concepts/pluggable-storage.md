@@ -1,5 +1,5 @@
 ---
-description: "Pluggable storage: S3, GCS, Redis, NATS KV backends for state proxy virtual actor memory"
+description: "Pluggable storage: S3, GCS, Redis, NATS KV, PostgreSQL backends for state proxy virtual actor memory"
 ---
 
 # Pluggable Storage
@@ -17,6 +17,7 @@ Storage backends are pluggable — swap by changing configuration, not code:
 | **S3 / GCS** | Durable object storage for large state (conversation history, documents) |
 | **Redis** | Low-latency key-value access for hot state (session data, counters) |
 | **NATS KV** | Lightweight distributed KV for mesh-local state |
+| **PostgreSQL** | JSONB document store for gateway mesh-api envelope state |
 
 ## How It Works
 
@@ -72,8 +73,8 @@ class S3Passthrough(StateProxyConnector):
 ```
 
 Available connectors: `s3-passthrough`, `s3-buffered-lww`, `s3-buffered-cas`,
-`gcs-buffered-lww`, `gcs-buffered-cas`, `redis-buffered-cas`. Each is a separate
-Docker image selected at deployment time.
+`gcs-buffered-lww`, `gcs-buffered-cas`, `redis-buffered-cas`, `state-proxy-pg`
+(Go). Each is a separate Docker image selected at deployment time.
 
 ## Consistency Guarantees
 
@@ -94,4 +95,5 @@ appear stateful while remaining stateless Kubernetes Deployments.
 - **[S3 Connector](../reference/state-proxy-connectors/s3.md)** — S3/GCS configuration
 - **[Redis Connector](../reference/state-proxy-connectors/redis.md)** — Redis configuration
 - **[NATS KV Connector](../reference/state-proxy-connectors/nats-kv.md)** — NATS KV configuration
+- **[PostgreSQL Connector](../reference/state-proxy-connectors/pg.md)** — Go JSONB document store for mesh-api
 - **[Virtual Actors](virtual-actors.md)** — the concept that pluggable storage enables

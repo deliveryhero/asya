@@ -18,6 +18,7 @@ and E2E tests — each with different infrastructure and scope.
 | GCS LWW | ✅ (mock) | ✅ | ✅ (pubsub-gcs) | ✅ CI |
 | GCS CAS | ✅ (mock) | ✅ | — | — |
 | Redis CAS | ✅ (mock) | ✅ | — | — |
+| PG (Go) | ✅ (no PG) | ✅ | — | — |
 
 ## Unit Tests
 
@@ -55,7 +56,14 @@ numbers (used for CAS) are simulated with `MagicMock` return values.
 
 **Redis connector** — patches `redis.Redis` similarly to the GCS approach.
 
-Run:
+**PG connector (Go)** — unit tests validate the Mango-to-SQL query builder
+without a database. Integration tests (requiring PG) are gated on
+`STATEPROXY_PG_TEST_URL`:
+```bash
+cd src/asya-state-proxy/go && go test ./... -v
+```
+
+Run Python connector tests:
 ```bash
 make -C src/asya-state-proxy test-unit
 # or directly:
@@ -69,6 +77,12 @@ uv run pytest src/asya-state-proxy/tests/
 Tests a single connector in a Docker Compose environment with a real storage
 emulator. The connector process runs alongside a minimal runtime stub that
 exercises the connector's `read`/`write`/`cas` operations via Unix socket.
+
+The PG connector has its own component test profile in `testing/component/mesh-api/`
+which runs Docker Compose with PostgreSQL + SQS + state-proxy-pg + mesh-api:
+```bash
+make -C testing/component/mesh-api test
+```
 
 ```
 testing/component/state-proxy/

@@ -1,5 +1,5 @@
 ---
-description: "Environment variables: consolidated reference for all components (sidecar, runtime, gateway, crew, state proxy)"
+description: "Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)"
 ---
 
 # Environment Variables
@@ -182,6 +182,54 @@ Source: `src/asya-gateway/cmd/gateway/main.go`
 | `ASYA_MCP_OAUTH_SECRET` | OAuth HMAC signing secret | _(unset)_ |
 | `ASYA_MCP_OAUTH_TOKEN_TTL` | OAuth access token TTL (seconds) | `3600` |
 | `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` | Bearer token for dynamic client registration | _(unset)_ |
+
+---
+
+## asya-mesh-api
+
+Source: `src/asya-gateway/cmd/mesh-api/main.go`
+
+The mesh-api is a standalone HTTP server for the `/api/v1/mesh/` envelope API.
+It exposes two ports: external (client-facing CRUD + SSE) and internal (sidecar
+event publishing). Persistence is delegated to a state-proxy-pg sidecar over
+Unix socket.
+
+### Core
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_MESH_EXTERNAL_PORT` | External API listen port | _(required)_ |
+| `ASYA_MESH_INTERNAL_PORT` | Internal sidecar listen port | _(required)_ |
+| `ASYA_STATEPROXY_SOCKET` | Unix socket path to state-proxy-pg | _(required)_ |
+| `ASYA_INTERNAL_URL` | URL sidecars use for callbacks (stamped as `x-asya-gateway-url`) | _(required)_ |
+| `ASYA_NAMESPACE` | Kubernetes namespace for queue name prefix | `""` |
+| `ASYA_LOG_LEVEL` | Log level | _(unset)_ |
+
+### Transport (same as gateway)
+
+Uses the same queue transport env vars as asya-gateway (`ASYA_QUEUE_TRANSPORT`,
+`ASYA_RABBITMQ_URL`, `ASYA_SQS_ENDPOINT`, `ASYA_PUBSUB_PROJECT_ID`, etc.).
+
+### Tracing
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP exporter endpoint | _(unset)_ |
+
+---
+
+## state-proxy-pg
+
+Source: `src/asya-state-proxy/go/cmd/state-proxy-pg/main.go`
+
+Go-based PostgreSQL state proxy connector. Runs as a sidecar alongside
+asya-mesh-api, serving KV operations and Mango-style queries over a Unix socket.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CONNECTOR_SOCKET` | Unix socket path | _(required)_ |
+| `STATE_PROXY_PG_URL` | PostgreSQL connection string | _(required)_ |
+| `STATE_PROXY_PG_INDEXES` | Comma-separated expression index specs (e.g. `status,(deadline_at)::timestamptz`) | `""` |
 
 ---
 
