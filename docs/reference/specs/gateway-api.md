@@ -346,7 +346,12 @@ Access tokens are HMAC-SHA256 JWTs containing `iss`, `aud`, `sub` (client ID), `
 
 ---
 
-## Mesh Routes (mesh deployment)
+## Mesh Routes (mesh deployment) — Deprecated
+
+!!! warning "Deprecated — replaced by asya-mesh-api"
+    The mesh routes below are from the legacy `mode=mesh` gateway deployment.
+    New deployments should use the standalone `asya-mesh-api` binary.
+    See [Mesh API spec](mesh-api.md) for the new API and migration guide.
 
 Called exclusively by sidecars and crew actors within the cluster. No authentication — unreachable externally by network topology.
 

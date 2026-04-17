@@ -105,6 +105,7 @@ nav:
     - ABI Protocol: reference/specs/abi-protocol.md
     - Sidecar-Runtime: reference/specs/sidecar-runtime.md
     - Gateway API: reference/specs/gateway-api.md
+    - Mesh API: reference/specs/mesh-api.md
     - Flow DSL: reference/specs/flow-dsl.md
     - Error Handling: reference/specs/error-handling.md
     - Streaming Events: reference/specs/streaming-events.md
@@ -121,6 +122,7 @@ nav:
     - GCS: reference/state-proxy-connectors/gcs.md
     - Redis: reference/state-proxy-connectors/redis.md
     - NATS KV: reference/state-proxy-connectors/nats-kv.md
+    - PostgreSQL: reference/state-proxy-connectors/pg.md
   - scalers:
     - Pub/Sub Scaler: reference/scalers/pubsub.md
   - Credentials: reference/credentials.md
