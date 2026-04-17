@@ -16,7 +16,7 @@ var ErrStaleStatus = errors.New("stale status update rejected")
 
 // MessageStore defines the mesh-api's storage interface.
 // Persistence methods talk to the state-proxy over HTTP/Unix socket.
-// Pub/sub methods are in-process Go channels (ephemeral).
+// Publish/subscribe methods below use in-process Go channels (not GCP Pub/Sub).
 type MessageStore interface {
 	// Persistence (state-proxy)
 	Create(ctx context.Context, msg *types.Message) error
@@ -25,7 +25,7 @@ type MessageStore interface {
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context, params types.ListParams) ([]*types.Message, int, error)
 
-	// In-process pub/sub (ephemeral, not persisted)
+	// In-process publish/subscribe via Go channels (ephemeral, not persisted)
 	Subscribe(id string) <-chan types.Event
 	Unsubscribe(id string, ch <-chan types.Event)
 	Publish(id string, event types.Event)
