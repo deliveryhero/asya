@@ -6,8 +6,11 @@ resolution-markers = [
     "python_full_version < '3.10'",
 ]
 
-[options]
-prerelease-mode = "allow"
+[[package]]
+name = "antlr4-python3-runtime"
+version = "4.9.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3e/38/7859ff46355f76f8d19459005ca000b6e7012f2f1ca597746cbcd1fbfe5e/antlr4-python3-runtime-4.9.3.tar.gz", hash = "sha256:f224469b4168294902bb1efa80a8bf7855f24c99aef99cbefc1bcd3cce77881b", size = 117034, upload-time = "2021-11-06T17:52:23.524Z" }
 
 [[package]]
 name = "asya-lab"
@@ -45,7 +48,7 @@ test = [
 requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "graphviz", marker = "extra == 'diagram'", specifier = ">=0.20.0" },
-    { name = "omegaconf", specifier = ">=2.4.0.dev4" },
+    { name = "omegaconf", specifier = ">=2.3.0" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "tqdm" },
@@ -510,15 +513,15 @@ wheels = [
 
 [[package]]
 name = "omegaconf"
-version = "2.4.0.dev4"
+version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "antlr4-python3-runtime" },
     { name = "pyyaml" },
-    { name = "typing-extensions", marker = "python_full_version < '3.10'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/f2/b871f4f2ab312bbd3b7c1cdd51d11c15eeaa6de283a2ce63ecd9a93773fd/omegaconf-2.4.0.dev4.tar.gz", hash = "sha256:182217fa60b0a145b63a6308ad259bb653d652398069732fda271dfc4466d2a2", size = 3441086, upload-time = "2025-10-30T17:55:33.755Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/09/48/6388f1bb9da707110532cb70ec4d2822858ddfb44f1cdf1233c20a80ea4b/omegaconf-2.3.0.tar.gz", hash = "sha256:d5d4b6d29955cc50ad50c46dc269bcd92c6e00f5f90d23ab5fee7bfca4ba4cc7", size = 3298120, upload-time = "2022-12-08T20:59:22.753Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/5d/6cd8c6beda0541fc87bc0a942bcc4ad9605439ac3ae8b73c3538af8f68ee/omegaconf-2.4.0.dev4-py3-none-any.whl", hash = "sha256:367bafc0f0367d379933a35800d320eaf5cbe22fac9d60ba8dd7e15a29e9aca7", size = 224869, upload-time = "2025-10-30T17:55:32.115Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/94/1843518e420fa3ed6919835845df698c7e27e183cb997394e4a670973a65/omegaconf-2.3.0-py3-none-any.whl", hash = "sha256:7b4df175cdb08ba400f45cae3bdcae7ba8365db4d165fc65fd04b050ab63b46b", size = 79500, upload-time = "2022-12-08T20:59:19.686Z" },
 ]
 
 [[package]]
