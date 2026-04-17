@@ -81,7 +81,26 @@ Queue → Transport.Receive() → Router.ProcessMessage()
 - Parse JSON message structure
 - Validate route information
 
-### 2. Processing Phase
+### 2. Gateway URL Resolution
+```
+Envelope header x-asya-gateway-url → fallback ASYA_GATEWAY_URL env var → empty (no reporting)
+```
+- Envelope header takes precedence over env var
+- SSRF validation: only `http`/`https` schemes with non-empty hosts accepted
+- Invalid header values logged and ignored (falls back to env var)
+- Per-URL reporter instances cached via `sync.Map` to avoid repeated allocations
+- **If no gateway URL is available** (neither header nor env var): all reporting is silently skipped — no pre-flight check, no progress updates, no FLY forwarding, no final status. The sidecar processes messages and routes them normally without any gateway interaction.
+
+### 3. Pre-Flight Check
+```
+Router → GET /api/v1/mesh/{id} → canceled/paused? → route to x-sink
+```
+- Before calling the runtime, the sidecar checks the gateway for the envelope's current status
+- If `canceled` or `paused`: skip processing, preserve original `CreatedAt`/`DeadlineAt` timestamps, route to x-sink
+- If gateway unreachable, returns 404, or any error: proceed with normal processing
+- 2-second timeout to avoid blocking on slow gateway
+
+### 4. Processing Phase
 ```
 Router → Runtime Client → Unix Socket → Actor Runtime
 ```
@@ -95,7 +114,16 @@ Router → Runtime Client → Unix Socket → Actor Runtime
   - Error response
   - Timeout (no response)
 
-### 3. Routing Phase
+### 5. Event Reporting
+```
+Router → POST /api/v1/mesh/{id}/events
+```
+All sidecar-to-gateway communication uses the unified events endpoint:
+- Status events: `{type: "status", status: "received|processing|completed", data: {...}}`
+- FLY events: `{type: "fly", data: {...}}` (ephemeral streaming tokens from runtime)
+- Final events: `{type: "status", status: "succeeded|failed", data: {...}}` (from x-sink/x-sump)
+
+### 6. Routing Phase
 ```
 Router → Route Management → Transport.Send() → Next Queue
 ```
@@ -106,7 +134,7 @@ Router → Route Management → Transport.Send() → Next Queue
   - Error-end if error or timeout
 - Send message(s) to destination queue(s)
 
-### 4. Acknowledgment Phase
+### 7. Acknowledgment Phase
 ```
 Router → Transport.Ack/Nack()
 ```
@@ -262,7 +290,7 @@ All configuration via environment variables:
 | `ASYA_ACTOR_SINK` | `x-sink` | Success queue |
 | `ASYA_ACTOR_SUMP` | `x-sump` | Error queue |
 | `ASYA_IS_END_ACTOR` | `false` | End actor mode |
-| `ASYA_GATEWAY_URL` | `""` | Gateway URL for progress reporting (optional) |
+| `ASYA_GATEWAY_URL` | `""` | Gateway URL for progress reporting (fallback; envelope header `x-asya-gateway-url` takes precedence) |
 | `ASYA_RABBITMQ_URL` | `amqp://guest:guest@localhost:5672/` | RabbitMQ connection |
 | `ASYA_RABBITMQ_EXCHANGE` | `asya` | Exchange name |
 | `ASYA_RABBITMQ_PREFETCH` | `1` | Prefetch count |

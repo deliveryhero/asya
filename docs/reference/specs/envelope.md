@@ -53,6 +53,26 @@ description: "Envelope spec: JSON structure, route (prev/curr/next), headers, st
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (trace IDs, priorities)
 
+### Envelope Status Ordering
+
+The mesh-api enforces monotonic status progression. When a status event arrives, the mesh-api compares it against the current status and silently drops stale updates:
+
+| Order | Statuses | Description |
+|-------|----------|-------------|
+| 0 | `pending` | Created, not yet picked up |
+| 1 | `running` | Being processed by an actor |
+| 2 | `paused` | Waiting for external input (HITL) |
+| 3 | `succeeded`, `failed`, `canceled` | Terminal — no further transitions |
+
+**Valid transitions**:
+```
+pending → running → succeeded
+pending → running → failed
+pending → running → paused → running → succeeded
+```
+
+Status never goes backward. Terminal statuses (`succeeded`, `failed`, `canceled`) are all order 3 — once terminal, no other status can overwrite. If two `running` updates arrive simultaneously, the second overwrites with the same value (idempotent). FLY events have no ordering constraint — they are appended in arrival order.
+
 ### Sidecar-Managed Headers
 
 These headers are automatically managed by the sidecar and should not be
@@ -62,6 +82,17 @@ overwritten by user handlers:
 |---|---|
 | `traceparent` | W3C Trace Context parent (auto-injected when tracing enabled) |
 | `tracestate` | W3C Trace Context state (auto-injected when tracing enabled) |
+| `x-asya-first-attempt` | RFC3339 timestamp of the first processing attempt (stamped on first attempt, preserved across retries; used for `maxDuration` evaluation) |
+
+### Gateway-Stamped Headers
+
+These headers are stamped by the gateway when creating the envelope and read
+by the sidecar during processing:
+
+| Header | Description |
+|---|---|
+| `x-asya-gateway-url` | Internal gateway URL for sidecar callbacks. Stamped by the gateway dispatcher. Sidecar uses this for progress reporting, event posting, and pre-flight checks. Falls back to `ASYA_GATEWAY_URL` env var if absent. Validated against SSRF: only `http`/`https` schemes with non-empty hosts are accepted. |
+| `x-asya-mesh-status` | Set to `"off"` to suppress all gateway status reporting for this envelope (stealth mode). |
 
 ## Queue Naming Convention
 
@@ -239,26 +270,38 @@ progress_percent = (len(prev) + 1) / (len(prev) + 1 + len(next)) * 100
 
 ### Progress Update Flow
 
+All sidecar-to-gateway communication uses the unified events endpoint
+`POST /api/v1/mesh/{id}/events`.
+
 ```
 Sidecar                    Gateway                    Client
 -------                    -------                    ------
+0. Pre-flight check
+   └─> GET /api/v1/mesh/{id}
+       If canceled/paused → route to x-sink, skip processing
+
 1. Receive from queue
-   └─> POST /mesh/{id}/progress
-       {status: "received", current_actor_idx: 0}
+   └─> POST /api/v1/mesh/{id}/events
+       {type: "status", status: "received", data: {...}}
                            └─> Update DB: running
                            └─> SSE: progress 10%
 
 2. Send to runtime
-   └─> POST /mesh/{id}/progress
-       {status: "processing", current_actor_idx: 0}
+   └─> POST /api/v1/mesh/{id}/events
+       {type: "status", status: "processing", data: {...}}
                            └─> SSE: progress 15%
 
-3. Runtime returns
-   └─> POST /mesh/{id}/progress
-       {status: "completed", current_actor_idx: 0}
+3. Runtime streams FLY tokens
+   └─> POST /api/v1/mesh/{id}/events
+       {type: "fly", data: {"text": "token..."}}
+                           └─> SSE: partial event (ephemeral)
+
+4. Runtime returns
+   └─> POST /api/v1/mesh/{id}/events
+       {type: "status", status: "completed", data: {...}}
                            └─> SSE: progress 33%
 
-4. Route to next actor...
+5. Route to next actor...
 ```
 
 ### Final Status Reporting
@@ -267,8 +310,8 @@ Sidecar                    Gateway                    Client
 ```
 Actor N completes → Sidecar routes to x-sink
   → x-sink persists to S3
-  → x-sink reports: POST /mesh/{id}/final
-     {status: "succeeded", result: {...}}
+  → x-sink reports: POST /api/v1/mesh/{id}/events
+     {type: "status", status: "succeeded", data: {...}}
   → Gateway updates: status=succeeded, progress=100%
   → SSE: final success event
 ```
@@ -277,8 +320,8 @@ Actor N completes → Sidecar routes to x-sink
 ```
 Runtime error → Sidecar retries per resiliency policy
   → If exhausted/non-retryable → Sidecar routes to x-sink (phase: failed)
-  → x-sink reports: POST /mesh/{id}/final
-     {status: "failed", error: "..."}
+  → x-sink reports: POST /api/v1/mesh/{id}/events
+     {type: "status", status: "failed", data: {...}}
   → x-sink dispatches to hooks → x-sump (final terminal)
   → Gateway updates: status=failed
   → SSE: final error event
