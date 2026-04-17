@@ -1,5 +1,5 @@
 ---
-description: "Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)"
+description: "Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, mcp-adapter, a2a-adapter, crew, state proxy)"
 ---
 
 # Environment Variables
@@ -231,6 +231,48 @@ asya-mesh-api, serving KV operations and Mango-style queries over a Unix socket.
 | `CONNECTOR_SOCKET` | Unix socket path | _(required)_ |
 | `STATE_PROXY_PG_URL` | PostgreSQL connection string | _(required)_ |
 | `STATE_PROXY_PG_INDEXES` | Comma-separated expression index specs (e.g. `status,(deadline_at)::timestamptz`) | `""` |
+
+---
+
+## mcp-adapter
+
+Source: `src/asya-gateway/cmd/mcp-adapter/main.go`
+
+Standalone MCP Streamable HTTP adapter. Translates MCP `tools/list` and
+`tools/call` into mesh-api HTTP calls using the two-step dispatch pattern.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MESH_API_URL` | Local mesh-api URL (same pod) for POST create / GET status | _(required)_ |
+| `MESH_INGRESS_URL` | External Ingress URL for hash-routed SSE subscriptions | _(required)_ |
+| `ASYA_MCP_CONFIG_DIR` | Directory containing tool definition YAML files (ConfigMap mount) | _(required)_ |
+| `ASYA_MCP_PORT` | HTTP listen port | `8082` |
+| `ASYA_MCP_POLL_INTERVAL` | ConfigMap polling interval for hot-reload | `10s` |
+| `ASYA_LOG_LEVEL` | Log level (`DEBUG`, `INFO`, `WARN`, `ERROR`) | `INFO` |
+
+---
+
+## a2a-adapter
+
+Source: `src/asya-gateway/cmd/a2a-adapter/main.go`
+
+Standalone A2A JSON-RPC adapter. Implements A2A protocol over mesh-api
+HTTP calls using the a2aproject/a2a-go v2 library.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MESH_API_URL` | Local mesh-api URL (same pod) for POST create / GET status | _(required)_ |
+| `MESH_INGRESS_URL` | External Ingress URL for hash-routed SSE subscriptions | _(required)_ |
+| `ASYA_A2A_CONFIG_DIR` | Directory containing agent definition YAML files (ConfigMap mount) | _(required)_ |
+| `ASYA_A2A_PORT` | HTTP listen port | `8083` |
+| `ASYA_A2A_POLL_INTERVAL` | ConfigMap polling interval for hot-reload | `10s` |
+| `ASYA_A2A_NAME` | Agent card display name | `Asya Gateway` |
+| `ASYA_A2A_DESCRIPTION` | Agent card description | `AI Actor Mesh for distributed agentic workloads` |
+| `ASYA_A2A_VERSION` | Agent card version | `1.0.0` |
+| `ASYA_A2A_PUBLIC_URL` | Public base URL for agent card | `""` |
+| `ASYA_A2A_PROVIDER_ORG` | Agent card provider organization | `Asya` |
+| `ASYA_A2A_PROVIDER_URL` | Agent card provider URL | `https://asya.sh` |
+| `ASYA_LOG_LEVEL` | Log level (`DEBUG`, `INFO`, `WARN`, `ERROR`) | `INFO` |
 
 ---
 

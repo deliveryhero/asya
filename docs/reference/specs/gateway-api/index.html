@@ -2925,6 +2925,13 @@
 </table></div>
 <hr />
 <h2 id="external-api-routes-api-deployment">External API Routes (api deployment)<a class="headerlink" href="#external-api-routes-api-deployment" title="Permanent link">#</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Rearchitected adapters</p>
+<p>In the new architecture, A2A routes are served by the standalone
+<code>a2a-adapter</code> binary (:8083) and MCP routes by <code>mcp-adapter</code> (:8082).
+Both use mesh-api as their backend via the two-step dispatch pattern.
+The routes and request/response formats are unchanged.</p>
+</div>
 <h3 id="a2a-protocol">A2A Protocol<a class="headerlink" href="#a2a-protocol" title="Permanent link">#</a></h3>
 <h4 id="get-well-knownagentjson"><code>GET /.well-known/agent.json</code><a class="headerlink" href="#get-well-knownagentjson" title="Permanent link">#</a></h4>
 <p>Returns the public Agent Card. Unauthenticated — required by the A2A spec for discovery.</p>

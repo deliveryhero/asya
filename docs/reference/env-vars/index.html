@@ -44,7 +44,7 @@
 
 
 
-<meta name="description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)">
+<meta name="description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, mcp-adapter, a2a-adapter, crew, state proxy)">
 
 
 
@@ -61,7 +61,7 @@
 
 
 
-<meta property="og:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)">
+<meta property="og:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, mcp-adapter, a2a-adapter, crew, state proxy)">
 
 
 
@@ -78,7 +78,7 @@
 
 
 
-<meta name="twitter:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, crew, state proxy)">
+<meta name="twitter:description" content="Environment variables: consolidated reference for all components (sidecar, runtime, gateway, mesh-api, mcp-adapter, a2a-adapter, crew, state proxy)">
 
 
 
@@ -3464,6 +3464,128 @@ asya-mesh-api, serving KV operations and Mango-style queries over a Unix socket.
 </tbody>
 </table></div>
 <hr />
+<h2 id="mcp-adapter">mcp-adapter<a class="headerlink" href="#mcp-adapter" title="Permanent link">#</a></h2>
+<p>Source: <code>src/asya-gateway/cmd/mcp-adapter/main.go</code></p>
+<p>Standalone MCP Streamable HTTP adapter. Translates MCP <code>tools/list</code> and
+<code>tools/call</code> into mesh-api HTTP calls using the two-step dispatch pattern.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MESH_API_URL</code></td>
+<td>Local mesh-api URL (same pod) for POST create / GET status</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>MESH_INGRESS_URL</code></td>
+<td>External Ingress URL for hash-routed SSE subscriptions</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_CONFIG_DIR</code></td>
+<td>Directory containing tool definition YAML files (ConfigMap mount)</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_PORT</code></td>
+<td>HTTP listen port</td>
+<td><code>8082</code></td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_POLL_INTERVAL</code></td>
+<td>ConfigMap polling interval for hot-reload</td>
+<td><code>10s</code></td>
+</tr>
+<tr>
+<td><code>ASYA_LOG_LEVEL</code></td>
+<td>Log level (<code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>)</td>
+<td><code>INFO</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="a2a-adapter">a2a-adapter<a class="headerlink" href="#a2a-adapter" title="Permanent link">#</a></h2>
+<p>Source: <code>src/asya-gateway/cmd/a2a-adapter/main.go</code></p>
+<p>Standalone A2A JSON-RPC adapter. Implements A2A protocol over mesh-api
+HTTP calls using the a2aproject/a2a-go v2 library.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MESH_API_URL</code></td>
+<td>Local mesh-api URL (same pod) for POST create / GET status</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>MESH_INGRESS_URL</code></td>
+<td>External Ingress URL for hash-routed SSE subscriptions</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_CONFIG_DIR</code></td>
+<td>Directory containing agent definition YAML files (ConfigMap mount)</td>
+<td><em>(required)</em></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_PORT</code></td>
+<td>HTTP listen port</td>
+<td><code>8083</code></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_POLL_INTERVAL</code></td>
+<td>ConfigMap polling interval for hot-reload</td>
+<td><code>10s</code></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_NAME</code></td>
+<td>Agent card display name</td>
+<td><code>Asya Gateway</code></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_DESCRIPTION</code></td>
+<td>Agent card description</td>
+<td><code>AI Actor Mesh for distributed agentic workloads</code></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_VERSION</code></td>
+<td>Agent card version</td>
+<td><code>1.0.0</code></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_PUBLIC_URL</code></td>
+<td>Public base URL for agent card</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_PROVIDER_ORG</code></td>
+<td>Agent card provider organization</td>
+<td><code>Asya</code></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_PROVIDER_URL</code></td>
+<td>Agent card provider URL</td>
+<td><code>https://asya.sh</code></td>
+</tr>
+<tr>
+<td><code>ASYA_LOG_LEVEL</code></td>
+<td>Log level (<code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>)</td>
+<td><code>INFO</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
 <h2 id="asya-crew">asya-crew<a class="headerlink" href="#asya-crew" title="Permanent link">#</a></h2>
 <p>Source: <code>src/asya-crew/asya_crew/</code></p>
 <h3 id="shared">Shared<a class="headerlink" href="#shared" title="Permanent link">#</a></h3>
@@ -4908,6 +5030,22 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             pg-kv
+        </a>
+        
+
+        
+        <a href="#mcp-adapter"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            mcp-adapter
+        </a>
+        
+
+        
+        <a href="#a2a-adapter"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            a2a-adapter
         </a>
         
 

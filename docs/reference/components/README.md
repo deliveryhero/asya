@@ -1,5 +1,5 @@
 ---
-description: "Components index: sidecar, runtime, gateway, crew, crossplane, state proxy, CLI, flow compiler"
+description: "Components index: sidecar, runtime, gateway, MCP adapter, A2A adapter, crew, crossplane, state proxy, CLI, flow compiler"
 ---
 
 # Components
@@ -13,6 +13,8 @@ The components that make actors run and communicate.
 | [core-sidecar.md](core-sidecar.md) | Envelope router injected into actor pods — queue consumption, message routing, retries, metrics |
 | [core-runtime.md](core-runtime.md) | Python handler execution environment — Unix socket server, handler loading, async support |
 | [core-gateway.md](core-gateway.md) | MCP/A2A HTTP bridge — sync-to-async translation, task state, SSE streaming |
+| core-mcp-adapter.md | MCP Streamable HTTP adapter — standalone binary translating MCP tools into mesh-api calls |
+| core-a2a-adapter.md | A2A JSON-RPC adapter — standalone binary translating A2A tasks into mesh-api calls |
 | [core-crew.md](core-crew.md) | System actors — x-sink (results), x-sump (DLQ), x-pause/x-resume (human-in-the-loop) |
 | [core-crossplane.md](core-crossplane.md) | Crossplane XRD and Compositions — declarative actor deployment with inline sidecar rendering |
 | [core-state-proxy.md](core-state-proxy.md) | Virtual persistent state — filesystem emulation backed by S3, GCS, Redis, or NATS KV |
