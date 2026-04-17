@@ -13,10 +13,11 @@ RUN apk add --no-cache git
 # Copy source
 COPY . .
 
-# Build
+# Build all binaries
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway
+    CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway && \
+    CGO_ENABLED=0 GOOS=linux go build -o mesh-api ./cmd/mesh-api
 
 # Test image
 FROM builder AS tester
@@ -31,6 +32,7 @@ RUN apk --no-cache add ca-certificates postgresql-client
 WORKDIR /app
 
 COPY --from=builder /build/gateway .
+COPY --from=builder /build/mesh-api .
 COPY db/ /app/db/
 
 # Default port

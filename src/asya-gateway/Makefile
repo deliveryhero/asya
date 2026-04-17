@@ -17,8 +17,13 @@ cov-unit:
 	@echo "Gateway (unit) coverage:"
 	@go tool cover -func=$(COVERAGE_DIR)/cov.out | tail -1
 
-build:
+build: build-gateway build-mesh-api
+
+build-gateway:
 	go build -o bin/gateway ./cmd/gateway
+
+build-mesh-api:
+	go build -o bin/mesh-api ./cmd/mesh-api
 
 clean:
 	rm -rf bin/

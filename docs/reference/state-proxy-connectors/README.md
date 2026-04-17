@@ -1,5 +1,5 @@
 ---
-description: "State proxy connectors index: S3, GCS, Redis, NATS KV storage backends for virtual actor state"
+description: "State proxy connectors index: S3, GCS, Redis, NATS KV, PostgreSQL storage backends for virtual actor state"
 ---
 
 # State Proxy Connectors
@@ -22,6 +22,7 @@ See [core-state-proxy.md](../components/core-state-proxy.md) for architecture an
 | [GCS](gcs.md) | Google Cloud Storage | LWW or CAS | GCP deployments, model weights, large files |
 | [Redis](redis.md) | Redis | CAS with WATCH/EXEC | Fast key-value storage, small objects, TTL support |
 | [NATS KV](nats-kv.md) | NATS JetStream KV | CAS with revision (not yet implemented) | Cloud-native deployments with NATS infrastructure |
+| [PostgreSQL](pg.md) | PostgreSQL JSONB | Monotonic status ordering | Gateway mesh-api envelope state, document store with Mango-style queries |
 
 ## Consistency Models
 
@@ -132,3 +133,4 @@ Handler code can catch these exceptions directly — no SDK imports needed.
 
 - [State Proxy Architecture](../components/core-state-proxy.md) — runtime hooks, pod layout, HTTP protocol
 - [Crossplane](../components/core-crossplane.md) — Crossplane resource definition
+- [PostgreSQL Connector](pg.md) — Go-based JSONB document store for gateway mesh-api

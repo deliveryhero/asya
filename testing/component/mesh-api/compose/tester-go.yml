@@ -1,0 +1,17 @@
+# Tester service definition for mesh-api component tests.
+# This is included by reference from profiles/*.yml.
+# When used as an extends base, the parent profile sets MESH_API_URL and MESH_API_INTERNAL_URL.
+services:
+  tester-go:
+    build:
+      context: ../../../../src/asya-gateway
+      dockerfile: Dockerfile
+      target: tester
+    working_dir: /build
+    command: >
+      go test -v -count=1 -timeout=120s
+      -run TestComponent
+      ./internal/mesh/...
+    environment:
+      MESH_API_URL: http://mesh-api:8080
+      MESH_API_INTERNAL_URL: http://mesh-api:8081
