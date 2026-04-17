@@ -590,7 +590,7 @@ Design decisions:
   sidecar callbacks. Same binary, different auth boundaries.
 - **Adapters talk to mesh-api via localhost**: `http://127.0.0.1:8080` (same pod,
   no network hop). For hash-routed SSE, they go via Ingress with
-  `X-Asya-Envelope-ID` header.
+  `URI-extracted envelope ID` header.
 - **state-proxy-mesh over Unix socket**: mesh-api talks to PG through the
   state-proxy HTTP API over Unix socket. No PG driver in mesh-api binary.
 - **terminationGracePeriodSeconds: 35**: 30s for SSE drain + 5s buffer.
@@ -1005,7 +1005,7 @@ metadata:
     {{- include "asya-gateway.labels" . | nindent 4 }}
     app.kubernetes.io/component: ingress-sticky
   annotations:
-    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_asya_envelope_id"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$envelope_id"
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -1068,7 +1068,7 @@ metadata:
     {{- include "asya-gateway.labels" . | nindent 4 }}
     app.kubernetes.io/component: ingress-internal
   annotations:
-    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_asya_envelope_id"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$envelope_id"
     {{- with .Values.ingress.internalAnnotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -1144,11 +1144,11 @@ Client -> POST /api/v1/mesh/?actor=foo
   -> External Ingress (Exact /api/v1/mesh/) -> round-robin -> any mesh-api pod
   -> Returns {id: "abc123"}
 
-Client -> GET /api/v1/mesh/abc123/events (X-Asya-Envelope-ID: abc123)
+Client -> GET /api/v1/mesh/abc123/events (URI-extracted envelope ID: abc123)
   -> External Ingress (Prefix /api/v1/mesh/) -> hash(abc123) -> mesh-api pod X
   -> SSE stream
 
-Sidecar -> POST /api/v1/mesh/abc123/events (X-Asya-Envelope-ID: abc123)
+Sidecar -> POST /api/v1/mesh/abc123/events (URI-extracted envelope ID: abc123)
   -> Internal Ingress (Prefix /api/v1/mesh/) -> hash(abc123) -> mesh-api pod X
   -> 204
 
@@ -1582,13 +1582,13 @@ E2E tests for consistent hash routing via nginx Ingress.
 """
 
 class TestConsistentHash:
-    """X-Asya-Envelope-ID routes SSE and sidecar POSTs to same pod."""
+    """URI-extracted envelope ID routes SSE and sidecar POSTs to same pod."""
 
     def test_sse_and_sidecar_converge_on_same_pod(self, e2e_helper):
         """
         With replicaCount=2:
         1. Create message (round-robin)
-        2. Subscribe SSE with X-Asya-Envelope-ID (hash-routed)
+        2. Subscribe SSE with URI-extracted envelope ID (hash-routed)
         3. Sidecar POSTs events with same header (hash-routed)
         4. SSE receives events (proves same pod)
         """
@@ -1759,9 +1759,9 @@ Single deployment with three containers:
 
 nginx Ingress routes:
 - `/api/v1/mesh/` Exact -> round-robin (task creation)
-- `/api/v1/mesh/` Prefix -> hash by X-Asya-Envelope-ID (SSE, status, events)
-- `/mcp/` Prefix -> hash by X-Asya-Envelope-ID
-- `/a2a/` Prefix -> hash by X-Asya-Envelope-ID
+- `/api/v1/mesh/` Prefix -> hash by URI-extracted envelope ID (SSE, status, events)
+- `/mcp/` Prefix -> hash by URI-extracted envelope ID
+- `/a2a/` Prefix -> hash by URI-extracted envelope ID
 
 Special root routes:
 - `/.well-known/agent.json` -> a2a-adapter (served from ConfigMap)

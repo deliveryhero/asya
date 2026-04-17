@@ -321,7 +321,7 @@ func IsInterrupted(status string) bool {
 // to the returned channel. The channel is closed when the stream ends, the
 // context is canceled, or an error occurs. The error (if any) is sent on errCh.
 //
-// The caller must provide the X-Asya-Envelope-ID header for consistent hash
+// The caller must provide the [REMOVED — URI-based routing, no header needed] header for consistent hash
 // routing via Ingress.
 func Subscribe(ctx context.Context, url string, envelopeID string) (<-chan Event, <-chan error) {
 	events := make(chan Event, 32)
@@ -337,7 +337,7 @@ func Subscribe(ctx context.Context, url string, envelopeID string) (<-chan Event
 			return
 		}
 		req.Header.Set("Accept", "text/event-stream")
-		req.Header.Set("X-Asya-Envelope-ID", envelopeID)
+		req.Header.Set("[REMOVED — URI-based routing, no header needed]", envelopeID)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -497,7 +497,7 @@ func TestParseSSE_SkipsKeepaliveComments(t *testing.T) {
 func TestSubscribe_SetsEnvelopeIDHeader(t *testing.T) {
 	var receivedHeader string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedHeader = r.Header.Get("X-Asya-Envelope-ID")
+		receivedHeader = r.Header.Get("[REMOVED — URI-based routing, no header needed]")
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("event: status\ndata: {\"status\":\"succeeded\"}\n\n"))
 	}))
@@ -690,7 +690,7 @@ func (c *Client) Get(ctx context.Context, id string) (*MessageStatus, error) {
 }
 
 // SubscribeEvents opens an SSE stream for the given message ID via Ingress
-// (hash-routed by X-Asya-Envelope-ID header).
+// (hash-routed by [REMOVED — URI-based routing, no header needed] header).
 func (c *Client) SubscribeEvents(ctx context.Context, id string) (<-chan sseclient.Event, <-chan error) {
 	url := fmt.Sprintf("%s/api/v1/mesh/%s/events", c.ingressURL, id)
 	return sseclient.Subscribe(ctx, url, id)
@@ -823,7 +823,7 @@ func TestCancel_Success(t *testing.T) {
 func TestSubscribeEvents_ViaIngress(t *testing.T) {
 	var receivedEnvelopeID string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedEnvelopeID = r.Header.Get("X-Asya-Envelope-ID")
+		receivedEnvelopeID = r.Header.Get("[REMOVED — URI-based routing, no header needed]")
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("event: status\ndata: {\"status\":\"succeeded\"}\n\n"))
 	}))

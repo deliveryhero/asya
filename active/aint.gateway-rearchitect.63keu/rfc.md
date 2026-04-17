@@ -38,7 +38,7 @@ what it's designed for.
 ### 3.1 Component Overview
 
 ```
-nginx Ingress (auth, TLS, rate limit, consistent hash by X-Asya-Envelope-ID)
+nginx Ingress (auth, TLS, rate limit, consistent hash by URI-extracted envelope ID)
 +---------------------------------------------------------------------------+
 | /api/v1/mesh/*  --> asya-mesh-api :8080  (external mesh API)              |
 | /mcp/*          --> asya-mcp-adapter :8082 (MCP Streamable HTTP)          |
@@ -96,8 +96,8 @@ GET    /api/v1/mesh/{id}              Message status + metadata from DB
   Response: 200 {"id": "abc123", "status": "running", "data": {...}}
 
 GET    /api/v1/mesh/{id}/events       Subscribe to SSE stream
-  Header: X-Asya-Envelope-ID: {id}   (for Ingress consistent hash routing)
   Response: 200 text/event-stream
+  (Ingress extracts {id} from URI path for consistent hash routing)
   Events: status updates, FLY events, terminal status
 
 DELETE /api/v1/mesh/{id}              Cancel message
@@ -112,8 +112,8 @@ GET    /api/v1/mesh/                  List messages
 
 ```
 POST   /api/v1/mesh/{id}/events      Publish event (sidecar status OR FLY)
-  Header: X-Asya-Envelope-ID: {id}   (for Ingress consistent hash routing)
   Body: {"type": "status", "status": "running", "data": {"actor": "x", "progress": 50}}
+  (Ingress extracts {id} from URI path for consistent hash routing)
   Body: {"type": "fly", "data": {"text": "token..."}}
   Body: {"type": "status", "status": "succeeded", "data": {"actor": "x-sink"}}
   Response: 204
@@ -176,7 +176,7 @@ if gatewayURL == "" {
 
 // 2. Unified event POST (replaces separate progress/final/fly POSTs)
 req, _ := http.NewRequest("POST", gatewayURL+"/api/v1/mesh/"+id+"/events", body)
-req.Header.Set("X-Asya-Envelope-ID", id) // for Ingress hash routing
+// No custom header needed — Ingress extracts ID from URI path
 
 // 3. Check if still active (replaces /mesh/{id}/active)
 resp := http.Get(gatewayURL+"/api/v1/mesh/"+id)
@@ -185,7 +185,10 @@ if resp.Status == "canceled" || resp.Status == "paused" { stop() }
 
 ### 3.6 Consistent Hash Routing
 
-Two nginx Ingresses, both hash by X-Asya-Envelope-ID:
+The envelope ID is already in the URL path (`/api/v1/mesh/{id}/...`). nginx
+extracts it with a `map` directive — no custom HTTP header needed.
+
+Two nginx Ingresses, both hash by URI-extracted envelope ID:
 
 **External Ingress:**
 ```yaml
@@ -209,7 +212,12 @@ kind: Ingress
 metadata:
   name: asya-mesh-api-sticky
   annotations:
-    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_asya_envelope_id"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      map $uri $envelope_id {
+        ~^/api/v1/mesh/([^/]+) $1;
+        default "";
+      }
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$envelope_id"
 spec:
   rules:
   - http:
@@ -235,7 +243,12 @@ kind: Ingress
 metadata:
   name: asya-mesh-api-internal
   annotations:
-    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_asya_envelope_id"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      map $uri $envelope_id {
+        ~^/api/v1/mesh/([^/]+) $1;
+        default "";
+      }
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$envelope_id"
 spec:
   rules:
   - http:
@@ -284,10 +297,10 @@ func handleEventsGet(w http.ResponseWriter, r *http.Request) {
 ```
 Pod A holds SSE for "abc123". Pod A dies.
 1. SSE drops (TCP reset)
-2. Client reconnects: GET /api/v1/mesh/abc123/events (X-Asya-Envelope-ID: abc123)
-3. Ketama hash ring rebalances: abc123 -> Pod B
+2. Client reconnects: GET /api/v1/mesh/abc123/events
+3. Ingress extracts "abc123" from URI, hash ring rebalanced: -> Pod B
 4. Pod B catches up from DB, subscribes
-5. Sidecar next POST: X-Asya-Envelope-ID: abc123 -> Ingress -> Pod B (same hash)
+5. Sidecar next POST: /api/v1/mesh/abc123/events -> Ingress extracts ID -> Pod B (same hash)
 6. Both sides converge on Pod B
 ```
 

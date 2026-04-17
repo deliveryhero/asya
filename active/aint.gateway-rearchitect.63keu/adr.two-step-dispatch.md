@@ -9,8 +9,8 @@ date: 2026-04-16
 ## Context
 
 asya-mesh-api uses consistent hash routing (nginx Ingress, upstream-hash-by
-X-Asya-Envelope-ID) so that sidecar callbacks and SSE subscribers for the same
-message land on the same pod.
+envelope ID extracted from URI path) so that sidecar callbacks and SSE
+subscribers for the same message land on the same pod.
 
 Problem: when creating a message, the envelope ID doesn't exist yet. The first
 request has no hash key. If creation round-robins to Pod B but hash("abc123")
@@ -22,7 +22,7 @@ maps to Pod A, sidecar callbacks go to Pod A while SSE is held on Pod B.
 
 1. `POST /api/v1/mesh/?actor=foo` -- round-robin, any pod. Generates ID,
    dispatches to MQ, returns `{"id": "abc123"}`. No SSE held.
-2. `GET /api/v1/mesh/abc123/events` -- hash-routed by X-Asya-Envelope-ID.
+2. `GET /api/v1/mesh/abc123/events` -- hash-routed by URI-extracted envelope ID.
    Consistent pod holds SSE connection.
 
 The ID exists before the hash-routed request, solving the chicken-and-egg.

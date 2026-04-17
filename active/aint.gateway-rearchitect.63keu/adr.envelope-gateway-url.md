@@ -39,7 +39,9 @@ Sidecar falls back to `ASYA_GATEWAY_URL` env var if the header is missing
 - Actors fully decoupled from gateway topology
 - Different dispatchers can dispatch to same actors (multi-tenant)
 - Gateway URL changes don't require actor redeployment
-- Sidecar also sets `X-Asya-Envelope-ID` header for Ingress hash routing
+- No custom HTTP header needed for Ingress routing — the envelope ID is
+  already in the URL path (`/api/v1/mesh/{id}/events`), Ingress extracts
+  it with a URI map directive
 - Backward-compatible: env var works as fallback
 
 ## Alternatives Considered

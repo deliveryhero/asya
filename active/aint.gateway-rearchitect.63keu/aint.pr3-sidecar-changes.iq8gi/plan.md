@@ -164,10 +164,10 @@ url := fmt.Sprintf("%s/mesh/%s/final", r.resolveGatewayURL(msg), msg.ID)
 
 Similarly for the deprecated `reportFinalStatus` (line 1621) — update to accept envelope or leave as-is since it's deprecated and only used in legacy code paths.
 
-### 1.5 Set X-Asya-Envelope-ID header on all outgoing requests
+### 1.5 Set [REMOVED — URI-based routing, no header needed] header on all outgoing requests
 
 For Ingress consistent hash routing, all HTTP requests to the gateway must carry
-the `X-Asya-Envelope-ID` header.
+the `[REMOVED — URI-based routing, no header needed]` header.
 
 **File:** `src/asya-sidecar/internal/progress/reporter.go`
 
@@ -176,10 +176,10 @@ Add the header to every outgoing request. Update `ReportProgress`, `ForwardFly`,
 (Change 2).
 
 ```go
-// setEnvelopeHeader adds the X-Asya-Envelope-ID header for Ingress hash routing.
+// setEnvelopeHeader adds the [REMOVED — URI-based routing, no header needed] header for Ingress hash routing.
 func setEnvelopeHeader(req *http.Request, envelopeID string) {
 	if envelopeID != "" {
-		req.Header.Set("X-Asya-Envelope-ID", envelopeID)
+		req.Header.Set("[REMOVED — URI-based routing, no header needed]", envelopeID)
 	}
 }
 ```
@@ -591,7 +591,7 @@ func TestPostEvent_StatusEvent(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedPath = r.URL.Path
-		receivedEnvelopeID = r.Header.Get("X-Asya-Envelope-ID")
+		receivedEnvelopeID = r.Header.Get("[REMOVED — URI-based routing, no header needed]")
 		if err := json.NewDecoder(r.Body).Decode(&receivedEvent); err != nil {
 			t.Errorf("Failed to decode: %v", err)
 		}
@@ -610,7 +610,7 @@ func TestPostEvent_StatusEvent(t *testing.T) {
 
 	assert(t, err == nil, "PostEvent returned error: %v", err)
 	assert(t, receivedPath == "/api/v1/mesh/abc123/events", "path = %s", receivedPath)
-	assert(t, receivedEnvelopeID == "abc123", "X-Asya-Envelope-ID = %s", receivedEnvelopeID)
+	assert(t, receivedEnvelopeID == "abc123", "[REMOVED — URI-based routing, no header needed] = %s", receivedEnvelopeID)
 	assert(t, receivedEvent.Type == progress.EventTypeStatus, "type = %s", receivedEvent.Type)
 	assert(t, receivedEvent.Status == "running", "status = %s", receivedEvent.Status)
 }
@@ -679,7 +679,7 @@ func TestCheckMessage_Canceled(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert(t, r.URL.Path == "/api/v1/mesh/abc123", "path = %s", r.URL.Path)
 		assert(t, r.Method == http.MethodGet, "method = %s", r.Method)
-		assert(t, r.Header.Get("X-Asya-Envelope-ID") == "abc123", "missing envelope ID header")
+		assert(t, r.Header.Get("[REMOVED — URI-based routing, no header needed]") == "abc123", "missing envelope ID header")
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(progress.MessageStatus{ID: "abc123", Status: "canceled"})
