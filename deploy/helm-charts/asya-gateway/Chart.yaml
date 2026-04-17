@@ -1,6 +1,6 @@
 apiVersion: v2
 name: asya-gateway
-description: Asya MCP Gateway with PostgreSQL backend
+description: Asya mesh-api + protocol adapters (MCP, A2A) gateway
 type: application
 # versions are replaced by automatically .github/workflows/release.yml
 version: 0.0.0

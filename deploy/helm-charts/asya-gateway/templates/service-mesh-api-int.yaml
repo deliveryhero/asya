@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "asya-gateway.meshApiInt.fullname" . }}
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-api-int
+spec:
+  type: {{ .Values.service.meshApiInternal.type }}
+  ports:
+  - port: {{ .Values.service.meshApiInternal.port }}
+    targetPort: mesh-int
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "asya-gateway.selectorLabels" . | nindent 4 }}
