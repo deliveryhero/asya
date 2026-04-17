@@ -22,12 +22,10 @@ Complete reference for all `asya-gateway` HTTP endpoints. Routes are split acros
 | `GET` | `/oauth/authorize` | api | Public | MCP clients |
 | `POST` | `/oauth/token` | api | Public | MCP clients |
 | `POST` | `/mesh` | mesh | Network isolation | Sidecar (fanout) |
-| `GET` | `/mesh/{id}` | mesh | Network isolation | Sidecar, asya-lab |
+| `GET` | `/api/v1/mesh/{id}` | mesh | Network isolation | Sidecar (pre-flight check) |
+| `POST` | `/api/v1/mesh/{id}/events` | mesh | Network isolation | Sidecar (all status + FLY events) |
+| `GET` | `/mesh/{id}` | mesh | Network isolation | asya-lab |
 | `GET` | `/mesh/{id}/stream` | mesh | Network isolation | Sidecar, asya-lab |
-| `GET` | `/mesh/{id}/active` | mesh | Network isolation | Sidecar |
-| `POST` | `/mesh/{id}/progress` | mesh | Network isolation | Sidecar |
-| `POST` | `/mesh/{id}/final` | mesh | Network isolation | x-sink, x-sump |
-| `POST` | `/mesh/{id}/fly` | mesh | Network isolation | Sidecar (FLY events) |
 | `POST` | `/mesh/config-reload` | mesh | Network isolation | Operators |
 | `GET` | `/health` | api + mesh | Public | K8s probes |
 
@@ -440,72 +438,81 @@ The SSE event type defaults to `partial`. If the FLY payload contains an A2A-spe
 
 ---
 
-#### `GET /mesh/{id}/active`
+#### `GET /api/v1/mesh/{id}`
 
-Allows sidecars to check whether a task is still accepting updates (not timed out or completed).
+Pre-flight check. The sidecar calls this before processing to detect canceled or paused messages. If the response indicates `canceled` or `paused`, the sidecar skips processing and routes the envelope to `x-sink`.
 
-**Response** `200`: `{ "active": true }`
-**Response** `410 Gone`: `{ "active": false }`
-
----
-
-#### `POST /mesh/{id}/progress`
-
-Reports per-actor progress. Called by the sidecar at three checkpoints: `received` -> `processing` -> `completed`.
-
-**Progress formula**: `(len(prev) + status_weight) x 100 / total_actors`
-
-| Actor state | `status_weight` |
-|-------------|----------------|
-| `received` | 0.1 |
-| `processing` | 0.5 |
-| `completed` | 1.0 |
-
-**Request** `application/json`:
-
-```json
-{
-  "prev": ["actor-a"],
-  "curr": "actor-b",
-  "next": ["actor-c"],
-  "status": "processing",
-  "message": "actor-b: processing input"
-}
-```
-
-**Response** `200`: `{ "status": "ok", "progress_percent": 38.3 }`
-
----
-
-#### `POST /mesh/{id}/final`
-
-Reports final task status. Called by `x-sink` (on success) or `x-sump` (on failure).
-
-**Request** `application/json`:
+**Response** `200 application/json`:
 
 ```json
 {
   "id": "task-abc",
-  "status": "succeeded",
-  "result": { "output": "processed text" },
-  "current_actor_name": "x-sink",
-  "metadata": { "s3_uri": "s3://bucket/task-abc/result.json" }
+  "status": "running"
 }
 ```
 
-**Response** `200`: `{ "status": "ok" }`
+**Status values**: `pending`, `running`, `succeeded`, `failed`, `paused`, `canceled`.
+
+**Error** `404` — task not found (sidecar proceeds with normal processing).
 
 ---
 
-#### `POST /mesh/{id}/fly`
+#### `POST /api/v1/mesh/{id}/events`
 
-Broadcasts ephemeral FLY events from the sidecar to SSE clients. Body limited to 1 MiB. The `type` field determines the SSE event type (defaults to `partial`).
+Unified event endpoint. All sidecar-to-gateway communication (progress updates, FLY streaming tokens, final status) goes through this single endpoint. The `type` field distinguishes event kinds.
 
-FLY events are broadcast via PG LISTEN/NOTIFY for cross-process delivery (mesh → api gateway) and via in-process `NotifyFLY` channels for same-process subscribers. Events are NOT written to the database — they exist only in memory during task execution.
+**Request** `application/json`:
 
-**Request** `application/json` — arbitrary JSON, passed through verbatim.
+Status event (progress update):
+```json
+{
+  "type": "status",
+  "status": "processing",
+  "data": {
+    "prev": ["actor-a"],
+    "curr": "actor-b",
+    "next": ["actor-c"],
+    "status": "processing",
+    "message": "actor-b: processing input"
+  }
+}
+```
 
-**Response** `200` — empty body.
+FLY event (ephemeral streaming token):
+```json
+{
+  "type": "fly",
+  "data": {"text": "Hello"}
+}
+```
+
+Final status event (from x-sink/x-sump):
+```json
+{
+  "type": "status",
+  "status": "succeeded",
+  "data": {
+    "id": "task-abc",
+    "status": "succeeded",
+    "result": { "output": "processed text" }
+  }
+}
+```
+
+**Response** `204` — event accepted.
+
+FLY events are delivered to SSE subscribers via in-process Go channels. FLY events are NOT written to the database — they exist only in memory during task execution.
+
+**Status ordering**: The mesh-api enforces monotonic status progression. Status events with a lower-order status than the current one are silently dropped:
+
+| Order | Statuses |
+|-------|----------|
+| 0 | `pending` |
+| 1 | `running` |
+| 2 | `paused` |
+| 3 | `succeeded`, `failed`, `canceled` (terminal) |
+
+Once a message reaches a terminal status, no other status can overwrite it. FLY events have no ordering constraint — they are appended in arrival order.
 
 ---
 

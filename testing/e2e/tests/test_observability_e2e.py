@@ -148,17 +148,24 @@ class TestTracing:
 
     def test_multi_service_trace(self):
         """A single trace spans multiple actor services (end-to-end propagation)."""
-        data = _query_tempo('{name="actor.process"}', limit=20)
-        traces = data.get("traces", [])
-
-        multi_service = [
-            t for t in traces
-            if len(t.get("serviceStats", {})) > 1
-        ]
+        deadline = time.time() + 60
+        multi_service = []
+        total_traces = 0
+        while time.time() < deadline:
+            data = _query_tempo('{name="actor.process"}', limit=20)
+            traces = data.get("traces", [])
+            total_traces = len(traces)
+            multi_service = [
+                t for t in traces
+                if len(t.get("serviceStats", {})) > 1
+            ]
+            if multi_service:
+                break
+            time.sleep(5)
 
         assert len(multi_service) > 0, (
             "No multi-service traces found. Trace context may not be propagating across actors. "
-            f"Found {len(traces)} single-service traces."
+            f"Found {total_traces} single-service traces."
         )
 
         best = max(multi_service, key=lambda t: len(t.get("serviceStats", {})))

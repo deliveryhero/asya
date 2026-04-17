@@ -27,6 +27,8 @@ var (
 	meshFinalPathRegex    = regexp.MustCompile(`^/mesh/([^/]+)/final$`)
 	meshFlyPathRegex      = regexp.MustCompile(`^/mesh/([^/]+)/fly$`)
 	streamPathRegex       = regexp.MustCompile(`^/stream/([^/]+)$`)
+	meshAPIPathRegex      = regexp.MustCompile(`^/api/v1/mesh/([^/]+)$`)
+	meshAPIEventsRegex    = regexp.MustCompile(`^/api/v1/mesh/([^/]+)/events$`)
 )
 
 const maxPGNotifyPayload = 7900 // PG NOTIFY limit is 8000 bytes; leave room for task_id:type: prefix
@@ -364,6 +366,76 @@ func isFinalStatus(status types.EnvelopeStatus) bool {
 	return status == types.EnvelopeStatusSucceeded ||
 		status == types.EnvelopeStatusFailed ||
 		status == types.EnvelopeStatusCanceled
+}
+
+// HandleMeshStatusAPI handles GET /api/v1/mesh/{id} — returns task status for
+// pre-flight checks. Delegates to HandleMeshStatus by rewriting the URL path.
+func (h *Handler) HandleMeshStatusAPI(w http.ResponseWriter, r *http.Request) {
+	matches := meshAPIPathRegex.FindStringSubmatch(r.URL.Path)
+	if matches == nil {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+	r.URL.Path = "/mesh/" + matches[1]
+	h.HandleMeshStatus(w, r)
+}
+
+// meshEvent is the unified event payload for POST /api/v1/mesh/{id}/events.
+type meshEvent struct {
+	Type   string          `json:"type"`
+	Status string          `json:"status,omitempty"`
+	Data   json.RawMessage `json:"data,omitempty"`
+}
+
+// HandleMeshEventsAPI handles POST /api/v1/mesh/{id}/events — unified event
+// endpoint. Dispatches to progress, final, or fly handlers based on event type.
+func (h *Handler) HandleMeshEventsAPI(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	matches := meshAPIEventsRegex.FindStringSubmatch(r.URL.Path)
+	if matches == nil {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+	taskID := matches[1]
+
+	var event meshEvent
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	if err := json.Unmarshal(body, &event); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	switch event.Type {
+	case "fly":
+		r.URL.Path = "/mesh/" + taskID + "/fly"
+		r.Body = io.NopCloser(strings.NewReader(string(event.Data)))
+		r.ContentLength = int64(len(event.Data))
+		h.HandleMeshFly(w, r)
+
+	case "status":
+		isFinal := types.EnvelopeStatus(event.Status) == types.EnvelopeStatusSucceeded ||
+			types.EnvelopeStatus(event.Status) == types.EnvelopeStatusFailed
+		r.Body = io.NopCloser(strings.NewReader(string(event.Data)))
+		r.ContentLength = int64(len(event.Data))
+		if isFinal {
+			r.URL.Path = "/mesh/" + taskID + "/final"
+			h.HandleMeshFinal(w, r)
+		} else {
+			r.URL.Path = "/mesh/" + taskID + "/progress"
+			h.HandleMeshProgress(w, r)
+		}
+
+	default:
+		http.Error(w, fmt.Sprintf("Unknown event type: %s", event.Type), http.StatusBadRequest)
+	}
 }
 
 // HandleMeshActive handles GET /mesh/{id}/active (for actors to check if task is still valid)
