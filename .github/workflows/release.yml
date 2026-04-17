@@ -167,13 +167,16 @@ jobs:
       if: steps.changed.outputs.should_publish == 'true'
       run: pip install build
 
-    - name: Read package version
+    - name: Set package version from tag
       if: steps.changed.outputs.should_publish == 'true'
       id: version
       working-directory: src/asya-lab
       run: |
-        VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+        TAG="${{ github.event.release.tag_name }}"
+        VERSION="${TAG#v}"
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
+        sed -i "s/^__version__ = .*/__version__ = \"${VERSION}\"/" asya_lab/__init__.py
         echo "[.] Publishing asya-lab version: ${VERSION}"
 
     - name: Build package
