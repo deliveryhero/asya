@@ -831,7 +831,7 @@ func TestRouter_ProcessMessage_NoResiliency_FailsImmediately(t *testing.T) {
 	}
 
 	inputMsg := envelopes.Envelope{
-		ID:      "test-legacy",
+		ID:      "test-no-resiliency",
 		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}

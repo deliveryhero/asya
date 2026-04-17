@@ -65,74 +65,6 @@ func (r *Reporter) ReportProgress(ctx context.Context, id string, update Progres
 	})
 }
 
-// reportProgressLegacy sends a progress update directly to the legacy /mesh/{id}/progress endpoint.
-func (r *Reporter) reportProgressLegacy(ctx context.Context, id string, update ProgressUpdate) error {
-	if id == "" {
-		return nil
-	}
-
-	payload, err := json.Marshal(update)
-	if err != nil {
-		return fmt.Errorf("failed to marshal progress update: %w", err)
-	}
-
-	url := fmt.Sprintf("%s/mesh/%s/progress", r.gatewayURL, id)
-
-	slog.Info("Sending progress update to gateway (legacy)",
-		"task_id", id,
-		"status", update.Status,
-		"curr", update.Curr,
-		"url", url)
-
-	maxRetries := 5
-	retryDelay := 200 * time.Millisecond
-
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		if attempt > 0 {
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-time.After(retryDelay):
-			}
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		setEnvelopeHeader(req, id)
-
-		resp, err := r.httpClient.Do(req)
-		if err != nil {
-			slog.Warn("Failed to send progress update", "error", err, "attempt", attempt+1, "max_retries", maxRetries)
-			if attempt == maxRetries-1 {
-				return nil
-			}
-			continue
-		}
-		defer func() { _ = resp.Body.Close() }()
-
-		if resp.StatusCode != http.StatusOK {
-			slog.Warn("Progress update returned non-200 status", "status", resp.StatusCode, "attempt", attempt+1)
-			if attempt == maxRetries-1 {
-				return nil
-			}
-			continue
-		}
-
-		slog.Debug("Progress update sent successfully",
-			"task_id", id,
-			"status", update.Status,
-			"curr", update.Curr)
-
-		return nil
-	}
-
-	return nil
-}
-
 // GetGatewayURL returns the configured gateway URL
 func (r *Reporter) GetGatewayURL() string {
 	return r.gatewayURL
@@ -166,9 +98,8 @@ func setEnvelopeHeader(req *http.Request, envelopeID string) {
 	}
 }
 
-// PostEvent sends an event to the mesh-api unified endpoint.
-// Falls back to legacy endpoints (/mesh/{id}/progress, /mesh/{id}/fly,
-// /mesh/{id}/final) if the new endpoint returns 404.
+// PostEvent sends an event to the mesh-api unified endpoint
+// POST /api/v1/mesh/{id}/events.
 func (r *Reporter) PostEvent(ctx context.Context, id string, event MeshEvent) error {
 	if id == "" {
 		return nil
@@ -195,11 +126,6 @@ func (r *Reporter) PostEvent(ctx context.Context, id string, event MeshEvent) er
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode == http.StatusNotFound {
-		slog.Debug("Mesh-api /events returned 404, falling back to legacy endpoints", "id", id)
-		return r.postEventLegacyFallback(ctx, id, event)
-	}
-
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("mesh-api returned status %d for event POST", resp.StatusCode)
 	}
@@ -207,43 +133,9 @@ func (r *Reporter) PostEvent(ctx context.Context, id string, event MeshEvent) er
 	return nil
 }
 
-// postEventLegacyFallback routes to the old /mesh/{id}/progress, /mesh/{id}/fly,
-// or /mesh/{id}/final endpoints based on event type and status.
-func (r *Reporter) postEventLegacyFallback(ctx context.Context, id string, event MeshEvent) error {
-	switch event.Type {
-	case EventTypeFly:
-		return r.forwardFlyLegacy(ctx, id, event.Data)
-	case EventTypeStatus:
-		if event.Status == "succeeded" || event.Status == "failed" {
-			url := fmt.Sprintf("%s/mesh/%s/final", r.gatewayURL, id)
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(event.Data))
-			if err != nil {
-				return err
-			}
-			req.Header.Set("Content-Type", "application/json")
-			setEnvelopeHeader(req, id)
-			resp, err := r.httpClient.Do(req)
-			if err != nil {
-				return err
-			}
-			defer func() { _ = resp.Body.Close() }()
-			if resp.StatusCode >= 300 {
-				return fmt.Errorf("legacy /final returned status %d", resp.StatusCode)
-			}
-			return nil
-		}
-		return r.reportProgressLegacy(ctx, id, ProgressUpdate{
-			Status:  ProgressStatus(event.Status),
-			Message: "status update via legacy fallback",
-		})
-	default:
-		return fmt.Errorf("unknown event type: %s", event.Type)
-	}
-}
-
 // CheckMessage queries the mesh-api for the current status of a message.
 // Returns nil MessageStatus and nil error if the endpoint is unreachable or
-// returns 404 (backward compat: old gateway has no such endpoint).
+// returns a non-success status (the caller proceeds with normal processing).
 func (r *Reporter) CheckMessage(ctx context.Context, id string) (*MessageStatus, error) {
 	if id == "" {
 		return nil, nil
@@ -263,11 +155,6 @@ func (r *Reporter) CheckMessage(ctx context.Context, id string) (*MessageStatus,
 		return nil, nil
 	}
 	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == http.StatusNotFound {
-		slog.Debug("Pre-flight check: endpoint not found (legacy gateway), proceeding", "id", id)
-		return nil, nil
-	}
 
 	if resp.StatusCode >= 300 {
 		slog.Warn("Pre-flight check returned unexpected status", "id", id, "status", resp.StatusCode)
@@ -356,44 +243,7 @@ func (r *Reporter) CreateMesh(ctx context.Context, id, parentID string, route en
 	return nil
 }
 
-// ForwardFly sends a FLY event to the gateway via the unified endpoint.
-func (r *Reporter) ForwardFly(ctx context.Context, taskID string, payload json.RawMessage) error {
-	return r.PostEvent(ctx, taskID, MeshEvent{
-		Type: EventTypeFly,
-		Data: payload,
-	})
-}
-
-// forwardFlyLegacy sends a FLY event directly to the legacy /mesh/{id}/fly endpoint.
-func (r *Reporter) forwardFlyLegacy(ctx context.Context, taskID string, payload json.RawMessage) error {
-	if taskID == "" {
-		return nil
-	}
-
-	url := fmt.Sprintf("%s/mesh/%s/fly", r.gatewayURL, taskID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("failed to create FLY request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	setEnvelopeHeader(req, taskID)
-
-	resp, err := r.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to forward FLY event: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("FLY forward returned non-200 status: %d", resp.StatusCode)
-	}
-
-	return nil
-}
-
-// ReportFinalError reports a final error status to the gateway.
-// Delegates to PostEvent for unified endpoint with legacy fallback.
+// ReportFinalError reports a final error status to the gateway via PostEvent.
 func (r *Reporter) ReportFinalError(ctx context.Context, taskID, errorMsg string) error {
 	finalPayload := map[string]interface{}{
 		"id":        taskID,

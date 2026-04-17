@@ -4260,7 +4260,7 @@ func TestRouter_PreFlightCheck_404_ProceedsNormally(t *testing.T) {
 	router := NewRouter(cfg, mockTransport, runtimeClient, m)
 
 	inputMsg := envelopes.Envelope{
-		ID: "test-legacy-123",
+		ID: "test-preflight-404",
 		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",

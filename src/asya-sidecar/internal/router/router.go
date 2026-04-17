@@ -222,7 +222,8 @@ func (r *Router) getReporter(msg *envelopes.Envelope) *progress.Reporter {
 		return r.progressReporter
 	}
 	if cached, ok := r.reporters.Load(url); ok {
-		return cached.(*progress.Reporter)
+		rep, _ := cached.(*progress.Reporter)
+		return rep
 	}
 	reporter := progress.NewReporter(url, r.actorName)
 	r.reporters.Store(url, reporter)
@@ -815,6 +816,8 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envel
 }
 
 // ProcessMessage handles a single envelope from the queue
+//
+//nolint:gocyclo // orchestration function with pre-flight, SLA, runtime, and routing phases
 func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMessage) error {
 	startTime := time.Now()
 
@@ -1595,7 +1598,7 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *envelope
 		}
 	}
 
-	// Send to gateway via unified PostEvent with legacy fallback
+	// Send to gateway via unified PostEvent
 	payloadBytes, err := json.Marshal(finalPayload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal final status: %w", err)

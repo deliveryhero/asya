@@ -192,7 +192,6 @@ func TestReportProgress_NetworkError(t *testing.T) {
 	defer cancel()
 	err := reporter.ReportProgress(ctx, "test-job", update)
 
-	// PostEvent now returns error on network failure (no legacy fallback)
 	if err == nil {
 		t.Error("ReportProgress should return error for network error")
 	}
@@ -359,131 +358,6 @@ func TestReportProgress_WithTimingMetrics(t *testing.T) {
 		t.Error("MessageSizeKB was not sent")
 	} else if *receivedUpdate.MessageSizeKB != messageSizeKB {
 		t.Errorf("MessageSizeKB = %v, want %v", *receivedUpdate.MessageSizeKB, messageSizeKB)
-	}
-}
-
-func TestReportProgressLegacy_RetriesOnFailure(t *testing.T) {
-	attemptCount := 0
-	var receivedUpdate ProgressUpdate
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		attemptCount++
-
-		// Fail first 2 attempts, succeed on 3rd
-		if attemptCount < 3 {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&receivedUpdate); err != nil {
-			t.Errorf("Failed to decode request body: %v", err)
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	reporter := NewReporter(server.URL, "test-actor")
-
-	update := ProgressUpdate{
-		Prev:    []string{"parser"},
-		Curr:    "processor",
-		Next:    []string{"finalizer"},
-		Status:  StatusProcessing,
-		Message: "Processing data",
-	}
-
-	ctx := context.Background()
-	start := time.Now()
-	err := reporter.reportProgressLegacy(ctx, "test-message-123", update)
-	duration := time.Since(start)
-
-	if err != nil {
-		t.Errorf("reportProgressLegacy returned error: %v", err)
-	}
-
-	// Should have retried 3 times total (2 failures + 1 success)
-	if attemptCount != 3 {
-		t.Errorf("Expected 3 attempts, got %d", attemptCount)
-	}
-
-	// Should have taken at least 2 retry delays (2 * 200ms = 400ms)
-	minExpectedDuration := 400 * time.Millisecond
-	if duration < minExpectedDuration {
-		t.Errorf("Duration %v is less than expected minimum %v", duration, minExpectedDuration)
-	}
-
-	// Verify update was received on successful attempt
-	if receivedUpdate.Curr != "processor" {
-		t.Errorf("Received curr = %v, want processor", receivedUpdate.Curr)
-	}
-}
-
-func TestReportProgressLegacy_RetriesUpToMaxAttempts(t *testing.T) {
-	attemptCount := 0
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		attemptCount++
-		// Always fail
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
-
-	reporter := NewReporter(server.URL, "test-actor")
-
-	update := ProgressUpdate{
-		Prev:   []string{"parser"},
-		Curr:   "processor",
-		Next:   []string{"finalizer"},
-		Status: StatusProcessing,
-	}
-
-	ctx := context.Background()
-	err := reporter.reportProgressLegacy(ctx, "test-message-123", update)
-
-	// Should not return error (non-blocking)
-	if err != nil {
-		t.Errorf("reportProgressLegacy returned error: %v", err)
-	}
-
-	// Should have retried 5 times (maxRetries = 5)
-	if attemptCount != 5 {
-		t.Errorf("Expected 5 attempts, got %d", attemptCount)
-	}
-}
-
-func TestReportProgressLegacy_RespectsContextCancellationDuringRetry(t *testing.T) {
-	attemptCount := 0
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		attemptCount++
-		// Always fail to trigger retries
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
-
-	reporter := NewReporter(server.URL, "test-actor")
-
-	update := ProgressUpdate{
-		Prev:   []string{"parser"},
-		Curr:   "processor",
-		Next:   []string{"finalizer"},
-		Status: StatusProcessing,
-	}
-
-	// Create context that cancels after first attempt
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	err := reporter.reportProgressLegacy(ctx, "test-message-123", update)
-
-	// Should not return error (non-blocking)
-	if err != nil {
-		t.Errorf("reportProgressLegacy returned error: %v", err)
-	}
-
-	// Should have stopped after context cancellation (likely 1-2 attempts)
-	if attemptCount >= 5 {
-		t.Errorf("Expected fewer than 5 attempts due to context cancellation, got %d", attemptCount)
 	}
 }
 
@@ -870,16 +744,9 @@ func TestPostEvent_FlyEvent(t *testing.T) {
 	}
 }
 
-func TestPostEvent_FallbackToLegacy_On404(t *testing.T) {
-	var legacyPath string
-
+func TestPostEvent_404_ReturnsError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/events") {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		legacyPath = r.URL.Path
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
 
@@ -890,24 +757,17 @@ func TestPostEvent_FallbackToLegacy_On404(t *testing.T) {
 		Data: json.RawMessage(`{"text":"token"}`),
 	})
 
-	if err != nil {
-		t.Fatalf("PostEvent returned error: %v", err)
+	if err == nil {
+		t.Fatal("PostEvent should return error for 404")
 	}
-	if legacyPath != "/mesh/abc123/fly" {
-		t.Errorf("legacy path = %s, want /mesh/abc123/fly", legacyPath)
+	if !strings.Contains(err.Error(), "404") {
+		t.Errorf("error should mention 404, got: %v", err)
 	}
 }
 
-func TestPostEvent_FallbackToLegacy_Final_On404(t *testing.T) {
-	var legacyPath string
-
+func TestPostEvent_ServerError_ReturnsError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/events") {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		legacyPath = r.URL.Path
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
 
@@ -920,11 +780,11 @@ func TestPostEvent_FallbackToLegacy_Final_On404(t *testing.T) {
 		Data:   data,
 	})
 
-	if err != nil {
-		t.Fatalf("PostEvent returned error: %v", err)
+	if err == nil {
+		t.Fatal("PostEvent should return error for 500")
 	}
-	if legacyPath != "/mesh/abc123/final" {
-		t.Errorf("legacy path = %s, want /mesh/abc123/final", legacyPath)
+	if !strings.Contains(err.Error(), "500") {
+		t.Errorf("error should mention 500, got: %v", err)
 	}
 }
 
@@ -953,8 +813,6 @@ func TestPostEvent_EmptyID_Skipped(t *testing.T) {
 }
 
 func TestPostEvent_NetworkError_ReturnsError(t *testing.T) {
-	// When PostEvent fails to connect to the unified endpoint, it returns the
-	// error directly without falling back to legacy endpoints.
 	reporter := NewReporter("http://192.0.2.1:1", "test-actor")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -1123,7 +981,7 @@ func TestReportProgress_SetsEnvelopeIDHeader(t *testing.T) {
 	}
 }
 
-func TestForwardFly_SetsEnvelopeIDHeader(t *testing.T) {
+func TestPostEvent_FlyEvent_SetsEnvelopeIDHeader(t *testing.T) {
 	var receivedEnvelopeID string
 	var receivedPath string
 
@@ -1135,13 +993,15 @@ func TestForwardFly_SetsEnvelopeIDHeader(t *testing.T) {
 	defer server.Close()
 
 	reporter := NewReporter(server.URL, "test-actor")
-	err := reporter.ForwardFly(context.Background(), "fly-id-456", json.RawMessage(`{"text":"hi"}`))
+	err := reporter.PostEvent(context.Background(), "fly-id-456", MeshEvent{
+		Type: EventTypeFly,
+		Data: json.RawMessage(`{"text":"hi"}`),
+	})
 
 	if err != nil {
-		t.Fatalf("ForwardFly returned error: %v", err)
+		t.Fatalf("PostEvent returned error: %v", err)
 	}
 
-	// ForwardFly now delegates to PostEvent, which uses the unified endpoint
 	if receivedPath != "/api/v1/mesh/fly-id-456/events" {
 		t.Errorf("path = %s, want /api/v1/mesh/fly-id-456/events", receivedPath)
 	}
