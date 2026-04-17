@@ -103,13 +103,25 @@ class GatewayTestHelper:
         }
 
     def get_task_status(self, task_id: str, timeout: int = 5) -> dict:
-        """Get task status via REST API."""
+        """Get task status via REST API.
+
+        Returns a normalized dict with top-level 'status' and fields from the
+        message data merged in, compatible with the old monolith gateway shape.
+        """
         logger.debug(f"Getting task status for: {task_id}")
         response = requests.get(f"{self.tasks_url}/{task_id}", timeout=timeout)
         response.raise_for_status()
-        task_status = response.json()
-        logger.debug(f"Task status: {task_status}")
-        return task_status
+        raw = response.json()
+        logger.debug(f"Task status raw: {raw}")
+
+        # New mesh-api wraps actor data under 'data'. Merge it so that tests
+        # written for the old gateway still see 'status', 'result', etc. at
+        # the top level. Top-level fields (id, status) take precedence.
+        normalized: dict = {}
+        if isinstance(raw.get("data"), dict):
+            normalized.update(raw["data"])
+        normalized.update({k: v for k, v in raw.items() if k != "data"})
+        return normalized
 
     def stream_task_progress(
         self,
