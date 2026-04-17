@@ -14,6 +14,9 @@ include:
 - path: ../../../shared/compose/pubsub.yml
 - path: ../../../shared/compose/fake-gcs.yml
 - path: ../../../shared/compose/postgres.yml
+# Asya gateway (mesh-api + pg-kv)
+- path: ../../../shared/compose/asya/gateway.yml
+  env_file: .env.pubsub-gcs
 # Asya components:
 - path: ../../../shared/compose/asya/testing-actors.yml
   env_file: .env.pubsub-gcs
@@ -22,11 +25,9 @@ include:
 
 services:
   gateway:
-    extends:
-      file: ../../../shared/compose/asya/gateway.yml
-      service: gateway
-    env_file: .env.pubsub-gcs
     depends_on:
+      pg-kv:
+        condition: service_started
       pubsub:
         condition: service_healthy
       queue-setup:

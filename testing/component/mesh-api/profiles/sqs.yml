@@ -94,6 +94,7 @@ services:
       ASYA_MESH_INTERNAL_PORT: "8081"
       ASYA_STATEPROXY_SOCKET: /tmp/stateproxy.sock
       ASYA_INTERNAL_URL: http://mesh-api:8081
+      ASYA_QUEUE_TRANSPORT: sqs
       ASYA_SQS_ENDPOINT: http://sqs:4566
       ASYA_SQS_REGION: us-east-1
       ASYA_NAMESPACE: test

@@ -131,6 +131,7 @@ spec:
           {{- toYaml .Values.securityContext | nindent 12 }}
         image: "{{ .Values.mcp.image.repository }}:{{ .Values.mcp.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.mcp.image.pullPolicy }}
+        command: ["./mcp-adapter"]
         ports:
         - name: mcp
           containerPort: 8082
@@ -175,6 +176,7 @@ spec:
           {{- toYaml .Values.securityContext | nindent 12 }}
         image: "{{ .Values.a2a.image.repository }}:{{ .Values.a2a.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.a2a.image.pullPolicy }}
+        command: ["./a2a-adapter"]
         ports:
         - name: a2a
           containerPort: 8083

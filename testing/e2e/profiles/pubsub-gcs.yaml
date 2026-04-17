@@ -85,18 +85,26 @@ crew:
 gateway:
   meshApi:
     image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
       pullPolicy: Never
   mcp:
     enabled: true
     image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
       pullPolicy: Never
   a2a:
     enabled: true
     image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
       pullPolicy: Never
   stateProxy:
     mesh:
       image:
+        repository: ghcr.io/deliveryhero/asya-state-proxy-pg-kv
+        tag: dev
         pullPolicy: Never
   database:
     host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
