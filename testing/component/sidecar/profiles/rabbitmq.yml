@@ -20,21 +20,40 @@ services:
       context: ../../../../src/asya-gateway
       dockerfile: Dockerfile
     env_file: .env.rabbitmq
+    command: ["./mesh-api"]
     environment:
-      ASYA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
+      ASYA_MESH_EXTERNAL_PORT: "8080"
+      ASYA_MESH_INTERNAL_PORT: "8081"
+      ASYA_STATEPROXY_SOCKET: /tmp/stateproxy.sock
+      ASYA_INTERNAL_URL: http://gateway:8081
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
-      ASYA_GATEWAY_PORT: 8080
-      ASYA_GATEWAY_MODE: testing
-      ASYA_CONFIG_PATH: /etc/asya/flows
     volumes:
-    - ../../../shared/compose/configs/gateway-flows.yaml:/etc/asya/flows/flows.yaml:ro
+    - stateproxy-socket:/tmp
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s
       timeout: 3s
       retries: 10
     depends_on:
+      pg-kv:
+        condition: service_started
       rabbitmq:
+        condition: service_healthy
+
+  pg-kv:
+    build:
+      context: ../../../../src/asya-state-proxy
+      dockerfile: Dockerfile.pg-kv
+      target: builder
+    command: ["go", "run", "./cmd/pg-kv/"]
+    environment:
+      CONNECTOR_SOCKET: /tmp/stateproxy.sock
+      STATE_PROXY_PG_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
+      STATE_PROXY_PG_INDEXES: "status"
+    volumes:
+    - stateproxy-socket:/tmp
+    depends_on:
+      postgres:
         condition: service_healthy
 
   tester:
@@ -45,11 +64,12 @@ services:
     environment:
       ASYA_TRANSPORT: rabbitmq
     depends_on:
-      postgres-migrate:
-        condition: service_completed_successfully
       storage-setup:
         condition: service_completed_successfully
       gateway:
         condition: service_healthy
       test-actors-waiter:
         condition: service_completed_successfully
+
+volumes:
+  stateproxy-socket:
