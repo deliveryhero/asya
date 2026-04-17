@@ -16,7 +16,18 @@ import re
 from pathlib import Path
 from typing import ClassVar
 
-from omegaconf import DictConfig, ListMergeMode, OmegaConf
+from omegaconf import DictConfig, OmegaConf
+
+
+try:
+    from omegaconf import ListMergeMode
+
+    _MERGE_EXTEND_KW: dict = {"list_merge_mode": ListMergeMode.EXTEND}
+except ImportError:
+    # omegaconf <2.4 does not have ListMergeMode; fall back to default
+    # list-replace semantics so that ``uv tool install`` works with the
+    # latest *stable* omegaconf (2.3.x).
+    _MERGE_EXTEND_KW = {}
 
 from asya_lab.config.discovery import collect_asya_dirs
 
@@ -98,7 +109,7 @@ class ConfigStore:
         if len(per_dir_configs) == 1:
             self._cfg = per_dir_configs[0]
         else:
-            self._cfg = OmegaConf.merge(*per_dir_configs, list_merge_mode=ListMergeMode.EXTEND)
+            self._cfg = OmegaConf.merge(*per_dir_configs, **_MERGE_EXTEND_KW)
 
     def _load_asya_dir(self, asya_dir: Path) -> DictConfig:
         """Load all config files from a single .asya/ directory.
@@ -121,7 +132,7 @@ class ConfigStore:
                     continue
                 self._resolve_relative_paths(cfg, base_dir=asya_dir.parent)
                 self._sources[f] = cfg
-                result = OmegaConf.merge(result, cfg, list_merge_mode=ListMergeMode.EXTEND)
+                result = OmegaConf.merge(result, cfg, **_MERGE_EXTEND_KW)
             else:
                 if isinstance(cfg, DictConfig):
                     self._resolve_relative_paths(cfg, base_dir=asya_dir.parent)
@@ -137,7 +148,7 @@ class ConfigStore:
                 if leaf_key in current:
                     existing = OmegaConf.create({leaf_key: current[leaf_key]})
                     new = OmegaConf.create({leaf_key: cfg})
-                    merged = OmegaConf.merge(existing, new, list_merge_mode=ListMergeMode.EXTEND)
+                    merged = OmegaConf.merge(existing, new, **_MERGE_EXTEND_KW)
                     current[leaf_key] = merged[leaf_key]
                 else:
                     current[leaf_key] = cfg
