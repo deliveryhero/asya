@@ -14,7 +14,7 @@ data:
 
     # --- System packages (ephemeral, reinstalled on each pod start) ---
     apt-get update -qq
-    apt-get install -y -qq openssh-server netcat-openbsd sudo git curl tmux jq unzip > /dev/null 2>&1
+    apt-get install -y -qq openssh-server netcat-openbsd sudo git curl tmux jq unzip build-essential > /dev/null 2>&1
 
     # --- Create 'dev' user with sudo, home on PVC ---
     if ! id dev &>/dev/null; then
@@ -75,9 +75,10 @@ data:
     fi
 
     if ! command -v git-aint &>/dev/null; then
-      echo "[+] installing git-aint"
-      curl -sL https://github.com/atemate/git-aint/releases/latest/download/git-aint-linux-amd64 \
-        -o /home/dev/.local/bin/git-aint && chmod +x /home/dev/.local/bin/git-aint
+      echo "[+] installing rustup + git-aint"
+      su dev -c 'curl -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path'
+      su dev -c 'PATH=/home/dev/.cargo/bin:$PATH cargo install git-aint'
+      cp /home/dev/.cargo/bin/git-aint /home/dev/.local/bin/
     fi
 
     if ! command -v gcloud &>/dev/null; then
