@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 // NewHTTPHandler returns an http.Handler that routes to the connector.
@@ -196,7 +197,11 @@ func ListenUnixSocket(ctx context.Context, socketPath string, handler http.Handl
 		slog.Warn("Failed to chmod socket", "path", socketPath, "error", err)
 	}
 
-	server := &http.Server{Handler: handler}
+	server := &http.Server{
+		Handler:     handler,
+		ReadTimeout: 30 * time.Second,
+		IdleTimeout: 120 * time.Second,
+	}
 
 	// Graceful shutdown when context is canceled
 	go func() {

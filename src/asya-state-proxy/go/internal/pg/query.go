@@ -224,7 +224,7 @@ func (c *Connector) Query(ctx context.Context, req QueryRequest) (*QueryResponse
 			return nil, err
 		}
 		var total int
-		err = c.pool.QueryRow(ctx, sql, args...).Scan(&total)
+		err = c.pool.QueryRow(ctx, sql, args...).Scan(&total) // nosemgrep -- sql built from validated identifiers + parameterized args
 		if err != nil {
 			return nil, fmt.Errorf("query count: %w", err)
 		}
@@ -235,7 +235,7 @@ func (c *Connector) Query(ctx context.Context, req QueryRequest) (*QueryResponse
 	if err != nil {
 		return nil, err
 	}
-	rows, err := c.pool.Query(ctx, sql, args...)
+	rows, err := c.pool.Query(ctx, sql, args...) // nosemgrep -- sql built from validated identifiers + parameterized args
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
 	}

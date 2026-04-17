@@ -72,7 +72,7 @@ func EnsureIndexes(ctx context.Context, pool *pgxpool.Pool, indexSpec string) er
 		)
 		slog.Info("Creating expression index", "name", idxName, "expr", sqlExpr)
 		// CONCURRENTLY cannot run inside a transaction
-		if _, err := pool.Exec(ctx, sql); err != nil {
+		if _, err := pool.Exec(ctx, sql); err != nil { // nosemgrep -- idxName and sqlExpr validated by regex
 			return fmt.Errorf("create index %s: %w", idxName, err)
 		}
 	}
