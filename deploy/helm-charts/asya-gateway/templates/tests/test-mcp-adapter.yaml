@@ -22,14 +22,18 @@ spec:
       MCP_URL="http://{{ include "asya-gateway.mcp.fullname" . }}:{{ .Values.service.mcp.port }}"
 
       echo "[.] Testing MCP initialize..."
-      RESP=$(curl -sf -X POST "$MCP_URL/mcp" \
+      INIT_RESP=$(curl -sf -D /tmp/mcp-headers -X POST "$MCP_URL/mcp" \
         -H "Content-Type: application/json" \
         -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"helm-test","version":"1.0.0"}}}')
-      echo "[+] MCP initialize: $RESP"
+      echo "[+] MCP initialize: $INIT_RESP"
+
+      SESSION_ID=$(grep -i "Mcp-Session-Id" /tmp/mcp-headers | tr -d '\r' | awk '{print $2}')
+      echo "[+] Session ID: $SESSION_ID"
 
       echo "[.] Testing MCP tools/list..."
       TOOLS=$(curl -sf -X POST "$MCP_URL/mcp" \
         -H "Content-Type: application/json" \
+        -H "Mcp-Session-Id: $SESSION_ID" \
         -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}')
       echo "[+] MCP tools/list: $TOOLS"
 {{- end }}

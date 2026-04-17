@@ -71,6 +71,9 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "asya-gateway.fullname" . }}
+        {{- with .Values.extraEnvFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /health
@@ -91,6 +94,8 @@ spec:
 
       # --- state-proxy-pg-kv: PG connector sidecar ---
       - name: state-proxy-mesh
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
         image: "{{ .Values.stateProxy.mesh.image.repository }}:{{ .Values.stateProxy.mesh.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.stateProxy.mesh.image.pullPolicy }}
         env:

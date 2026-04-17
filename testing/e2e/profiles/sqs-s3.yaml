@@ -99,6 +99,9 @@ gateway:
     name: asya_gateway
     username: asya
     password: asya-db-password
+  extraEnvFrom:
+  - secretRef:
+      name: aws-creds
   transports:
     rabbitmq:
       enabled: false

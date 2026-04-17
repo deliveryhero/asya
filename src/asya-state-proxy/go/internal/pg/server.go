@@ -191,9 +191,9 @@ func ListenUnixSocket(ctx context.Context, socketPath string, handler http.Handl
 		}
 	}()
 
-	// Restrict socket to owner; containers in the same pod share the same
-	// user namespace, so 0600 is sufficient for inter-container access.
-	if err := os.Chmod(socketPath, 0600); err != nil { // nosemgrep
+	// Allow all processes in the pod to connect; the emptyDir volume is
+	// not accessible outside the pod, so 0666 is safe here.
+	if err := os.Chmod(socketPath, 0666); err != nil { // nosemgrep
 		slog.Warn("Failed to chmod socket", "path", socketPath, "error", err)
 	}
 

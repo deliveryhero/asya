@@ -173,6 +173,10 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
+# Extra envFrom sources injected into the mesh-api container (e.g. AWS credential secrets).
+# Example: [{secretRef: {name: aws-creds}}]
+extraEnvFrom: []
+
 podSecurityContext:
   fsGroup: 2000
 
