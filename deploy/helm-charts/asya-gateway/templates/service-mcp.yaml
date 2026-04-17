@@ -13,6 +13,9 @@ spec:
     targetPort: mcp
     protocol: TCP
     name: http
+    {{- if and .Values.service.mcp.nodePort (eq .Values.service.type "NodePort") }}
+    nodePort: {{ .Values.service.mcp.nodePort }}
+    {{- end }}
   selector:
     {{- include "asya-gateway.selectorLabels" . | nindent 4 }}
 {{- end }}

@@ -12,5 +12,8 @@ spec:
     targetPort: mesh-ext
     protocol: TCP
     name: http
+    {{- if and .Values.service.meshApi.nodePort (eq .Values.service.type "NodePort") }}
+    nodePort: {{ .Values.service.meshApi.nodePort }}
+    {{- end }}
   selector:
     {{- include "asya-gateway.selectorLabels" . | nindent 4 }}

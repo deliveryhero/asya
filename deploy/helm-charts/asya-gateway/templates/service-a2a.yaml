@@ -13,6 +13,9 @@ spec:
     targetPort: a2a
     protocol: TCP
     name: http
+    {{- if and .Values.service.a2a.nodePort (eq .Values.service.type "NodePort") }}
+    nodePort: {{ .Values.service.a2a.nodePort }}
+    {{- end }}
   selector:
     {{- include "asya-gateway.selectorLabels" . | nindent 4 }}
 {{- end }}
