@@ -113,6 +113,13 @@ time {
   docker build -t "function-asya-flavors:latest" "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
+  # Build PG state-proxy connector (always needed for mesh-api)
+  echo "[.] Building state-proxy pg-kv image..."
+  docker build -t "${IMAGE_PREFIX}asya-state-proxy-pg-kv:dev" \
+    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.pg-kv" \
+    "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
+  PG_KV_BUILD_PID=$!
+
   # Build state-proxy connector image for the active profile
   if [[ "$PROFILE" == "sqs-s3" ]]; then
     echo "[.] Building state-proxy S3 connector image..."
@@ -140,6 +147,12 @@ time {
     exit 1
   fi
   echo "[+] function-asya-flavors image built"
+
+  if ! wait "$PG_KV_BUILD_PID"; then
+    echo "[-] state-proxy pg-kv build failed"
+    exit 1
+  fi
+  echo "[+] state-proxy pg-kv image built"
 
   if [[ -n "${STATE_PROXY_BUILD_PID:-}" ]]; then
     if ! wait "$STATE_PROXY_BUILD_PID"; then
@@ -210,6 +223,7 @@ time {
     "asya-sidecar:latest"
     "asya-crew:latest"
     "asya-testing:latest"
+    "asya-state-proxy-pg-kv:dev"
   )
 
   if [[ "$PROFILE" == "sqs-s3" ]]; then
@@ -635,23 +649,8 @@ time {
 }
 echo
 
-# Phase 9b: Register test flows with the gateway
-# Flows are not seeded via Helm values — they are patched into the ConfigMap.
-# After patching, the gateway-api deployment is restarted so the new pod mounts
-# the updated ConfigMap on startup (avoids the ~60s Kubernetes propagation delay).
-echo "[.] Phase 9b: Registering test flows with gateway..."
-time {
-  kubectl create configmap asya-gateway-flows \
-    --from-file=flows.yaml="$CHARTS_DIR/flows.yaml" \
-    -n "$NAMESPACE" \
-    --dry-run=client -o yaml | kubectl apply -f -
-  echo "[+] Test flows registered"
-
-  echo "[.] Restarting asya-gateway-api to load updated flows on startup..."
-  kubectl rollout restart deployment/asya-gateway-api -n "$NAMESPACE"
-  kubectl rollout status deployment/asya-gateway-api -n "$NAMESPACE" --timeout=60s
-  echo "[+] asya-gateway-api restarted and ready"
-}
+# Phase 9b: Flow registration removed — tools/agents are now seeded via
+# Helm values (mcpTools/a2aAgents) in the gateway chart ConfigMaps.
 echo
 
 # Run Helm tests after Crossplane reconciliation and pod readiness.

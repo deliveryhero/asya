@@ -69,7 +69,6 @@ crew:
       image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:dev
   x-sink:
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
@@ -77,7 +76,6 @@ crew:
       minReplicaCount: 1
   x-sump:
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
@@ -85,10 +83,27 @@ crew:
       minReplicaCount: 1
 
 gateway:
-  routes:
-    defaults:
-      progress: true
-      timeout: 120
+  meshApi:
+    image:
+      pullPolicy: Never
+  mcp:
+    enabled: true
+    image:
+      pullPolicy: Never
+  a2a:
+    enabled: true
+    image:
+      pullPolicy: Never
+  stateProxy:
+    mesh:
+      image:
+        pullPolicy: Never
+  database:
+    host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
+    port: 5432
+    name: asya_gateway
+    username: asya
+    password: asya-db-password
   transports:
     rabbitmq:
       enabled: false
@@ -99,11 +114,23 @@ gateway:
       config:
         projectId: "test-project"
         endpoint: "pubsub-emulator.asya-system.svc.cluster.local:8085"
-  env:
-  - name: PUBSUB_EMULATOR_HOST
-    value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
-  - name: ASYA_NAMESPACE
-    value: "asya-e2e"
+  mcpTools:
+  - name: test_echo
+    description: "Echo test tool"
+    actor: test-echo
+    timeout: 120
+  a2aAgents:
+  - name: test-agent
+    description: "Test A2A agent"
+    actor: test-echo
+    timeout: 120
+    streaming: true
+    skills:
+    - id: echo
+      name: Echo
+      description: "Echo back input"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
   - name: ASYA_A2A_API_KEY
     value: "test-api-key-e2e"
   - name: ASYA_A2A_JWT_JWKS_URL
@@ -123,7 +150,6 @@ crossplane:
   sidecar:
     image: ghcr.io/deliveryhero/asya-sidecar:latest
     imagePullPolicy: Never
-    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
     tracingEndpoint: tempo.asya-e2e.svc.cluster.local:4317
     pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
     gcpProjectId: test-project

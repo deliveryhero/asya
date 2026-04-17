@@ -48,11 +48,9 @@ class GatewayTestHelper:
         mesh_gateway_url: str | None = None,
     ):
         if gateway_url is None:
-            gateway_url = require_env("ASYA_GATEWAY_URL")
-        # mesh_gateway_url separates api (tool calls) from mesh (task status) in split deployments.
-        # Defaults to gateway_url for single-deployment setups (integration tests / testing mode).
+            gateway_url = os.getenv("ASYA_MESH_API_URL") or require_env("ASYA_GATEWAY_URL")
         if mesh_gateway_url is None:
-            mesh_gateway_url = os.getenv("ASYA_MESH_GATEWAY_URL", gateway_url)
+            mesh_gateway_url = os.getenv("ASYA_MESH_API_INTERNAL_URL", gateway_url)
         self.gateway_url = gateway_url
         self.mesh_gateway_url = mesh_gateway_url
         self.tools_url = f"{gateway_url}/tools/call"

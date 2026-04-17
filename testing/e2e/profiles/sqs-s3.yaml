@@ -52,7 +52,6 @@ crew:
       secretKey: test
   x-sink:
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
       AWS_ACCESS_KEY_ID: "test"
@@ -62,7 +61,6 @@ crew:
       minReplicaCount: 1
   x-sump:
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
       AWS_ACCESS_KEY_ID: "test"
@@ -72,10 +70,27 @@ crew:
       minReplicaCount: 1
 
 gateway:
-  routes:
-    defaults:
-      progress: true
-      timeout: 120
+  meshApi:
+    image:
+      pullPolicy: Never
+  mcp:
+    enabled: true
+    image:
+      pullPolicy: Never
+  a2a:
+    enabled: true
+    image:
+      pullPolicy: Never
+  stateProxy:
+    mesh:
+      image:
+        pullPolicy: Never
+  database:
+    host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
+    port: 5432
+    name: asya_gateway
+    username: asya
+    password: asya-db-password
   transports:
     rabbitmq:
       enabled: false
@@ -86,11 +101,23 @@ gateway:
         region: "us-east-1"
         visibilityTimeout: 30
         waitTimeSeconds: 2
-  env:
-  - name: AWS_ACCESS_KEY_ID
-    value: "test"
-  - name: AWS_SECRET_ACCESS_KEY
-    value: "test"
+  mcpTools:
+  - name: test_echo
+    description: "Echo test tool"
+    actor: test-echo
+    timeout: 120
+  a2aAgents:
+  - name: test-agent
+    description: "Test A2A agent"
+    actor: test-echo
+    timeout: 120
+    streaming: true
+    skills:
+    - id: echo
+      name: Echo
+      description: "Echo back input"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
   - name: AWS_REGION
     value: "us-east-1"
   - name: ASYA_A2A_API_KEY
@@ -112,7 +139,6 @@ crossplane:
   sidecar:
     image: ghcr.io/deliveryhero/asya-sidecar:latest
     imagePullPolicy: Never
-    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
     sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
     sqsWaitTimeSeconds: "2"
     awsCredsSecret: aws-creds

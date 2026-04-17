@@ -5,6 +5,7 @@ FAIL-FAST: ASYA_GATEWAY_URL must be set by docker-compose.
 """
 
 import logging
+import os
 import time
 
 import pytest
@@ -34,7 +35,7 @@ def gateway_helper(request):
     - ASYA_TRANSPORT (transport type: rabbitmq, sqs, etc.)
     """
     config = get_config()
-    gateway_url = require_env("ASYA_GATEWAY_URL")
+    gateway_url = os.getenv("ASYA_MESH_API_URL") or require_env("ASYA_GATEWAY_URL")
 
     helper = GatewayTestHelper(gateway_url)
 
@@ -131,7 +132,7 @@ def gateway_helper_parametrized(request):
     - ASYA_TRANSPORT (transport type: rabbitmq, sqs, etc.)
     """
     config = get_config()
-    gateway_url = require_env("ASYA_GATEWAY_URL")
+    gateway_url = os.getenv("ASYA_MESH_API_URL") or require_env("ASYA_GATEWAY_URL")
     progress_method = request.param
 
     logger.info(f"\n{'=' * 80}")

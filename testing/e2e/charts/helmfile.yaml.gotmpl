@@ -420,22 +420,8 @@ releases:
     chart: ../../../deploy/helm-charts/asya-gateway
     needs:
       - postgres
-    set:
-      - name: postgresql.enabled
-        value: false
-      - name: externalDatabase.host
-        value: asya-gateway-postgresql.{{ .Values.namespace | default "asya-e2e" }}.svc.cluster.local
-      - name: externalDatabase.port
-        value: 5432
-      - name: externalDatabase.database
-        value: asya_gateway
-      - name: externalDatabase.username
-        value: asya
-      - name: externalDatabase.password
-        value: asya-db-password
     values:
       - {{- .Values.gateway | toYaml | nindent 8 }}
-      - exposedFlows: {{- readFile "flows.yaml" | fromYaml | get "flows" | toYaml | nindent 10 }}
       {{- if .Values.tracing.enabled }}
       - tracing:
           endpoint: {{ .Values.tracing.endpoint | quote }}
