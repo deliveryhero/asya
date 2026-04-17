@@ -41,6 +41,12 @@ a2a:
     limits:
       cpu: 250m
       memory: 256Mi
+  auth:
+    apiKey: ""
+    jwt:
+      jwksURL: ""
+      issuer: ""
+      audience: ""
 
 # --- State proxy sidecars ---
 stateProxy:

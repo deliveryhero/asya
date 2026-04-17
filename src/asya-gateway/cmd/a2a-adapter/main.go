@@ -59,9 +59,29 @@ func main() {
 		return registry.LoadFromDir(dir)
 	})
 
+	// Build auth middleware from env vars (optional; no auth if env vars are unset)
+	var auths []a2aadapter.Authenticator
+	if apiKey := os.Getenv("ASYA_A2A_API_KEY"); apiKey != "" {
+		auths = append(auths, a2aadapter.NewAPIKeyAuthenticator(apiKey))
+		slog.Info("A2A API key auth enabled")
+	}
+	if jwksURL := os.Getenv("ASYA_A2A_JWT_JWKS_URL"); jwksURL != "" {
+		issuer := os.Getenv("ASYA_A2A_JWT_ISSUER")
+		audience := os.Getenv("ASYA_A2A_JWT_AUDIENCE")
+		jwtAuth, err := a2aadapter.NewJWTAuthenticator(jwksURL, issuer, audience)
+		if err != nil {
+			slog.Error("Failed to initialize JWT authenticator", "error", err)
+			os.Exit(1)
+		}
+		defer jwtAuth.Close()
+		auths = append(auths, jwtAuth)
+		slog.Info("A2A JWT auth enabled", "jwks", jwksURL, "issuer", issuer)
+	}
+	authMW := a2aadapter.AuthMiddleware(auths...)
+
 	// Create HTTP server
 	mux := http.NewServeMux()
-	mux.Handle("/a2a/", a2aHTTPHandler)
+	mux.Handle("/a2a/", authMW(a2aHTTPHandler))
 	mux.Handle("/.well-known/agent.json", a2asrv.NewAgentCardHandler(cardProducer))
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

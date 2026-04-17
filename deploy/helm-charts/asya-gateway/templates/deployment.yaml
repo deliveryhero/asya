@@ -199,6 +199,18 @@ spec:
           {{- end }}
         - name: ASYA_A2A_CONFIG_DIR
           value: "/etc/asya/a2a"
+        {{- with .Values.a2a.auth.apiKey }}
+        - name: ASYA_A2A_API_KEY
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.a2a.auth.jwt.jwksURL }}
+        - name: ASYA_A2A_JWT_JWKS_URL
+          value: {{ . | quote }}
+        - name: ASYA_A2A_JWT_ISSUER
+          value: {{ $.Values.a2a.auth.jwt.issuer | quote }}
+        - name: ASYA_A2A_JWT_AUDIENCE
+          value: {{ $.Values.a2a.auth.jwt.audience | quote }}
+        {{- end }}
         {{- if .Values.stateProxy.envelopes.enabled }}
         - name: ASYA_ENVELOPE_PROXY_SOCKET
           value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.envelopes.socketDir | quote }}

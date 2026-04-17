@@ -87,6 +87,12 @@ gateway:
       repository: ghcr.io/deliveryhero/asya-gateway
       tag: latest
       pullPolicy: Never
+    auth:
+      apiKey: "test-api-key-e2e"
+      jwt:
+        jwksURL: "http://asya-jwks-server.asya-e2e.svc.cluster.local/jwks.json"
+        issuer: "https://test-issuer.e2e"
+        audience: "asya-gateway-e2e"
   stateProxy:
     mesh:
       image:
