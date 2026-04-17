@@ -9,7 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/stateproxypg"
+	"github.com/deliveryhero/asya/asya-state-proxy-go/internal/pg"
 )
 
 func main() {
@@ -47,22 +47,22 @@ func main() {
 	}
 
 	// Ensure schema
-	if err := stateproxypg.EnsureSchema(ctx, pool); err != nil {
+	if err := pg.EnsureSchema(ctx, pool); err != nil {
 		slog.Error("Failed to ensure schema", "error", err)
 		os.Exit(1)
 	}
 
 	// Create expression indexes from env var
 	indexSpec := os.Getenv("STATE_PROXY_PG_INDEXES")
-	if err := stateproxypg.EnsureIndexes(ctx, pool, indexSpec); err != nil {
+	if err := pg.EnsureIndexes(ctx, pool, indexSpec); err != nil {
 		slog.Error("Failed to create indexes", "error", err)
 		os.Exit(1)
 	}
 
-	conn := stateproxypg.NewConnector(pool)
-	handler := stateproxypg.NewHTTPHandler(conn)
+	conn := pg.NewConnector(pool)
+	handler := pg.NewHTTPHandler(conn)
 
-	if err := stateproxypg.ListenUnixSocket(ctx, socketPath, handler); err != nil {
+	if err := pg.ListenUnixSocket(ctx, socketPath, handler); err != nil {
 		slog.Error("Server failed", "error", err)
 		os.Exit(1)
 	}

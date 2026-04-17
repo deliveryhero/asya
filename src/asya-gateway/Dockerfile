@@ -17,8 +17,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway && \
-    CGO_ENABLED=0 GOOS=linux go build -o mesh-api ./cmd/mesh-api && \
-    CGO_ENABLED=0 GOOS=linux go build -o state-proxy-pg ./cmd/state-proxy-pg
+    CGO_ENABLED=0 GOOS=linux go build -o mesh-api ./cmd/mesh-api
 
 # Test image
 FROM builder AS tester
@@ -34,7 +33,6 @@ WORKDIR /app
 
 COPY --from=builder /build/gateway .
 COPY --from=builder /build/mesh-api .
-COPY --from=builder /build/state-proxy-pg .
 COPY db/ /app/db/
 
 # Default port

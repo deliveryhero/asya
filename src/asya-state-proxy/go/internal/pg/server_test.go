@@ -1,4 +1,4 @@
-package stateproxypg
+package pg
 
 import (
 	"encoding/json"

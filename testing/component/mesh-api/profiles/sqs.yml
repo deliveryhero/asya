@@ -67,11 +67,11 @@ services:
 
   state-proxy-pg:
     build:
-      context: ../../../../src/asya-gateway
-      dockerfile: Dockerfile
+      context: ../../../../src/asya-state-proxy
+      dockerfile: Dockerfile.pg
       target: builder
     logging: *default-logging
-    command: ["go", "run", "./cmd/state-proxy-pg"]
+    command: ["go", "run", "./cmd/state-proxy-pg/"]
     environment:
       CONNECTOR_SOCKET: /tmp/stateproxy.sock
       STATE_PROXY_PG_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
