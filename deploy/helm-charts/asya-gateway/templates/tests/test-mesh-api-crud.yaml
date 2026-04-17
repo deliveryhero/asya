@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-gateway.fullname" . }}-test-crud"
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      set -e
+      MESH_URL="http://{{ include "asya-gateway.meshApi.fullname" . }}:{{ .Values.service.meshApi.port }}"
+
+      echo "[.] Creating test message..."
+      CREATE_RESP=$(curl -sf -X POST "$MESH_URL/api/v1/mesh/?actor=test-nonexistent" \
+        -H "Content-Type: application/json" \
+        -d '{"payload":{"test":true},"headers":{},"timeout":60}')
+      MSG_ID=$(echo "$CREATE_RESP" | jq -r '.id')
+      echo "[+] Created message: $MSG_ID"
+
+      echo "[.] Getting message status..."
+      GET_RESP=$(curl -sf "$MESH_URL/api/v1/mesh/$MSG_ID")
+      STATUS=$(echo "$GET_RESP" | jq -r '.status')
+      echo "[+] Status: $STATUS"
+
+      echo "[.] Canceling message..."
+      curl -sf -X DELETE "$MESH_URL/api/v1/mesh/$MSG_ID"
+      echo "[+] Canceled"
+
+      echo "[+] CRUD test passed"

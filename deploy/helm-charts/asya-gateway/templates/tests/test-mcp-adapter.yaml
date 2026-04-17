@@ -1,0 +1,35 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-gateway.fullname" . }}-test-mcp"
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "2"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      set -e
+      MCP_URL="http://{{ include "asya-gateway.mcp.fullname" . }}:{{ .Values.service.mcp.port }}"
+
+      echo "[.] Testing MCP initialize..."
+      RESP=$(curl -sf -X POST "$MCP_URL/mcp" \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"helm-test","version":"1.0.0"}}}')
+      echo "[+] MCP initialize: $RESP"
+
+      echo "[.] Testing MCP tools/list..."
+      TOOLS=$(curl -sf -X POST "$MCP_URL/mcp" \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}')
+      echo "[+] MCP tools/list: $TOOLS"
+{{- end }}

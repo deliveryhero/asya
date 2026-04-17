@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-gateway.fullname" . }}-test-health"
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      set -e
+      echo "[.] Testing mesh-api external health..."
+      wget --spider -S http://{{ include "asya-gateway.meshApi.fullname" . }}:{{ .Values.service.meshApi.port }}/health
+      echo "[+] External health OK"
+
+      echo "[.] Testing mesh-api internal health..."
+      wget --spider -S http://{{ include "asya-gateway.meshApiInt.fullname" . }}:{{ .Values.service.meshApiInternal.port }}/health
+      echo "[+] Internal health OK"
