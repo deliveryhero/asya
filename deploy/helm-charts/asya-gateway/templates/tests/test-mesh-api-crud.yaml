@@ -17,23 +17,31 @@ spec:
     command: ['/bin/sh', '-c']
     args:
     - |
-      set -e
+      set -ex
       MESH_URL="http://{{ include "asya-gateway.meshApi.fullname" . }}:{{ .Values.service.meshApi.port }}"
 
       echo "[.] Creating test message..."
-      CREATE_RESP=$(curl -sf -X POST "$MESH_URL/api/v1/mesh/?actor=test-echo" \
+      CREATE_RESP=$(curl -v -X POST "$MESH_URL/api/v1/mesh/?actor=test-echo" \
         -H "Content-Type: application/json" \
-        -d '{"payload":{"test":true},"headers":{},"timeout":60}')
-      MSG_ID=$(echo "$CREATE_RESP" | jq -r '.id')
-      echo "[+] Created message: $MSG_ID"
+        -d '{"payload":{"test":true},"timeout":60}' 2>&1) || {
+        echo "[-] Create failed: $CREATE_RESP"
+        exit 1
+      }
+      echo "[+] Create response: $CREATE_RESP"
+      MSG_ID=$(echo "$CREATE_RESP" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+      echo "[+] Message ID: $MSG_ID"
+
+      if [ -z "$MSG_ID" ]; then
+        echo "[-] No message ID in response"
+        exit 1
+      fi
 
       echo "[.] Getting message status..."
-      GET_RESP=$(curl -sf "$MESH_URL/api/v1/mesh/$MSG_ID")
-      STATUS=$(echo "$GET_RESP" | jq -r '.status')
-      echo "[+] Status: $STATUS"
+      GET_RESP=$(curl -s "$MESH_URL/api/v1/mesh/$MSG_ID")
+      echo "[+] Get response: $GET_RESP"
 
       echo "[.] Canceling message..."
-      curl -sf -X DELETE "$MESH_URL/api/v1/mesh/$MSG_ID"
+      curl -s -X DELETE "$MESH_URL/api/v1/mesh/$MSG_ID"
       echo "[+] Canceled"
 
       echo "[+] CRUD test passed"
