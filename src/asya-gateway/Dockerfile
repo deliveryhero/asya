@@ -17,7 +17,9 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway && \
-    CGO_ENABLED=0 GOOS=linux go build -o mesh-api ./cmd/mesh-api
+    CGO_ENABLED=0 GOOS=linux go build -o mesh-api ./cmd/mesh-api && \
+    CGO_ENABLED=0 GOOS=linux go build -o mcp-adapter ./cmd/mcp-adapter && \
+    CGO_ENABLED=0 GOOS=linux go build -o a2a-adapter ./cmd/a2a-adapter
 
 # Test image
 FROM builder AS tester
@@ -33,6 +35,8 @@ WORKDIR /app
 
 COPY --from=builder /build/gateway .
 COPY --from=builder /build/mesh-api .
+COPY --from=builder /build/mcp-adapter .
+COPY --from=builder /build/a2a-adapter .
 COPY db/ /app/db/
 
 # Default port
