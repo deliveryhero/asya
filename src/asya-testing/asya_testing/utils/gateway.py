@@ -76,11 +76,14 @@ class GatewayTestHelper:
         Uses POST /api/v1/mesh/?actor={tool_name} (new multi-container gateway).
         Returns a dict compatible with the old MCP /tools/call response shape.
         """
-        logger.debug(f"Dispatching actor task: {tool_name} with arguments: {arguments}")
+        # MCP tool names use underscores (test_echo) but actor names use hyphens (test-echo).
+        # Convert for backward compatibility with existing test suites.
+        actor_name = tool_name.replace("_", "-")
+        logger.debug(f"Dispatching actor task: {actor_name} with arguments: {arguments}")
 
         response = requests.post(
             self.tools_url,
-            params={"actor": tool_name},
+            params={"actor": actor_name},
             json={"payload": arguments, "timeout": timeout},
             timeout=timeout,
         )
