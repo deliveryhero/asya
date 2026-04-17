@@ -24,6 +24,7 @@ spec:
         dh_tribe: foodscience
     spec:
       serviceAccountName: default
+      priorityClassName: workbench-high
       terminationGracePeriodSeconds: 10
       containers:
         - name: workbench
