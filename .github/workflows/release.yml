@@ -129,36 +129,60 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Check if asya-lab changed since last publish
+      id: changed
+      run: |
+        # Find the most recent tag before the current one
+        CURRENT_TAG="${{ github.event.release.tag_name }}"
+        PREV_TAG=$(git tag -l 'v*.*.*' | sort -V | grep -B1 "^${CURRENT_TAG}$" | head -1)
+        if [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
+          # First release — no previous tag
+          PREV_TAG=""
+        fi
+        if [ -z "$PREV_TAG" ]; then
+          echo "[.] First release — publishing asya-lab"
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+        else
+          DIFF=$(git diff --name-only "$PREV_TAG" "$CURRENT_TAG" -- src/asya-lab/)
+          if [ -n "$DIFF" ]; then
+            echo "[.] src/asya-lab/ changed since $PREV_TAG:"
+            echo "$DIFF"
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "[.] src/asya-lab/ unchanged since $PREV_TAG — skipping PyPI publish"
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          fi
+        fi
 
     - name: Setup Python
+      if: steps.changed.outputs.should_publish == 'true'
       uses: actions/setup-python@v6
       with:
         python-version: "3.13"
 
     - name: Install build tools
+      if: steps.changed.outputs.should_publish == 'true'
       run: pip install build
 
-    - name: Determine version
+    - name: Read package version
+      if: steps.changed.outputs.should_publish == 'true'
       id: version
-      run: |
-        TAG="${{ github.event.release.tag_name }}"
-        VERSION="${TAG#v}"
-        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-        echo "[.] Publishing version: ${VERSION}"
-
-    - name: Set package version
       working-directory: src/asya-lab
       run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
-        echo "[.] pyproject.toml version set to: ${VERSION}"
-        grep "^version" pyproject.toml
+        VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "[.] Publishing asya-lab version: ${VERSION}"
 
     - name: Build package
+      if: steps.changed.outputs.should_publish == 'true'
       working-directory: src/asya-lab
       run: python -m build
 
     - name: Publish to PyPI
+      if: steps.changed.outputs.should_publish == 'true'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: src/asya-lab/dist/
