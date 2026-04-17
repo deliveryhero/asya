@@ -18,6 +18,7 @@ services:
       ASYA_MESH_INTERNAL_PORT: "8081"
       ASYA_STATEPROXY_SOCKET: /tmp/stateproxy.sock
       ASYA_INTERNAL_URL: http://gateway:8081
+      ASYA_NAMESPACE: test
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
     volumes:
     - stateproxy-socket:/tmp

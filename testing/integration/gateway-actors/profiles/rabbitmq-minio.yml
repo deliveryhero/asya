@@ -35,8 +35,6 @@ services:
       service: tester
     env_file: .env.rabbitmq-minio
     depends_on:
-      postgres-migrate:
-        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       queue-setup:

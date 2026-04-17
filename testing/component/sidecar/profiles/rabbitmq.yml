@@ -26,6 +26,10 @@ services:
       ASYA_MESH_INTERNAL_PORT: "8081"
       ASYA_STATEPROXY_SOCKET: /tmp/stateproxy.sock
       ASYA_INTERNAL_URL: http://gateway:8081
+      ASYA_NAMESPACE: test
+      ASYA_QUEUE_TRANSPORT: rabbitmq
+      ASYA_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      ASYA_RABBITMQ_EXCHANGE: asya
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
     volumes:
     - stateproxy-socket:/tmp
@@ -33,7 +37,8 @@ services:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 15s
     depends_on:
       pg-kv:
         condition: service_started

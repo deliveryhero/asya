@@ -112,7 +112,7 @@ services:
       pg-kv:
         condition: service_started
       queue-setup:
-        condition: service_healthy
+        condition: service_completed_successfully
 
   tester-go:
     build:

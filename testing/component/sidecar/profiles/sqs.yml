@@ -26,14 +26,21 @@ services:
       ASYA_MESH_INTERNAL_PORT: "8081"
       ASYA_STATEPROXY_SOCKET: /tmp/stateproxy.sock
       ASYA_INTERNAL_URL: http://gateway:8081
+      ASYA_NAMESPACE: test
+      ASYA_QUEUE_TRANSPORT: sqs
+      ASYA_SQS_ENDPOINT: http://sqs:9324
+      ASYA_SQS_REGION: us-east-1
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
     volumes:
     - stateproxy-socket:/tmp
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 15s
     depends_on:
       pg-kv:
         condition: service_started
