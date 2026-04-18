@@ -156,6 +156,17 @@ gateway:
       description: "Multi-hop pipeline test"
     inputModes: [text/plain, application/json]
     outputModes: [text/plain, application/json]
+  - name: slow-boundary-agent
+    description: "Slow boundary test agent"
+    actor: test-slow-boundary
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_slow_boundary
+      name: Slow Boundary
+      description: "Slow boundary test"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
 
 crossplane:
   transport: pubsub
