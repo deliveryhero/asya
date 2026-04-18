@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 AI developer guidance for the Asya project.
 
