@@ -676,6 +676,7 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *envelopes.Envelope, 
 		ID:       msg.ID,
 		ParentID: msg.ParentID,
 		Route:    msg.Route,
+		Headers:  msg.Headers, // preserve x-asya-gateway-url so x-sink can report status
 		Payload:  payloadBytes,
 		Status: &envelopes.Status{
 			Phase:       envelopes.PhaseFailed,
@@ -1449,6 +1450,7 @@ func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, error
 		"route":   route,
 		"payload": errorPayload,
 		"status":  errorStatus,
+		"headers": originalMsg.Headers, // preserve x-asya-gateway-url so x-sump/x-sink can report status
 	}
 	if parentID != nil {
 		errorMessage["parent_id"] = *parentID
