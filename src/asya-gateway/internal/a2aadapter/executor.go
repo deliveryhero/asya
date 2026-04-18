@@ -304,9 +304,14 @@ func messageToPayload(msg *a2alib.Message, taskID, contextID string) map[string]
 
 	var payload map[string]any
 
-	// Single data part, no text -> unwrap at root
+	// Single data part, no text -> copy fields into new map (do NOT use dataParts[0]
+	// directly as payload; we later add payload["a2a"] to it which would create a cycle
+	// if messageToHistoryEntry references the same map via payload["a2a"]["task"]["history"]).
 	if len(dataParts) == 1 && len(textParts) == 0 {
-		payload = dataParts[0]
+		payload = make(map[string]any, len(dataParts[0])+1)
+		for k, v := range dataParts[0] {
+			payload[k] = v
+		}
 	} else {
 		payload = make(map[string]any)
 		for _, dp := range dataParts {
@@ -357,9 +362,18 @@ func messageToHistoryEntry(msg *a2alib.Message) any {
 		case a2alib.TextPart:
 			entry["text"] = p.Text
 		case *a2alib.DataPart:
-			entry["data"] = p.Data
+			// copy the data map to avoid sharing with the payload root
+			dataCopy := make(map[string]any, len(p.Data))
+			for k, v := range p.Data {
+				dataCopy[k] = v
+			}
+			entry["data"] = dataCopy
 		case a2alib.DataPart:
-			entry["data"] = p.Data
+			dataCopy := make(map[string]any, len(p.Data))
+			for k, v := range p.Data {
+				dataCopy[k] = v
+			}
+			entry["data"] = dataCopy
 		}
 	}
 	return entry
