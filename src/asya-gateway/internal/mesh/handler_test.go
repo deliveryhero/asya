@@ -484,6 +484,48 @@ func TestHandleList_Empty(t *testing.T) {
 	assert.Len(t, msgs, 0)
 }
 
+func TestHandleCreate_ForbidsRoutingFields(t *testing.T) {
+	h, _, _ := setupTestHandler()
+	extSrv, _ := setupTestServer(h)
+	defer extSrv.Close()
+
+	cases := []struct {
+		name string
+		body string
+	}{
+		{"route field", `{"payload":{},"route":{"prev":[],"curr":"a","next":["b"]}}`},
+		{"route_next field", `{"payload":{},"route_next":["b","c"]}`},
+		{"next field", `{"payload":{},"next":["b"]}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, err := http.Post(
+				extSrv.URL+"/api/v1/mesh/?actor=echo",
+				"application/json",
+				strings.NewReader(tc.body),
+			)
+			require.NoError(t, err)
+			resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "routing fields must be rejected")
+		})
+	}
+}
+
+func TestHandleCreate_AllowsNormalBody(t *testing.T) {
+	h, _, _ := setupTestHandler()
+	extSrv, _ := setupTestServer(h)
+	defer extSrv.Close()
+
+	resp, err := http.Post(
+		extSrv.URL+"/api/v1/mesh/?actor=echo",
+		"application/json",
+		strings.NewReader(`{"payload":{"k":"v"},"timeout":30}`),
+	)
+	require.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+}
+
 func TestInternalGet_HeartbeatCheck(t *testing.T) {
 	h, s, _ := setupTestHandler()
 	_, intSrv := setupTestServer(h)

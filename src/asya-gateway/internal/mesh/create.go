@@ -44,11 +44,23 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	span.SetAttributes(attribute.String("asya.actor", actor))
 
-	var req createRequest
-	if err := readJSON(r, &req); err != nil {
+	// Parse once into a combined struct: known fields + forbidden routing fields.
+	// Routing at dispatch time is forbidden — actors declare successors via ABI yields.
+	var raw struct {
+		createRequest
+		Route     json.RawMessage `json:"route"`
+		RouteNext json.RawMessage `json:"route_next"`
+		Next      json.RawMessage `json:"next"`
+	}
+	if err := readJSON(r, &raw); err != nil {
 		http.Error(w, `{"error":"invalid JSON body"}`, http.StatusBadRequest)
 		return
 	}
+	if raw.Route != nil || raw.RouteNext != nil || raw.Next != nil {
+		http.Error(w, `{"error":"routing fields (route, route_next, next) are not allowed; use ?actor= for entrypoint only"}`, http.StatusBadRequest)
+		return
+	}
+	req := raw.createRequest
 
 	// Generate message ID
 	id := uuid.New().String()

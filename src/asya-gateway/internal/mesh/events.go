@@ -108,11 +108,18 @@ func (h *Handler) HandleEventsPost(w http.ResponseWriter, r *http.Request, id st
 	}
 
 	if event.Type == "status" {
+		// Map sidecar progress statuses to mesh-api statuses and inject
+		// progress_percent computed from the route (prev/curr/next).
+		event = enrichProgressEvent(event)
+
 		// Update store with monotonic ordering
 		err := h.store.UpdateStatus(r.Context(), id, event.Status, event.Data)
 		if errors.Is(err, store.ErrStaleStatus) {
-			// Stale status update - return 204 without publishing to subscribers
-			slog.Debug("Stale status update ignored", "id", id, "status", event.Status)
+			// Stale in terms of monotonic status ordering (e.g. running→running),
+			// but still a meaningful progress update — publish to SSE subscribers
+			// so intermediate multihop progress_percent values reach the client.
+			slog.Debug("Stale status update: publishing to subscribers without storing", "id", id, "status", event.Status)
+			h.store.Publish(id, event)
 			w.WriteHeader(http.StatusNoContent)
 			return
 		} else if errors.Is(err, store.ErrNotFound) {
@@ -130,6 +137,70 @@ func (h *Handler) HandleEventsPost(w http.ResponseWriter, r *http.Request, id st
 	h.store.Publish(id, event)
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// sidecareStatusMap maps sidecar-side progress status strings to mesh-api
+// MessageStatus values. Sidecar uses "received"/"processing"/"completed";
+// mesh-api only knows pending/running/succeeded/failed/canceled.
+var sidecareStatusMap = map[string]types.MessageStatus{
+	"received":   types.MessageStatusRunning,
+	"processing": types.MessageStatusRunning,
+	"completed":  types.MessageStatusRunning, // terminal succeeded/failed comes from x-sink/x-sump
+}
+
+// enrichProgressEvent maps sidecar progress statuses to mesh-api statuses
+// and injects progress_percent computed from the route in the data payload.
+func enrichProgressEvent(event types.Event) types.Event {
+	// Map sidecar status → mesh-api status
+	mapped, isSidecarStatus := sidecareStatusMap[string(event.Status)]
+	if isSidecarStatus {
+		event.Status = mapped
+	}
+
+	// Parse data to update status inside data blob and inject progress_percent
+	if event.Data == nil {
+		return event
+	}
+	var d map[string]any
+	if err := json.Unmarshal(event.Data, &d); err != nil {
+		return event
+	}
+
+	changed := false
+
+	// Mirror the mapped status into the data blob so SSE consumers see "running"
+	// instead of the raw sidecar "received"/"processing"/"completed".
+	if isSidecarStatus {
+		d["status"] = string(mapped)
+		changed = true
+	}
+
+	// Inject progress_percent if not already set.
+	if _, exists := d["progress_percent"]; !exists {
+		// x-sink sets progress=1.0 for succeeded tasks.
+		if p, ok := d["progress"].(float64); ok && p == 1.0 {
+			d["progress_percent"] = 100.0
+			changed = true
+		} else {
+			// Intermediate hop: use len(prev)+1 over visible horizon.
+			// prev grows by 1 per hop so values increase monotonically.
+			prev, _ := d["prev"].([]any)
+			next, _ := d["next"].([]any)
+			total := len(prev) + 1 + len(next)
+			if total > 1 {
+				d["progress_percent"] = float64(len(prev)+1) / float64(total) * 100
+				changed = true
+			}
+		}
+	}
+
+	if changed {
+		if b, err := json.Marshal(d); err == nil {
+			event.Data = b
+		}
+	}
+
+	return event
 }
 
 // writeSSE writes a single SSE event to the response writer.

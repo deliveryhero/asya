@@ -287,6 +287,71 @@ func TestComponentGatewayURLInEnvelope(t *testing.T) {
 	assert.NotEmpty(t, gwURL)
 }
 
+func TestComponentProgressEnrichment(t *testing.T) {
+	base := meshURL(t)
+	intBase := meshInternalURL(t)
+
+	// Create task
+	resp, err := http.Post(base+"/api/v1/mesh/?actor=mesh-echo", "application/json",
+		strings.NewReader(`{"payload":{}}`))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Simulate sidecar "received" event with a 3-hop route: prev=[], curr=a, next=[b,c]
+	// Expected: status=running, progress_percent=100/3 ≈ 33.33
+	body := `{"type":"status","status":"received","data":{"actor":"a","prev":[],"curr":"a","next":["b","c"]}}`
+	r2, err := http.Post(intBase+"/api/v1/mesh/"+id+"/events", "application/json", strings.NewReader(body))
+	require.NoError(t, err)
+	r2.Body.Close()
+	assert.Equal(t, http.StatusNoContent, r2.StatusCode)
+
+	// GET and verify
+	resp3, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp3.Body.Close()
+	var got map[string]any
+	require.NoError(t, json.NewDecoder(resp3.Body).Decode(&got))
+
+	assert.Equal(t, "running", got["status"], "sidecar 'received' should map to 'running'")
+	data, _ := got["data"].(map[string]any)
+	pp, ok := data["progress_percent"].(float64)
+	require.True(t, ok, "progress_percent should be present")
+	assert.InDelta(t, 100.0/3, pp, 0.1, "progress_percent for pos 1/3 should be ~33.3")
+}
+
+func TestComponentProgressEnrichment_FinalHopIs100(t *testing.T) {
+	base := meshURL(t)
+	intBase := meshInternalURL(t)
+
+	resp, err := http.Post(base+"/api/v1/mesh/?actor=mesh-echo", "application/json",
+		strings.NewReader(`{"payload":{}}`))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Final hop: prev=[a,b], curr=c, next=[] → progress=100%
+	body := `{"type":"status","status":"completed","data":{"actor":"c","prev":["a","b"],"curr":"c","next":[]}}`
+	r2, err := http.Post(intBase+"/api/v1/mesh/"+id+"/events", "application/json", strings.NewReader(body))
+	require.NoError(t, err)
+	r2.Body.Close()
+
+	resp3, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp3.Body.Close()
+	var got map[string]any
+	require.NoError(t, json.NewDecoder(resp3.Body).Decode(&got))
+
+	data, _ := got["data"].(map[string]any)
+	pp, ok := data["progress_percent"].(float64)
+	require.True(t, ok, "progress_percent should be present")
+	assert.Equal(t, 100.0, pp)
+}
+
 func TestComponentBackstopReapsExpiredTask(t *testing.T) {
 	base := meshURL(t)
 
