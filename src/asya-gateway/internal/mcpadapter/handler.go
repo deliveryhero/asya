@@ -228,6 +228,15 @@ func (h *Handler) createToolHandler(cfg ToolConfig) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("timeout: no result received"), nil
 		}
 
+		// Stamp task_id into _meta so callers can correlate with mesh-api.
+		if finalResult.Meta == nil {
+			finalResult.Meta = &mcp.Meta{}
+		}
+		if finalResult.Meta.AdditionalFields == nil {
+			finalResult.Meta.AdditionalFields = make(map[string]any)
+		}
+		finalResult.Meta.AdditionalFields["task_id"] = createResp.ID
+
 		return finalResult, nil
 	}
 }

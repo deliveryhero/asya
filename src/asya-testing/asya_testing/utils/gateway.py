@@ -57,8 +57,9 @@ class GatewayTestHelper:
             mcp_url = os.getenv("ASYA_MCP_URL", gateway_url)
         self.gateway_url = gateway_url
         self.mesh_gateway_url = mesh_gateway_url
-        self.mcp_url = mcp_url
-        # tools_url is the new mesh-api dispatch endpoint; legacy tests use actor name as tool name
+        # mcp_url is the base URL; MCP Streamable HTTP endpoint is at /mcp
+        self.mcp_url = mcp_url.rstrip("/") + "/mcp" if mcp_url else gateway_url
+        # tools_url is the mesh-api dispatch endpoint (kept for internal/direct use)
         self.tools_url = f"{gateway_url}/api/v1/mesh/"
         self.tasks_url = f"{gateway_url}/api/v1/mesh"
         self.progress_method = progress_method
@@ -71,57 +72,57 @@ class GatewayTestHelper:
         timeout: int = 300,
     ) -> dict:
         """
-        Dispatch a task to an actor via the mesh API.
+        Dispatch a task via the MCP adapter (POST tools/call JSON-RPC).
 
-        Uses POST /api/v1/mesh/?actor={tool_name} (new multi-container gateway).
-        Returns a dict compatible with the old MCP /tools/call response shape.
-        The timeout sets the task deadline (seconds) — use ≥120 for actors with
-        KEDA cold starts. The HTTP request itself times out after 10 seconds.
+        The MCP adapter knows the tool→actor mapping from its registry config.
+        The adapter returns the task_id in _meta so we can track it on mesh-api.
+        The HTTP request itself times out after timeout+10 seconds (blocking call).
         """
-        # Map MCP tool name to actor name. The new mesh-api uses actor names directly.
-        # Legacy tool names from flows.yaml map to their flow entrypoint actor.
-        # For most tools, underscore-to-hyphen conversion suffices (test_echo → test-echo).
-        # Some flows start with a different actor than the tool name suggests.
-        tool_to_actor = {
-            "test_pipeline": "test-doubler",  # flows.yaml: entrypoint: test-doubler
-            "test_empty_response": "test-empty",  # flows.yaml: entrypoint: test-empty
-            "test_nested_flow": "start-test-nested-flow",  # flows.yaml: entrypoint: start-test-nested-flow
-            "test_multihop": "test-multihop-0",  # flows.yaml: entrypoint: test-multihop-0
+        logger.debug(f"Calling MCP tool: {tool_name} with arguments: {arguments}")
+
+        mcp_request = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": tool_name,
+                "arguments": arguments,
+                "_meta": {"timeout": timeout},
+            },
         }
-        # Per-tool timeout overrides (match old gateway flow timeouts from flows.yaml)
-        tool_to_timeout = {
-            "test_pipeline": 45,
-            "test_timeout": 30,
-            "test_timeout_cold": 15,
-            "test_slow_boundary": 30,
-            "test_nested_flow": 60,
-        }
-        if timeout == 300 and tool_name in tool_to_timeout:
-            timeout = tool_to_timeout[tool_name]
-        actor_name = tool_to_actor.get(tool_name, tool_name.replace("_", "-"))
-        logger.debug(f"Dispatching actor task: {actor_name} with arguments: {arguments}")
 
         response = requests.post(
-            self.tools_url,
-            params={"actor": actor_name},
-            json={"payload": arguments, "timeout": timeout},
-            timeout=10,  # HTTP request timeout; task deadline is the 'timeout' body field
+            self.mcp_url,
+            json=mcp_request,
+            headers={"Content-Type": "application/json"},
+            timeout=timeout + 10,
         )
-        logger.debug(f"Dispatch response status: {response.status_code}")
+        logger.debug(f"MCP tools/call status: {response.status_code}")
         response.raise_for_status()
 
         data = response.json()
-        task_id = data.get("id")
-        logger.debug(f"Dispatched task ID: {task_id}")
+        logger.debug(f"MCP tools/call response: {str(data)[:200]}")
 
+        # Extract task_id from _meta stamped by the MCP adapter handler
+        result = data.get("result", {})
+        meta = result.get("_meta", {})
+        task_id = meta.get("task_id")
+
+        if task_id is None:
+            raise RuntimeError(
+                f"MCP tools/call for {tool_name!r} returned no task_id in _meta. "
+                f"Response: {data}"
+            )
+
+        logger.debug(f"MCP dispatched task ID: {task_id}")
         return {
             "result": {
                 "task_id": task_id,
                 "id": task_id,
-                "message": f"Envelope created successfully with ID: {task_id}",
+                "message": f"Dispatched via MCP adapter: {task_id}",
                 "status_url": f"{self.tasks_url}/{task_id}",
                 "stream_url": f"{self.tasks_url}/{task_id}/events",
-                "metadata": None,
+                "metadata": result,
             }
         }
 
