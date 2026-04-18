@@ -86,7 +86,9 @@ def test_stealth_mode_bypasses_gateway_tracking(
     # the sidecar would have sent /mesh/* progress reports to the gateway by now.
     time.sleep(transport_timeouts.task_completion_short)  # Allow full pipeline completion
 
-    mesh_url = f"{e2e_helper.mesh_gateway_url}/mesh/{task_id}"
+    # Use the external mesh-api endpoint (port 8080) — the internal port 8081
+    # is not exposed outside the cluster in CI.
+    mesh_url = f"{e2e_helper.tasks_url}/{task_id}"
     resp = requests.get(mesh_url, timeout=5)
     assert resp.status_code == 404, (
         f"Gateway should not track stealth task {task_id} "
