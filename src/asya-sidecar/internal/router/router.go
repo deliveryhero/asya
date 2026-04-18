@@ -292,7 +292,7 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Enve
 				"timeout", r.cfg.Timeout, "message", msg.ID)
 
 			if r.isMeshStatusEnabled(&msg) {
-				errorCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+				errorCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				_ = r.getReporter(&msg).ReportFinalError(errorCtx, msg.ID, "Runtime timeout exceeded")
 			}
@@ -1328,7 +1328,7 @@ func (r *Router) handleSLAExpiry(ctx context.Context, msg envelopes.Envelope, st
 	}
 
 	if r.isMeshStatusEnabled(&msg) {
-		reportCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		reportCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = r.getReporter(&msg).ReportFinalError(reportCtx, msg.ID, "SLA deadline expired")
 	}

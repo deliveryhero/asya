@@ -122,10 +122,11 @@ func (s *StateProxyStore) updateStatusAttempt(ctx context.Context, id string, st
 
 	prevStatus := current.Status
 
-	// Merge status and data into current value
+	// Merge status and data into current value, preserving fields not in the update
+	// (e.g. deadline_at stamped at creation must survive status transitions).
 	current.Status = status
 	if data != nil {
-		current.Data = data
+		current.Data = mergeData(current.Data, data)
 	}
 	current.UpdatedAt = time.Now().UTC()
 
@@ -266,6 +267,26 @@ func (s *StateProxyStore) Unsubscribe(id string, ch <-chan types.Event) {
 // Publish sends an event to all subscribers for the given message ID.
 func (s *StateProxyStore) Publish(id string, event types.Event) {
 	s.hub.Publish(id, event)
+}
+
+// mergeData merges incoming event data over existing message data, preserving
+// fields in existing that are absent from incoming (e.g. deadline_at).
+func mergeData(existing, incoming json.RawMessage) json.RawMessage {
+	var base, update map[string]any
+	if err := json.Unmarshal(existing, &base); err != nil || base == nil {
+		return incoming
+	}
+	if err := json.Unmarshal(incoming, &update); err != nil {
+		return incoming
+	}
+	for k, v := range update {
+		base[k] = v
+	}
+	merged, err := json.Marshal(base)
+	if err != nil {
+		return incoming
+	}
+	return merged
 }
 
 // buildKVValue creates the JSONB object stored in the kv table.
