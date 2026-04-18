@@ -180,7 +180,9 @@ def test_multiple_component_failures(e2e_helper):
         # They will scale up automatically when needed, so we don't check them here
         logger.info("Note: Crew actors not checked - they scale based on queue depth")
 
-        e2e_helper.ensure_gateway_connectivity(max_retries=10, retry_interval=2.0)
+        # New 4-container gateway pod takes up to ~30s to fully serve traffic after
+        # k8s readiness probe passes. Retry 20x at 2s = 40s max.
+        e2e_helper.ensure_gateway_connectivity(max_retries=20, retry_interval=2.0)
 
         logger.info("Checking if system recovered...")
         try:
