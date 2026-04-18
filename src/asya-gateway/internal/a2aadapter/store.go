@@ -21,11 +21,14 @@ func NewStoreAdapter(meshClient *meshclient.Client) *StoreAdapter {
 	return &StoreAdapter{meshClient: meshClient}
 }
 
-// Save translates an A2A event into a mesh-api update.
-// Artifact events are ephemeral and not persisted.
-// The mesh-api is the source of truth and receives status updates from
-// sidecars directly. The A2A adapter only reads state.
-func (s *StoreAdapter) Save(_ context.Context, _ *a2alib.Task, _ a2alib.Event, _ *a2alib.Task, prevVersion a2alib.TaskVersion) (a2alib.TaskVersion, error) {
+// Save is a no-op since the mesh-api is the source of truth.
+// We clear the task History to prevent the a2a-go library from accumulating
+// Message objects (with ContentParts) that cause JSON encoding recursion
+// (stack overflow) when the terminal EventOverride is serialized to SSE.
+func (s *StoreAdapter) Save(_ context.Context, task *a2alib.Task, _ a2alib.Event, _ *a2alib.Task, prevVersion a2alib.TaskVersion) (a2alib.TaskVersion, error) {
+	if task != nil {
+		task.History = nil
+	}
 	return prevVersion, nil
 }
 
