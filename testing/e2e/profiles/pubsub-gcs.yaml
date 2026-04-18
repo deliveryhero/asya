@@ -140,9 +140,20 @@ gateway:
     timeout: 120
     streaming: true
     skills:
-    - id: echo
+    - id: test_echo
       name: Echo
       description: "Echo back input"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
+  - name: pipeline-agent
+    description: "Pipeline test agent"
+    actor: test-doubler
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_pipeline
+      name: Pipeline
+      description: "Multi-hop pipeline test"
     inputModes: [text/plain, application/json]
     outputModes: [text/plain, application/json]
 

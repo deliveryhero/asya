@@ -111,7 +111,7 @@ gateway:
     timeout: 120
     streaming: true
     skills:
-    - id: echo
+    - id: test_echo
       name: Echo
       description: "Echo back input"
     inputModes: [text/plain, application/json]
