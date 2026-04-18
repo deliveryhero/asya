@@ -129,6 +129,15 @@ func main() {
 		}
 	}()
 
+	// SLA backstop: reap tasks whose deadline_at has passed without reaching a terminal state.
+	backstopInterval := 5 * time.Second
+	if v := os.Getenv("ASYA_BACKSTOP_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			backstopInterval = d
+		}
+	}
+	go runBackstop(ctx, msgStore, backstopInterval)
+
 	<-ctx.Done()
 	slog.Info("Shutting down mesh-api")
 	shutCtx, shutCancel := context.WithTimeout(context.Background(), 10*time.Second)

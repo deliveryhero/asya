@@ -154,6 +154,31 @@ func (m *MemoryStore) List(_ context.Context, params types.ListParams) ([]*types
 	return result, total, nil
 }
 
+// FindExpired returns IDs of non-terminal messages whose deadline_at has passed.
+func (m *MemoryStore) FindExpired(_ context.Context) ([]string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	now := time.Now().UTC()
+	var ids []string
+	for id, msg := range m.messages {
+		if msg.Status.IsTerminal() {
+			continue
+		}
+		var data types.MessageData
+		if err := json.Unmarshal(msg.Data, &data); err != nil || data.DeadlineAt == "" {
+			continue
+		}
+		dl, err := time.Parse(time.RFC3339, data.DeadlineAt)
+		if err != nil {
+			continue
+		}
+		if now.After(dl) {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
 // Subscribe returns a channel that receives events for the given message ID.
 func (m *MemoryStore) Subscribe(id string) <-chan types.Event {
 	return m.hub.Subscribe(id)

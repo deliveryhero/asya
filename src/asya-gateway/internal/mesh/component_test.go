@@ -287,6 +287,44 @@ func TestComponentGatewayURLInEnvelope(t *testing.T) {
 	assert.NotEmpty(t, gwURL)
 }
 
+func TestComponentBackstopReapsExpiredTask(t *testing.T) {
+	base := meshURL(t)
+
+	// Create with timeout=1s so deadline_at fires almost immediately.
+	// ASYA_BACKSTOP_INTERVAL=1s is set in the compose profile, so reap
+	// happens within ~2s of the deadline passing.
+	resp, err := http.Post(
+		base+"/api/v1/mesh/?actor=mesh-echo",
+		"application/json",
+		strings.NewReader(`{"payload":{},"timeout":1}`),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Wait long enough for the deadline to pass and backstop to fire (≤4s).
+	// deadline fires at +1s, backstop ticks every 1s, so at most +2s after deadline.
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		time.Sleep(500 * time.Millisecond)
+		statusResp, err := http.Get(base + "/api/v1/mesh/" + id)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.NewDecoder(statusResp.Body).Decode(&got))
+		statusResp.Body.Close()
+		if got["status"] == "failed" {
+			data, _ := got["data"].(map[string]any)
+			assert.Equal(t, "task timed out", data["error"], "backstop should set error=task timed out")
+			return
+		}
+	}
+	t.Fatal("task was not reaped by backstop within 5s")
+}
+
 func TestComponentDeadlinePreservedAfterStatusUpdate(t *testing.T) {
 	base := meshURL(t)
 	intBase := meshInternalURL(t)

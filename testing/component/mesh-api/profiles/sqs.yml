@@ -99,6 +99,7 @@ services:
       ASYA_SQS_REGION: us-east-1
       ASYA_NAMESPACE: test
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
+      ASYA_BACKSTOP_INTERVAL: "1s"
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
     volumes:

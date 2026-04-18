@@ -254,6 +254,42 @@ func (s *StateProxyStore) List(ctx context.Context, params types.ListParams) ([]
 	return messages, queryResp.Total, nil
 }
 
+// FindExpired returns IDs of non-terminal messages whose deadline_at has passed.
+// Queries for messages that have a deadline_at field set and are not in a
+// terminal state, then post-filters by comparing deadline_at to now.
+// (The Mango $lt operator only handles numeric comparisons, so timestamp
+// comparison is done in Go after fetching the candidate set.)
+func (s *StateProxyStore) FindExpired(ctx context.Context) ([]string, error) {
+	params := types.ListParams{
+		Prefix: keyPrefix,
+		Filters: map[string]any{
+			"status":      map[string]any{"$nin": []any{"succeeded", "failed", "canceled"}},
+			"deadline_at": map[string]any{"$exists": true},
+		},
+		Limit: 1000,
+	}
+	msgs, _, err := s.List(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	var ids []string
+	for _, msg := range msgs {
+		var data types.MessageData
+		if err := json.Unmarshal(msg.Data, &data); err != nil || data.DeadlineAt == "" {
+			continue
+		}
+		dl, err := time.Parse(time.RFC3339, data.DeadlineAt)
+		if err != nil {
+			continue
+		}
+		if now.After(dl) {
+			ids = append(ids, msg.ID)
+		}
+	}
+	return ids, nil
+}
+
 // Subscribe returns a channel that receives events for the given message ID.
 func (s *StateProxyStore) Subscribe(id string) <-chan types.Event {
 	return s.hub.Subscribe(id)
