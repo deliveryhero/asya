@@ -176,7 +176,13 @@ func (e *Executor) Cancel(
 ) error {
 	taskID := reqCtx.TaskID
 
-	if err := e.meshClient.Cancel(ctx, string(taskID)); err != nil {
+	meshID := string(taskID)
+	if e.store != nil {
+		if mapped, ok := e.store.lookupMeshID(taskID); ok {
+			meshID = mapped
+		}
+	}
+	if err := e.meshClient.Cancel(ctx, meshID); err != nil {
 		return fmt.Errorf("cancel task %q: %w", taskID, err)
 	}
 
