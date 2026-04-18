@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/gob"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,16 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/meshclient"
 	"github.com/deliveryhero/asya/asya-gateway/internal/watcher"
 )
+
+func init() {
+	// Register concrete types that appear in map[string]any (from JSON decoding)
+	// so that gob.Encode doesn't panic when deep-copying a2a.DataPart.Data fields.
+	gob.Register(map[string]any{})
+	gob.Register([]any{})
+	gob.Register(float64(0))
+	gob.Register(bool(false))
+	gob.Register(string(""))
+}
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
