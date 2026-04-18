@@ -68,13 +68,15 @@ class GatewayTestHelper:
         self,
         tool_name: str,
         arguments: dict,
-        timeout: int = 10,
+        timeout: int = 300,
     ) -> dict:
         """
         Dispatch a task to an actor via the mesh API.
 
         Uses POST /api/v1/mesh/?actor={tool_name} (new multi-container gateway).
         Returns a dict compatible with the old MCP /tools/call response shape.
+        The timeout sets the task deadline (seconds) — use ≥120 for actors with
+        KEDA cold starts. The HTTP request itself times out after 10 seconds.
         """
         # MCP tool names use underscores (test_echo) but actor names use hyphens (test-echo).
         # Convert for backward compatibility with existing test suites.
@@ -85,7 +87,7 @@ class GatewayTestHelper:
             self.tools_url,
             params={"actor": actor_name},
             json={"payload": arguments, "timeout": timeout},
-            timeout=timeout,
+            timeout=10,  # HTTP request timeout; task deadline is the 'timeout' body field
         )
         logger.debug(f"Dispatch response status: {response.status_code}")
         response.raise_for_status()
