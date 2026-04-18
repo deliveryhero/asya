@@ -342,5 +342,25 @@ func messageToHistoryEntry(msg *a2alib.Message) any {
 	if msg == nil {
 		return map[string]any{}
 	}
-	return msg
+	// Return a simplified representation to avoid embedding the full *Message
+	// struct (with ContentParts) in the payload map[string]any. Embedding the
+	// actual *Message causes circular JSON encoding (message → DataPart.Data →
+	// history → message → ...) leading to a fatal goroutine stack overflow.
+	entry := map[string]any{
+		"id":   string(msg.ID),
+		"role": string(msg.Role),
+	}
+	for _, part := range msg.Parts {
+		switch p := part.(type) {
+		case *a2alib.TextPart:
+			entry["text"] = p.Text
+		case a2alib.TextPart:
+			entry["text"] = p.Text
+		case *a2alib.DataPart:
+			entry["data"] = p.Data
+		case a2alib.DataPart:
+			entry["data"] = p.Data
+		}
+	}
+	return entry
 }
