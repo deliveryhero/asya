@@ -31,3 +31,20 @@ spec:
   resources:
     requests:
       storage: 200Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workbench-tracking
+  namespace: atem
+  labels:
+    app: workbench
+    dh_app: asya
+    dh_squad: aimc
+    dh_tribe: foodscience
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 20Gi

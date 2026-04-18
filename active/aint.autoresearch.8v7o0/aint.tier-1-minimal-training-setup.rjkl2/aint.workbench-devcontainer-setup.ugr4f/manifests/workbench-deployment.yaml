@@ -35,6 +35,8 @@ spec:
               mountPath: /home/dev
             - name: storage
               mountPath: /storage
+            - name: tracking
+              mountPath: /tracking
             - name: gcp-creds
               mountPath: /secrets/gcp
               readOnly: true
@@ -70,6 +72,9 @@ spec:
         - name: storage
           persistentVolumeClaim:
             claimName: workbench-storage
+        - name: tracking
+          persistentVolumeClaim:
+            claimName: workbench-tracking
         - name: gcp-creds
           secret:
             secretName: gcp-vertex-ai-key
