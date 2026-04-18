@@ -23,6 +23,7 @@ type ActorEnvelopeStatus struct {
 type ActorEnvelope struct {
 	ID      string               `json:"id"`
 	Route   types.Route          `json:"route"`
+	Headers map[string]any       `json:"headers,omitempty"`
 	Payload any                  `json:"payload"`
 	Status  *ActorEnvelopeStatus `json:"status,omitempty"`
 }
@@ -52,6 +53,7 @@ func NewActorEnvelope(envelope *types.Envelope) (ActorEnvelope, error) {
 	msg := ActorEnvelope{
 		ID:      envelope.ID,
 		Route:   envelope.Route,
+		Headers: envelope.Headers,
 		Payload: envelope.Payload,
 		Status:  status,
 	}
