@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -118,6 +120,10 @@ func (c *SQSClient) resolveQueueURL(ctx context.Context, queueName string) (stri
 		QueueName: aws.String(queueName),
 	})
 	if err != nil {
+		var notFound *sqstypes.QueueDoesNotExist
+		if errors.As(err, &notFound) {
+			return "", fmt.Errorf("%w: %s", ErrActorNotFound, queueName)
+		}
 		return "", fmt.Errorf("failed to resolve queue URL for %s: %w", queueName, err)
 	}
 

@@ -2,11 +2,16 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
+
+// ErrActorNotFound is returned when the target actor's queue does not exist.
+// Callers should map this to a 404 response.
+var ErrActorNotFound = errors.New("actor not found")
 
 // ActorEnvelopeStatus represents the lifecycle status of a message
 type ActorEnvelopeStatus struct {

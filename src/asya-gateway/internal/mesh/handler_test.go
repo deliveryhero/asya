@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/store"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -20,8 +21,9 @@ import (
 
 // mockSender records envelopes sent to actor queues.
 type mockSender struct {
-	mu   sync.Mutex
-	sent []sentEnvelope
+	mu      sync.Mutex
+	sent    []sentEnvelope
+	sendErr error // if set, returned by Send
 }
 
 type sentEnvelope struct {
@@ -30,6 +32,9 @@ type sentEnvelope struct {
 }
 
 func (m *mockSender) Send(_ context.Context, actor string, body []byte) error {
+	if m.sendErr != nil {
+		return m.sendErr
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.sent = append(m.sent, sentEnvelope{actor: actor, body: body})
@@ -482,6 +487,23 @@ func TestHandleList_Empty(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 	msgs := result["messages"].([]any)
 	assert.Len(t, msgs, 0)
+}
+
+func TestHandleCreate_ActorNotFound_Returns404(t *testing.T) {
+	_, s, sender := setupTestHandler()
+	extSrv, _ := setupTestServer(NewHandler(s, sender, "http://internal.test:8081", "/api/v1"))
+	defer extSrv.Close()
+
+	sender.sendErr = fmt.Errorf("%w: unknown-actor", queue.ErrActorNotFound)
+
+	resp, err := http.Post(
+		extSrv.URL+"/api/v1/mesh/?actor=unknown-actor",
+		"application/json",
+		strings.NewReader(`{"payload":{}}`),
+	)
+	require.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
 func TestHandleCreate_ForbidsRoutingFields(t *testing.T) {

@@ -2,6 +2,7 @@ package mesh
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -132,6 +134,12 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Dispatch to actor queue
 	if err := h.sender.Send(r.Context(), actor, envelopeBytes); err != nil {
+		if errors.Is(err, queue.ErrActorNotFound) {
+			// Clean up the already-stored message before returning
+			_ = h.store.Delete(r.Context(), id)
+			http.Error(w, `{"error":"actor not found"}`, http.StatusNotFound)
+			return
+		}
 		slog.Error("Failed to send envelope to queue", "error", err, "actor", actor)
 		http.Error(w, `{"error":"failed to dispatch message"}`, http.StatusInternalServerError)
 		return
