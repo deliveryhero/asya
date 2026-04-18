@@ -144,7 +144,47 @@ gateway:
   - name: test_timeout
     description: "Timeout test tool"
     actor: test-timeout
-    timeout: 120
+    timeout: 30
+  - name: test_timeout_cold
+    description: "Cold start timeout test tool"
+    actor: test-timeout-cold
+    timeout: 15
+  - name: test_slow_boundary
+    description: "Slow boundary test tool"
+    actor: test-slow-boundary
+    timeout: 30
+  - name: test_multihop
+    description: "Multi-hop chain test tool"
+    actor: test-multihop-0
+    timeout: 90
+  - name: test_nested_flow
+    description: "Nested flow test tool"
+    actor: start-test-nested-flow
+    timeout: 60
+  - name: test_empty_response
+    description: "Empty response test tool"
+    actor: test-empty
+    timeout: 30
+  - name: test_unicode
+    description: "Unicode test tool"
+    actor: test-unicode
+    timeout: 30
+  - name: test_large_payload
+    description: "Large payload test tool"
+    actor: test-large-payload
+    timeout: 60
+  - name: test_fanout
+    description: "Fan-out test tool"
+    actor: test-fanout
+    timeout: 60
+  - name: test_nested
+    description: "Nested test tool"
+    actor: test-nested
+    timeout: 60
+  - name: test_queue_health
+    description: "Queue health test tool"
+    actor: test-queue-health
+    timeout: 30
   a2aAgents:
   - name: test-agent
     description: "Test A2A agent"

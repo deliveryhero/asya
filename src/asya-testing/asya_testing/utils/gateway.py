@@ -65,6 +65,31 @@ class GatewayTestHelper:
         self.progress_method = progress_method
         logger.debug(f"Initialized GatewayTestHelper with progress_method={progress_method}")
 
+    def _mcp_session(self) -> str:
+        """Establish an MCP Streamable HTTP session, return Mcp-Session-Id."""
+        resp = requests.post(
+            self.mcp_url,
+            json={
+                "jsonrpc": "2.0",
+                "id": 0,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "clientInfo": {"name": "asya-testing", "version": "1.0"},
+                    "capabilities": {},
+                },
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        session_id = resp.headers.get("Mcp-Session-Id") or resp.headers.get("mcp-session-id")
+        if not session_id:
+            raise RuntimeError(
+                f"MCP initialize returned no Mcp-Session-Id. Headers: {dict(resp.headers)}"
+            )
+        return session_id
+
     def call_mcp_tool(
         self,
         tool_name: str,
@@ -72,29 +97,34 @@ class GatewayTestHelper:
         timeout: int = 300,
     ) -> dict:
         """
-        Dispatch a task via the MCP adapter (POST tools/call JSON-RPC).
+        Dispatch a task via the MCP adapter (tools/call JSON-RPC).
 
-        The MCP adapter knows the tool→actor mapping from its registry config.
-        The adapter returns the task_id in _meta so we can track it on mesh-api.
-        The HTTP request itself times out after timeout+10 seconds (blocking call).
+        Establishes an MCP session (initialize), then calls tools/call with the
+        session ID. The adapter knows the tool→actor mapping from its registry config.
+        task_id is returned in _meta so we can track it on mesh-api.
+        The HTTP request itself blocks until the task completes (timeout+10s limit).
         """
         logger.debug(f"Calling MCP tool: {tool_name} with arguments: {arguments}")
 
-        mcp_request = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments,
-                "_meta": {"timeout": timeout},
-            },
-        }
+        session_id = self._mcp_session()
+        logger.debug(f"MCP session: {session_id}")
 
         response = requests.post(
             self.mcp_url,
-            json=mcp_request,
-            headers={"Content-Type": "application/json"},
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments,
+                    "_meta": {"timeout": timeout},
+                },
+            },
+            headers={
+                "Content-Type": "application/json",
+                "Mcp-Session-Id": session_id,
+            },
             timeout=timeout + 10,
         )
         logger.debug(f"MCP tools/call status: {response.status_code}")
@@ -103,7 +133,6 @@ class GatewayTestHelper:
         data = response.json()
         logger.debug(f"MCP tools/call response: {str(data)[:200]}")
 
-        # Extract task_id from _meta stamped by the MCP adapter handler
         result = data.get("result", {})
         meta = result.get("_meta", {})
         task_id = meta.get("task_id")
@@ -114,7 +143,7 @@ class GatewayTestHelper:
                 f"Response: {data}"
             )
 
-        logger.debug(f"MCP dispatched task ID: {task_id}")
+        logger.debug(f"MCP task ID: {task_id}")
         return {
             "result": {
                 "task_id": task_id,
