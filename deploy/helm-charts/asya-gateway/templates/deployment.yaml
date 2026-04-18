@@ -54,6 +54,10 @@ spec:
           containerPort: 8081
           protocol: TCP
         env:
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
         - name: ASYA_MESH_EXTERNAL_PORT
           value: "8080"
         - name: ASYA_MESH_INTERNAL_PORT
@@ -142,6 +146,10 @@ spec:
           containerPort: 8082
           protocol: TCP
         env:
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
         - name: ASYA_MCP_PORT
           value: "8082"
         - name: MESH_API_URL
@@ -189,6 +197,10 @@ spec:
         env:
         - name: ASYA_A2A_PORT
           value: "8083"
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
         - name: MESH_API_URL
           value: "http://127.0.0.1:8080"
         - name: MESH_INGRESS_URL
