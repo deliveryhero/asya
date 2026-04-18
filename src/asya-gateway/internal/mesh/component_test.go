@@ -286,3 +286,50 @@ func TestComponentGatewayURLInEnvelope(t *testing.T) {
 	require.True(t, ok, "x-asya-gateway-url should be set in message data headers")
 	assert.NotEmpty(t, gwURL)
 }
+
+func TestComponentDeadlinePreservedAfterStatusUpdate(t *testing.T) {
+	base := meshURL(t)
+	intBase := meshInternalURL(t)
+
+	// Create with timeout so deadline_at is stamped
+	resp, err := http.Post(
+		base+"/api/v1/mesh/?actor=mesh-echo",
+		"application/json",
+		strings.NewReader(`{"payload":{},"timeout":45}`),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Verify deadline_at is set immediately after creation
+	resp2, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp2.Body.Close()
+	var initial map[string]any
+	require.NoError(t, json.NewDecoder(resp2.Body).Decode(&initial))
+	data0, _ := initial["data"].(map[string]any)
+	deadlineBefore, ok := data0["deadline_at"].(string)
+	require.True(t, ok, "deadline_at must be set after creation with timeout")
+	require.NotEmpty(t, deadlineBefore)
+
+	// Simulate sidecar posting a status update (running)
+	runBody := `{"type":"status","status":"running","data":{"actor":"mesh-echo","progress":50}}`
+	r, err := http.Post(intBase+"/api/v1/mesh/"+id+"/events", "application/json", strings.NewReader(runBody))
+	require.NoError(t, err)
+	r.Body.Close()
+
+	// deadline_at must survive the status update
+	resp3, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp3.Body.Close()
+	var after map[string]any
+	require.NoError(t, json.NewDecoder(resp3.Body).Decode(&after))
+	data1, _ := after["data"].(map[string]any)
+	deadlineAfter, ok := data1["deadline_at"].(string)
+	require.True(t, ok, "deadline_at must be preserved after status update")
+	assert.Equal(t, deadlineBefore, deadlineAfter, "deadline_at must not change on status update")
+}
