@@ -88,6 +88,16 @@ class GatewayTestHelper:
             "test_nested_flow": "start-test-nested-flow",  # flows.yaml: entrypoint: start-test-nested-flow
             "test_multihop": "test-multihop-0",  # flows.yaml: entrypoint: test-multihop-0
         }
+        # Per-tool timeout overrides (match old gateway flow timeouts from flows.yaml)
+        tool_to_timeout = {
+            "test_pipeline": 45,
+            "test_timeout": 30,
+            "test_timeout_cold": 15,
+            "test_slow_boundary": 30,
+            "test_nested_flow": 60,
+        }
+        if timeout == 300 and tool_name in tool_to_timeout:
+            timeout = tool_to_timeout[tool_name]
         actor_name = tool_to_actor.get(tool_name, tool_name.replace("_", "-"))
         logger.debug(f"Dispatching actor task: {actor_name} with arguments: {arguments}")
 

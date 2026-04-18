@@ -136,7 +136,7 @@ gateway:
   - name: test_pipeline
     description: "Pipeline test tool"
     actor: test-doubler
-    timeout: 120
+    timeout: 45
   - name: test_error
     description: "Error test tool"
     actor: test-error
