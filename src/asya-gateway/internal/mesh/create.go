@@ -7,9 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
+
+var meshTracer = otel.Tracer("asya-mesh-api")
 
 // createRequest is the JSON body for POST /api/v1/mesh/?actor={name}.
 type createRequest struct {
@@ -29,11 +33,16 @@ type createRequest struct {
 //  6. Build envelope and send to actor queue
 //  7. Return 201 {"id": "..."}
 func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+	ctx, span := meshTracer.Start(r.Context(), "gateway.task.execute")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	actor := r.URL.Query().Get("actor")
 	if actor == "" {
 		http.Error(w, `{"error":"actor query parameter required"}`, http.StatusBadRequest)
 		return
 	}
+	span.SetAttributes(attribute.String("asya.actor", actor))
 
 	var req createRequest
 	if err := readJSON(r, &req); err != nil {

@@ -211,6 +211,9 @@ affinity: {}
 # --- Tracing ---
 tracing:
   endpoint: ""
+  # serviceName is sent as OTEL_SERVICE_NAME. Default "asya-gateway" maintains
+  # backward compatibility with existing Tempo/Grafana dashboards.
+  serviceName: "asya-gateway"
 
 # --- Helm test configuration ---
 tests:

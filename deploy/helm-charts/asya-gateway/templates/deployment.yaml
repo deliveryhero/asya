@@ -68,6 +68,8 @@ spec:
           value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.mesh.socketDir | quote }}
         - name: ASYA_NAMESPACE
           value: {{ .Release.Namespace | quote }}
+        - name: OTEL_SERVICE_NAME
+          value: {{ .Values.tracing.serviceName | default "asya-gateway" | quote }}
         {{- if .Values.tracing.endpoint }}
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: {{ .Values.tracing.endpoint | quote }}
