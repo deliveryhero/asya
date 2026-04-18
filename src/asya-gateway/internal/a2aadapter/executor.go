@@ -26,13 +26,15 @@ const resultArtifactID = "result"
 type Executor struct {
 	registry   *AgentRegistry
 	meshClient *meshclient.Client
+	store      *StoreAdapter // for registering a2a task ID → mesh message ID
 }
 
 // NewExecutor creates a new A2A executor.
-func NewExecutor(registry *AgentRegistry, meshClient *meshclient.Client) *Executor {
+func NewExecutor(registry *AgentRegistry, meshClient *meshclient.Client, store *StoreAdapter) *Executor {
 	return &Executor{
 		registry:   registry,
 		meshClient: meshClient,
+		store:      store,
 	}
 }
 
@@ -87,6 +89,11 @@ func (e *Executor) Execute(
 	if err != nil {
 		slog.Error("Mesh create failed", "task_id", taskID, "error", err)
 		return fmt.Errorf("dispatch: %w", err)
+	}
+
+	// Register a2a task ID → mesh message ID so tasks/get can resolve it
+	if e.store != nil {
+		e.store.RegisterTask(taskID, createResp.ID)
 	}
 
 	// Write submitted event

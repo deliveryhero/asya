@@ -48,9 +48,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create A2A executor and store adapter
-	executor := a2aadapter.NewExecutor(registry, mc)
+	// Create store adapter and executor (executor needs store to register task ID mapping)
 	storeAdapter := a2aadapter.NewStoreAdapter(mc)
+	executor := a2aadapter.NewExecutor(registry, mc, storeAdapter)
 	cardProducer := a2aadapter.NewCardProducer(registry)
 
 	// Create A2A handler using a2a-go library

@@ -78,9 +78,17 @@ class GatewayTestHelper:
         The timeout sets the task deadline (seconds) — use ≥120 for actors with
         KEDA cold starts. The HTTP request itself times out after 10 seconds.
         """
-        # MCP tool names use underscores (test_echo) but actor names use hyphens (test-echo).
-        # Convert for backward compatibility with existing test suites.
-        actor_name = tool_name.replace("_", "-")
+        # Map MCP tool name to actor name. The new mesh-api uses actor names directly.
+        # Legacy tool names from flows.yaml map to their flow entrypoint actor.
+        # For most tools, underscore-to-hyphen conversion suffices (test_echo → test-echo).
+        # Some flows start with a different actor than the tool name suggests.
+        tool_to_actor = {
+            "test_pipeline": "test-doubler",  # flows.yaml: entrypoint: test-doubler
+            "test_empty_response": "test-empty",  # flows.yaml: entrypoint: test-empty
+            "test_nested_flow": "start-test-nested-flow",  # flows.yaml: entrypoint: start-test-nested-flow
+            "test_multihop": "test-multihop-0",  # flows.yaml: entrypoint: test-multihop-0
+        }
+        actor_name = tool_to_actor.get(tool_name, tool_name.replace("_", "-"))
         logger.debug(f"Dispatching actor task: {actor_name} with arguments: {arguments}")
 
         response = requests.post(

@@ -133,6 +133,18 @@ gateway:
     description: "Echo test tool"
     actor: test-echo
     timeout: 120
+  - name: test_pipeline
+    description: "Pipeline test tool"
+    actor: test-doubler
+    timeout: 120
+  - name: test_error
+    description: "Error test tool"
+    actor: test-error
+    timeout: 120
+  - name: test_timeout
+    description: "Timeout test tool"
+    actor: test-timeout
+    timeout: 120
   a2aAgents:
   - name: test-agent
     description: "Test A2A agent"

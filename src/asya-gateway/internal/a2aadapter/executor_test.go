@@ -66,7 +66,7 @@ func TestExecutor_Execute_Success(t *testing.T) {
 	})
 
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	// Use a collecting queue to capture events written by the executor
 	cq := &collectingQueue{}
@@ -109,7 +109,7 @@ func TestExecutor_Cancel(t *testing.T) {
 
 	reg := a2aadapter.NewAgentRegistry()
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	reqCtx := &a2asrv.RequestContext{
@@ -134,7 +134,7 @@ func TestExecutor_Resume(t *testing.T) {
 
 	reg := a2aadapter.NewAgentRegistry()
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	reqCtx := &a2asrv.RequestContext{
@@ -180,7 +180,7 @@ func TestExecutor_MessageToPayload_TextOnly(t *testing.T) {
 	})
 
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	_ = executor.Execute(context.Background(), &a2asrv.RequestContext{
@@ -215,7 +215,7 @@ func TestExecutor_FailedTask(t *testing.T) {
 	})
 
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	err := executor.Execute(context.Background(), &a2asrv.RequestContext{
