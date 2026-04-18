@@ -115,6 +115,18 @@ data:
       echo "[+] claude settings created"
     fi
 
+    # --- tmux ---
+    if [ ! -f /home/dev/.tmux.conf ]; then
+      cp /etc/workbench/tmux.conf /home/dev/.tmux.conf
+      echo "[+] ~/.tmux.conf created"
+    fi
+
+    # --- git ---
+    if [ ! -f /home/dev/.gitconfig ]; then
+      cp /etc/workbench/gitconfig /home/dev/.gitconfig
+      echo "[+] ~/.gitconfig created"
+    fi
+
     chown -R dev:dev /home/dev 2>/dev/null || true
 
     echo "[+] workbench init complete"
@@ -163,3 +175,25 @@ data:
     }
 
     echo "[$(get_model_name)] +$(get_lines_added) -$(get_lines_removed) ↑$(get_output_tokens) ↓$(get_input_tokens) | $(get_used_percent)..$(get_remaining_percent)% \$$(get_cost) | $(get_worktree_path)"
+
+  tmux.conf: |
+    set -g mouse on
+    set -g history-limit 100000
+    set-option -g word-separators ' @"=()[]{},'
+
+  gitconfig: |
+    [push]
+      default = current
+    [alias]
+      tree = log --graph --oneline --decorate --all
+      t = tree
+        w = worktree
+      commit = commit -s
+      ci = commit -s
+      co = checkout
+      pl = pull
+      ps = push
+      br = branch
+        set-upstream = \
+          !git branch \
+              --set-upstream-to=origin/`git symbolic-ref --short HEAD`
