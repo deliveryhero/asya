@@ -101,6 +101,20 @@ data:
       fi
     fi
 
+    # --- Claude Code statusline (copy from ConfigMap mount if not on PVC) ---
+    if [ ! -f /home/dev/.claude/statusline.sh ]; then
+      mkdir -p /home/dev/.claude
+      cp /etc/workbench/statusline.sh /home/dev/.claude/statusline.sh
+      chmod +x /home/dev/.claude/statusline.sh
+      echo "[+] claude statusline installed"
+    fi
+    if [ ! -f /home/dev/.claude/settings.json ]; then
+      cat > /home/dev/.claude/settings.json << 'SETTINGS'
+    {"statusLine":{"type":"command","command":"~/.claude/statusline.sh","padding":0}}
+    SETTINGS
+      echo "[+] claude settings created"
+    fi
+
     chown -R dev:dev /home/dev 2>/dev/null || true
 
     echo "[+] workbench init complete"
@@ -109,3 +123,43 @@ data:
     trap 'exit 0' SIGTERM
     sleep infinity &
     wait
+
+  statusline.sh: |
+    #!/bin/bash
+    input=$(cat)
+
+    get_model_name() { echo "$input" | jq -r '.model.display_name'; }
+    get_current_dir() { echo "$input" | jq -r '.workspace.current_dir'; }
+    get_project_dir() { echo "$input" | jq -r '.workspace.project_dir'; }
+    get_version() { echo "$input" | jq -r '.version'; }
+    get_cost() { echo "$input" | jq -r '.cost.total_cost_usd | . * 1000 | round / 1000'; }
+    get_duration() { echo "$input" | jq -r '.cost.total_duration_ms'; }
+    get_lines_added() { echo "$input" | jq -r '.cost.total_lines_added'; }
+    get_lines_removed() { echo "$input" | jq -r '.cost.total_lines_removed'; }
+    get_input_tokens() { echo "$input" | jq -r '.context_window.total_input_tokens'; }
+    get_output_tokens() { echo "$input" | jq -r '.context_window.total_output_tokens'; }
+    get_context_window_size() { echo "$input" | jq -r '.context_window.context_window_size'; }
+    get_used_percent() { echo "$input" | jq -r '.context_window.used_percentage // 0'; }
+    get_remaining_percent() { echo "$input" | jq -r '.context_window.remaining_percentage // 100'; }
+    get_worktree_path() {
+        local current_dir
+        current_dir=$(get_current_dir)
+
+        if [ -d "$current_dir/.git" ] && [ -f "$current_dir/.git" ]; then
+            local worktree_path
+            worktree_path=$(git -C "$current_dir" rev-parse --show-toplevel 2>/dev/null)
+            if [ -n "$worktree_path" ]; then
+                echo "$worktree_path" | sed "s|^$HOME|~|"
+            fi
+        elif [ -d "$current_dir/.git/worktrees" ]; then
+            echo "$current_dir" | sed "s|^$HOME|~|"
+        else
+            local git_dir
+            git_dir=$(git -C "$current_dir" rev-parse --show-toplevel 2>/dev/null)
+            if [ -n "$git_dir" ]; then
+                echo "$git_dir" | sed "s|^$HOME|~|"
+            fi
+        fi
+    }
+
+    echo "[$(get_model_name)] +$(get_lines_added) -$(get_lines_removed) ↑$(get_output_tokens) ↓$(get_input_tokens) | $(get_used_percent)..$(get_remaining_percent)% \$$(get_cost) | $(get_worktree_path)"
