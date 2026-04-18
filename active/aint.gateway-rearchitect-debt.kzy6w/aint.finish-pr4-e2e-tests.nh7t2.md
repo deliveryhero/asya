@@ -5,6 +5,8 @@ priority: 1
 tags: [gateway-rearchitect, debt, e2e]
 ---
 
+Original aint: .aint/active/aint.gateway-rearchitect.63keu/aint.pr4-helm-ingress-integration.3mak4/aint.md
+
 Session: 2026-04-17 → 2026-04-18. PR #445 (gateway-rearchitect/pr4-helm-ingress).
 Worktree: `.worktrees/gateway-rearchitect/pr4-helm-ingress`
 Local Kind cluster: `asya-e2e-sqs-s3` (sqs-s3 profile)
@@ -317,69 +319,274 @@ for line in r.iter_lines(): ..."
 
 ---
 
-## Current state (after session)
+## Session 2 fixes (2026-04-18)
 
-**Regular tests**: `14 failed, 125 passed, 14 skipped` out of 166 total (~75%).
-**Helm tests**: All 3 pass (test-crud, test-health, test-mcp).
-**Crossplane tests**: All 24/25 pass.
+All confirmed via component tests + local Kind cluster unless noted.
 
-### Remaining failures (14 regular tests)
+### 13. `deadline_at` wiped on status update
 
-| Test | Root cause | Fix complexity |
-|------|-----------|----------------|
-| `test_multihop_chain` | No `progress_percent` in status events | Medium (see aint b3k9m) |
-| `test_multihop_progress_percentage` | Same | Medium |
-| `test_sla_e2e::test_pipeline_completes_within_sla` | `deadline_at` NOT stamped for test_pipeline calls (tool timeout not wired through call_mcp_tool properly) | Small — check `tool_to_timeout` map lookup |
-| `test_sla_e2e::test_slow_actor_exceeds_sla` | No SLA backstop timer reaper | Medium (see aint q7x2n) |
-| `test_sla_e2e::test_gateway_backstop_race` | Same backstop timer + cold-start | Medium |
-| `test_tasks_cancel` | Fast actor race (now xfail) | Done — xfail added |
-| `test_timeout_crash_and_pod_restart_e2e` | Task stays pending, no reaper → 180s timeout | Medium (same as SLA aint) |
-| `test_task_timeout_tracking` | Same | Medium |
-| `test_nonretryable_policy_fails_immediately` | 20s timeout, x-sump routing not updating mesh-api fast enough | Need investigation |
-| `test_error_result_persisted_to_storage` | 90s timeout | Need investigation |
-| `test_observability::test_gateway_traces_exist` | OTEL span fix pushed but not yet verified in CI | Should be fixed in current push |
-| `test_observability::test_gateway_logs_collected` | Loki query fix pushed | Should be fixed in current push |
-| `test_observability::test_multi_service_trace` | Pre-existing even on main branch | Known pre-existing |
-| `test_actor_pod_crash_loop` | Chaos test with pod kill | Pre-existing chaos test |
+**Root cause**: `StateProxyStore.UpdateStatus` replaced `current.Data = data` instead
+of merging. First sidecar status POST wiped `deadline_at` stamped at creation.
 
-### Suspected hidden issue: x-sump/x-sink status reporting
+**Fix**: `mergeData()` in `stateproxy_client.go` — shallow merge incoming over existing,
+preserving fields absent from the update.
 
-The timeout tests (`test_nonretryable_policy_fails_immediately`,
-`test_error_result_persisted_to_storage`) all show tasks staying "pending"
-for the full timeout period (20-90s). The actors likely crash/timeout and
-x-sump receives the dead-letter, but x-sump's sidecar may not be reporting
-back to the mesh-api correctly.
+**Test**: `TestComponentDeadlinePreservedAfterStatusUpdate` (component).
 
-**To investigate**: Check x-sump sidecar logs when a failing task is dispatched.
-The `x-asya-gateway-url` header fix should have fixed this, but it may be that
-x-sump's processEndActorEnvelope uses a 1-second timeout for `ReportFinalError`
-which is too short under CI load.
+---
 
-Check: `reporter.go:1331`:
-```go
-reportCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-```
-Increasing this to 5-10s might fix the timeout tests.
+### 14. `ReportFinalError` 1s context timeout
+
+**Root cause**: Both `ReportFinalError` callsites in `router.go` (runtime timeout
++ SLA deadline) used `context.WithTimeout(1*time.Second)`. Under CI load the
+HTTP round-trip to mesh-api exceeded 1s → x-sump never marked tasks failed.
+
+**Fix**: Increased to 5s at both callsites (`router.go:295` and `router.go:1331`).
+
+**Fixes**: `test_nonretryable_policy_fails_immediately`, `test_error_result_persisted_to_storage`,
+`test_timeout_crash_and_pod_restart_e2e`, `test_task_timeout_tracking`.
+
+---
+
+### 15. SLA backstop timer missing
+
+**Root cause**: `deadline_at` stored in DB but no reaper goroutine.
+
+**Fix**: `FindExpired()` on `MessageStore` interface + `runBackstop()` goroutine in
+`mesh-api/main.go`. Ticks every `ASYA_BACKSTOP_INTERVAL` (default 5s). Marks
+expired non-terminal tasks `failed` with `{"error":"task timed out"}` and publishes
+to SSE subscribers.
+
+**Test**: `TestComponentBackstopReapsExpiredTask` (component, `ASYA_BACKSTOP_INTERVAL=1s`).
+
+**Fixes**: `test_slow_actor_exceeds_sla`, `test_gateway_backstop_race`.
+
+---
+
+### 16. Progress enrichment + sidecar status mapping
+
+**Root cause**: Three issues:
+1. Sidecar sends `"received"/"processing"/"completed"` statuses. `StatusAdvances`
+   returns false for unknown statuses (map lookup = 0 = same as pending). Dropped.
+2. Stale `running→running` updates dropped entirely — SSE subscribers miss
+   intermediate hops.
+3. No `progress_percent` in events — `x-sink` sends `"progress":1.0` not
+   `"progress_percent"`.
+
+**Fix** (`events.go`):
+- `enrichProgressEvent()`: maps sidecar statuses → `running`, mirrors into data blob,
+  injects `progress_percent` from `prev/next` route OR from `progress=1.0`.
+- Stale status updates (same monotonic level) now publish to SSE without storing.
+
+**Tests**: 8 unit tests + 2 component tests. Confirmed PASSED in local Kind.
+
+---
+
+### 17. Multihop routing: actors had no chain
+
+**Root cause**: `POST /api/v1/mesh/?actor=test-multihop-0` dispatches with `next=[]`.
+Old gateway used `flows.yaml` to define the chain. New mesh-api dispatch is
+single-entrypoint only — routing is the actor's responsibility via ABI yields.
+
+**Fix** (`handlers/payload.py`):
+- `multihop_handler` converted from `async def` → sync generator
+- Yields `SET .route.next [test-multihop-{n+1}]` using `HOP_NUMBER` env var
+- `time.sleep(0.5)` so SSE can capture intermediate events
+
+**Fix** (`create.go`): Reject `route`, `route_next`, `next` fields in POST body
+with 400 — routing is actor's job, entrypoint only via `?actor=`.
+
+**Tests**: Python unit test + `TestHandleCreate_ForbidsRoutingFields` unit test.
+Confirmed PASSED in local Kind.
+
+---
+
+### 18. NEW: State-persistence test pod label mismatch (pubsub-gcs CI run)
+
+**Symptom** (CI run 24601474275, pubsub-gcs):
+- `test_gateway_restart_preserves_task_history`: `Failed: No gateway pod found to restart`
+- `test_database_connection_recovery`: `wait_for_pod_ready('app.kubernetes.io/component=mesh', timeout=180)` → False
+
+**Root cause**: Tests look for pods with label `app.kubernetes.io/component=mesh`.
+The new Helm chart uses `app.kubernetes.io/name=asya-gateway` — no `component=mesh` label.
+
+**Fix needed**: Add `app.kubernetes.io/component: mesh-api` label to the gateway
+pod template in `deploy/helm-charts/asya-gateway/templates/deployment.yaml`, OR
+update the test to use `app.kubernetes.io/name=asya-gateway`.
+
+Test fix is simpler and correct — the component label should be `mesh-api` not `mesh`.
+
+---
+
+### 20. NEW: x-asya-gateway-url header dropped in error envelopes
+
+**Symptom**: All error-path tests (`test_error_goes_to_sump_when_available`,
+`test_retry_exhaustion_fails_to_sink`, `test_nonretryable_policy_fails_immediately`,
+`test_error_result_persisted_to_storage`) stuck pending despite 5s ReportFinalError fix.
+
+**Root cause**: `sendToSumpQueue` and `sendRetryFailure` in `router.go` build new
+envelope structs without copying `msg.Headers`. Since x-sink and x-sump have no
+`ASYA_GATEWAY_URL` env var, `resolveGatewayURL` returns `""` from the env fallback
+→ `isMeshStatusEnabled` returns `false` → no `POST /events` call → task stays pending.
+
+**Fix**: Add `"headers": originalMsg.Headers` in `sendToSumpQueue` and
+`Headers: msg.Headers` in `sendRetryFailure`. One-line fix in both callsites.
+
+**Confirmed**: root cause visible in CI sqs-s3 run 24601474275 —
+`error_handler` for task `354be137` repeated multiple times (requeue loop)
+because `sendToSumpQueue` sent an envelope without headers → x-sump couldn't
+call `isMeshStatusEnabled` → `reportFinalStatusWithMessage` skipped.
+
+---
+
+### 19. NEW: Gateway pod restart recovery latency (pubsub-gcs CI run)
+
+**Symptom**: `test_multiple_component_failures` — gateway pod reports ready in 1.4s
+but next 20s of HTTP requests all return `ConnectionResetError (104)`.
+
+**Root cause**: Kubernetes readinessProbe passes when `wget /health` returns 200,
+but the new 4-container gateway pod (mesh-api + mcp-adapter + a2a-adapter +
+state-proxy-mesh) may need all containers healthy. Likely the TCP socket is
+accepting but the app isn't fully initialized.
+
+**Fix needed**: Ensure readinessProbe covers all critical containers, or increase
+`minReadySeconds` in the Deployment so CI tests wait longer.
+
+Also: the test uses `wait_for_pod_ready("app.kubernetes.io/name=asya-gateway")` (not
+`component=mesh`), so it finds the pod — but the pod isn't serving traffic yet.
+
+---
+
+## Current state (after session 2)
+
+**Fixed and pushed to CI** (awaiting sqs-s3 CI results):
+- deadline_at merge (#13)
+- ReportFinalError 5s (#14)
+- SLA backstop timer (#15)
+- Observability (OTEL span + Loki query, from session 1)
+
+**Fixed locally, NOT yet pushed** (waiting for current CI run):
+- Progress enrichment + sidecar status mapping (#16)
+- Multihop routing + route_next rejection (#17)
+
+**New failures found in pubsub-gcs CI, NOT fixed yet**:
+- Pod label mismatch (#18) — state-persistence tests
+- Gateway readiness latency (#19) — chaos test
+
+### Remaining failures after all session-2 fixes
+
+| Test | Root cause | Status |
+|------|-----------|--------|
+| `test_multihop_chain` | No progress_percent | Fixed locally (#16, #17), not pushed |
+| `test_multihop_progress_percentage` | Same | Fixed locally, not pushed |
+| `test_sla_e2e::test_pipeline_completes_within_sla` | deadline_at wiped | Fixed pushed (#13) |
+| `test_sla_e2e::test_slow_actor_exceeds_sla` | No backstop | Fixed pushed (#15) |
+| `test_sla_e2e::test_gateway_backstop_race` | Same | Fixed pushed (#15) |
+| `test_nonretryable_policy_fails_immediately` | Headers dropped in error envelopes | Fixed locally (#20), not pushed |
+| `test_error_result_persisted_to_storage` | Same | Fixed locally (#20), not pushed |
+| `test_timeout_crash_and_pod_restart_e2e` | Same (SLA path via x-sump) | Fixed locally (#20), not pushed |
+| `test_task_timeout_tracking` | Same | Fixed locally (#20), not pushed |
+| `test_error_goes_to_sump_when_available` | Same | Fixed locally (#20), not pushed |
+| `test_retry_exhaustion_fails_to_sink` | Same | Fixed locally (#20), not pushed |
+| `test_gateway_restart_preserves_task_history` | Label mismatch (#18) | NOT fixed |
+| `test_database_connection_recovery` | Label + readiness (#18, #19) | NOT fixed |
+| `test_multiple_component_failures` | Readiness latency (#19) | NOT fixed |
+| `test_observability::test_multi_service_trace` | Pre-existing on main | Skip |
+| `test_actor_pod_crash_loop` | Pre-existing chaos | Skip |
+
+---
+
+## Additional context
+
+ 1-3: Architectural Gaps (Separate Aints)
+
+  These aren't observability issues — they're missing features in the new mesh-api that the old gateway had. Each should be a separate aint in gateway-rearchitect-debt:
+
+  - Multihop progress_percent: old gateway computed (len(prev) + weight) / total * 100. New mesh-api just stores whatever the sidecar sends. Fix: compute in the sidecar (it knows
+  the route) or in mesh-api's HandleEventsPost from the route data in the event body.
+  - SLA backstop timer: old gateway had handleTimeout() goroutine. New mesh-api has deadline_at in DB but no reaper. Fix: background ticker that calls FindExpired() (already in the
+   MessageStore interface) every N seconds.
+  - Cancel race: if actor already succeeded, cancel is correctly rejected by monotonic ordering. The test expectation may need adjusting — you can't cancel a completed task.
+
+  4: Observability — How to Fix
+
+  The issue is that container names and service names changed:
+
+  ┌──────────────────────────────────┬────────────────────────────────────────────────┐
+  │               Old                │                      New                       │
+  ├──────────────────────────────────┼────────────────────────────────────────────────┤
+  │ asya-gateway-api (container)     │ mesh-api (container)                           │
+  ├──────────────────────────────────┼────────────────────────────────────────────────┤
+  │ asya-gateway-mesh (container)    │ mesh-api (same, different port)                │
+  ├──────────────────────────────────┼────────────────────────────────────────────────┤
+  │ asya-gateway (OTEL service name) │ asya-mesh-api (or whatever the binary reports) │
+  └──────────────────────────────────┴────────────────────────────────────────────────┘
+
+  This breaks:
+  - Loki queries that filter by container="asya-gateway-api" or pod=~"asya-gateway.*"
+  - Tempo traces where service.name="asya-gateway"
+  - Grafana dashboards referencing old names
+
+  Fix approach:
+
+  A. Set OTEL_SERVICE_NAME explicitly in Helm values:
+
+  # deploy/helm-charts/asya-gateway/values.yaml
+  mesh:
+    env:
+      OTEL_SERVICE_NAME: "asya-gateway"  # keep old name for trace continuity
+      # OR use new name and update dashboards:
+      # OTEL_SERVICE_NAME: "asya-mesh-api"
+
+  For the adapters:
+  mcp:
+    env:
+      OTEL_SERVICE_NAME: "asya-mcp-adapter"
+  a2a:
+    env:
+      OTEL_SERVICE_NAME: "asya-a2a-adapter"
+
+  B. Update container names in the Deployment template to be grep-friendly:
+
+  containers:
+  - name: mesh-api          # Loki: {container="mesh-api"}
+  - name: mcp-adapter       # Loki: {container="mcp-adapter"}
+  - name: a2a-adapter       # Loki: {container="a2a-adapter"}
+  - name: state-proxy-mesh  # Loki: {container="state-proxy-mesh"}
+
+  C. Update e2e test Loki/Tempo queries:
+
+  # Before:
+  GATEWAY_LOG_QUERY = '{container="asya-gateway-api"}'
+  GATEWAY_TRACE_SERVICE = "asya-gateway"
+
+  # After:
+  MESH_API_LOG_QUERY = '{container="mesh-api"}'
+  MESH_API_TRACE_SERVICE = "asya-mesh-api"
+  # OR query all gateway containers:
+  GATEWAY_LOG_QUERY = '{pod=~"asya-gateway-.*"}'
+
+  D. Add app.kubernetes.io/component labels for structured Loki queries:
+
+  # On each container's pod labels:
+  app.kubernetes.io/name: asya-gateway
+  app.kubernetes.io/component: mesh-api  # or mcp-adapter, a2a-adapter
+
+  Then Loki queries become: {app="asya-gateway", component="mesh-api"}
 
 ---
 
 ## Next steps for this aint
 
-1. **Verify observability fix in CI** — the current push (cc535f81) adds the
-   `gateway.task.execute` span and fixes Loki query. Check the next CI run.
+1. **Push progress/multihop fixes** (#16, #17) — waiting for current CI run to
+   finish before pushing to avoid cancelling it.
 
-2. **Fix the SLA deadline for test_pipeline** — `test_pipeline_completes_within_sla`
-   expects `deadline ≈ now + 45s`. The `call_mcp_tool` `tool_to_timeout` map has
-   `test_pipeline: 45` but verify it's actually being used (check that the mesh-api
-   response has `deadline_at ≈ now + 45s`).
+2. **Fix pod label mismatch** (#18) — add `app.kubernetes.io/component: mesh-api`
+   label to gateway pod template in `deployment.yaml`, update test to match.
 
-3. **Fix x-sump 1-second ReportFinalError timeout** — increase to 5s in
-   `src/asya-sidecar/internal/router/router.go:1331`. This likely fixes the
-   timeout-based test failures.
+3. **Fix gateway readiness** (#19) — either `minReadySeconds: 5` in Deployment or
+   increase retry window in `test_multiple_component_failures` from 20 to 30 attempts.
 
-4. **Implement SLA backstop timer** — see aint q7x2n. This fixes the 3 SLA tests.
+4. **DCO signoff** — pre-existing commits on PR without signoff. May need
+   maintainer override (`rebase --signoff` would rewrite history).
 
-5. **Add progress_percent** — see aint b3k9m. This fixes the 2 multihop tests.
-
-6. **DCO signoff** — the PR still has old commits without signoff. The DCO CI
-   check is failing for pre-existing commits. May need maintainer override.

@@ -1,6 +1,6 @@
-git-aint state | 2026-04-17T16:00:27Z
+git-aint state | 2026-04-18T10:17:50Z
 
-Working(8) Open(141) Closed(369)
+Working(8) Open(144) Closed(370)
 
 [n6g6h] "asya-lab"  P2 working  [1/14 done]
   .aint/active/aint.asya-lab.n6g6h/ adr.click-over-argparse.md, adr.compiler-template-not-helm.md, adr.ds-config-management-research.md, adr.k-d-command-split.md, adr.kustomize-not-extra-dependency.md, adr.no-cog.md, conversation-tilt.txt, refactor-config-with-templates.md, research-build-system.md, research-compiler-knowledge-base.md, research-compiler-resolution.md, research-config-setup.md, research-no-dockerfile.md, research-seamless-build.md, rfc-ui-components.md, rfc.md
@@ -47,6 +47,9 @@ Working(8) Open(141) Closed(369)
   ├── [1fvxp] "Enhance AGENTS.md with decision trees for faster agent comprehension"  open
   └── [1j0yi] "Gateway: remove queue-name fallback once status.phase is stable"  open
 
+[8v7o0] "autoresearch"  P2 open  (recently modified)
+  .aint/active/aint.autoresearch.8v7o0/ adr.compiled-flow-not-free-routing-actor.md, adr.dual-mount-same-backend.md, adr.git-state-proxy-over-git-sync.md, adr.rl-framing-for-experiment-loop.md, design.dataset-state-proxy.md, rfc.md
+
 [63keu] "RFC: Replace asya-gateway with asya-mesh-api + protocol adapters"  P1 open  (recently modified)
   .aint/active/aint.gateway-rearchitect.63keu/ adr.agentgateway-mcp-only.md, adr.db-metadata-only.md, adr.envelope-gateway-url.md, adr.mcp-a2a-siblings.md, adr.mesh-universal-api.md, adr.protocol-adapters-as-sidecars.md, adr.two-step-dispatch.md, adr.uri-based-consistent-hash.md, rfc-addendum.md, rfc.md
 
@@ -58,16 +61,9 @@ Working(8) Open(141) Closed(369)
   ├── [n84dj] "Retry delay observability: per-retry-event metrics and logging"  open
   └── [1f4gd] "Configure OTEL env vars for user metrics in runtime container"  open
 
-[8v7o0] "autoresearch"  P2 open  (recently modified)
-  .aint/active/aint.autoresearch.8v7o0/ adr.compiled-flow-not-free-routing-actor.md, adr.dual-mount-same-backend.md, adr.git-state-proxy-over-git-sync.md, adr.rl-framing-for-experiment-loop.md, design.dataset-state-proxy.md, rfc.md
-
-[akgyg] "E2E rabbitmq-minio: Crossplane Requirements API race blocks flavored actors"  P2 open  (recently modified)
-  .aint/active/aint.e2e-rabbitmq-minio-crossplane-requirements-api-race-blocks.akgyg.md
-
-[fd73j] "Actor Warm-Up Pattern for Scale-to-Zero Validation"  P2 open  (recently modified)
-  .aint/active/aint.actor-warm-up-pattern-for-scale-to-zero-validation.fd73j.md
-
 [emmc5] "Implement A2A protocol"  P2 open
+
+[fd73j] "Actor Warm-Up Pattern for Scale-to-Zero Validation"  P2 open
 
 [0yjeo] "agentic-claw-code"  P2 open
 
@@ -91,6 +87,8 @@ Working(8) Open(141) Closed(369)
 
 [mxzgo] "Flow DSL Free Variables and Iteration"  P2 open
 
+[2w664] "A/B/N Traffic Routing for Actor Pipelines"  P2 open
+
 10 open aints not shown (git aint get)
 
 Closed(5):
@@ -99,4 +97,4 @@ Closed(5):
 [1fzhp] "Research: kubectl-asya via Krew vs custom CLI wrapper"  rejected
 [1frs7] "XRD: Add spec.flavors field to AsyncActor"  merged
 [1jnjg] "E2E: Enable function-asya-flavors once ghcr.io image is public"  merged
-... and 364 more
+... and 365 more
