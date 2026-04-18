@@ -134,6 +134,9 @@ class GatewayTestHelper:
         if isinstance(raw.get("data"), dict):
             normalized.update(raw["data"])
         normalized.update({k: v for k, v in raw.items() if k != "data"})
+        # Compatibility: old gateway used 'deadline', new uses 'deadline_at'
+        if "deadline_at" in normalized and "deadline" not in normalized:
+            normalized["deadline"] = normalized["deadline_at"]
         return normalized
 
     def stream_task_progress(
