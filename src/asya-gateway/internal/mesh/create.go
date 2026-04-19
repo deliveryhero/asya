@@ -10,12 +10,36 @@ import (
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 var meshTracer = otel.Tracer("asya-mesh-api")
+
+// mapCarrier adapts map[string]any to the OTEL TextMapCarrier interface.
+type mapCarrier map[string]any
+
+func (m mapCarrier) Get(key string) string {
+	v, ok := m[key]
+	if !ok {
+		return ""
+	}
+	s, _ := v.(string)
+	return s
+}
+func (m mapCarrier) Set(key, value string) { m[key] = value }
+func (m mapCarrier) Keys() []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Ensure mapCarrier satisfies propagation.TextMapCarrier at compile time.
+var _ propagation.TextMapCarrier = mapCarrier{}
 
 // createRequest is the JSON body for POST /api/v1/mesh/?actor={name}.
 type createRequest struct {
@@ -68,11 +92,13 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	id := uuid.New().String()
 	now := time.Now().UTC()
 
-	// Stamp gateway URL into headers
+	// Stamp gateway URL and W3C trace context into headers
 	if req.Headers == nil {
 		req.Headers = make(map[string]any)
 	}
 	req.Headers["x-asya-gateway-url"] = h.gatewayURL
+	// Inject traceparent/tracestate so the first actor continues this trace.
+	otel.GetTextMapPropagator().Inject(ctx, mapCarrier(req.Headers))
 
 	// Calculate deadline
 	deadlineAt := ""

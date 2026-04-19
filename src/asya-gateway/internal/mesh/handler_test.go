@@ -12,6 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace/noop"
+
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/store"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
@@ -437,6 +442,38 @@ func TestHandleList_FilterByStatus(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 	msgs := result["messages"].([]any)
 	assert.Len(t, msgs, 2)
+}
+
+func TestHandleCreate_InjectsTraceparent(t *testing.T) {
+	// Set up a real tracer provider with W3C propagator so traceparent gets injected.
+	// Without an OTEL endpoint the default is a no-op provider — use a real one for this test.
+	tp := sdktrace.NewTracerProvider()
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	t.Cleanup(func() {
+		otel.SetTracerProvider(noop.NewTracerProvider())
+		otel.SetTextMapPropagator(propagation.TraceContext{})
+	})
+
+	h, _, sender := setupTestHandler()
+	extSrv, _ := setupTestServer(h)
+	defer extSrv.Close()
+
+	resp, err := http.Post(
+		extSrv.URL+"/api/v1/mesh/?actor=echo",
+		"application/json",
+		strings.NewReader(`{"payload":{}}`),
+	)
+	require.NoError(t, err)
+	resp.Body.Close()
+
+	last := sender.lastSent()
+	var envelope map[string]any
+	require.NoError(t, json.Unmarshal(last.body, &envelope))
+	headers, ok := envelope["headers"].(map[string]any)
+	require.True(t, ok)
+	_, hasTraceparent := headers["traceparent"]
+	assert.True(t, hasTraceparent, "envelope headers must contain traceparent for distributed tracing")
 }
 
 func TestHandleCreate_StampsGatewayURL(t *testing.T) {
