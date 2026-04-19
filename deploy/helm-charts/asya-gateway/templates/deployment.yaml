@@ -8,6 +8,7 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  minReadySeconds: {{ .Values.minReadySeconds | default 15 }}
   selector:
     matchLabels:
       {{- include "asya-gateway.selectorLabels" . | nindent 6 }}

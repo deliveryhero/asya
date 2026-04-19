@@ -1,4 +1,8 @@
 replicaCount: 1
+# Seconds to wait after readiness probe passes before routing traffic.
+# The 4-container pod (mesh-api, mcp-adapter, a2a-adapter, state-proxy-mesh)
+# needs this buffer so the Unix socket and HTTP servers fully initialize.
+minReadySeconds: 15
 
 # --- Container images ---
 meshApi:

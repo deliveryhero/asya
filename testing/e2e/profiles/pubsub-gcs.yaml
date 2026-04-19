@@ -185,6 +185,14 @@ gateway:
     description: "Queue health test tool"
     actor: test-queue-health
     timeout: 30
+  - name: test-retry-exhaustion
+    description: "Retry exhaustion test tool"
+    actor: test-retry-exhaustion
+    timeout: 60
+  - name: test-retry-nonretryable
+    description: "Non-retryable policy test tool"
+    actor: test-retry-nonretryable
+    timeout: 30
   a2aAgents:
   - name: test-agent
     description: "Test A2A agent"
