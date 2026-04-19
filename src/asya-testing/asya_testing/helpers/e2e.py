@@ -186,9 +186,9 @@ class E2ETestHelper(GatewayTestHelper):
         Raises:
             ConnectionError: If gateway unreachable after all retries
         """
+        # Only check the external URL — the internal mesh URL (port 8081)
+        # is a ClusterIP service not reachable from the test runner.
         health_urls = [f"{self.gateway_url}/health"]
-        if self.mesh_gateway_url != self.gateway_url:
-            health_urls.append(f"{self.mesh_gateway_url}/health")
 
         for attempt in range(max_retries):
             try:

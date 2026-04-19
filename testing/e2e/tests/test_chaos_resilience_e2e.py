@@ -180,8 +180,13 @@ def test_multiple_component_failures(e2e_helper):
         # They will scale up automatically when needed, so we don't check them here
         logger.info("Note: Crew actors not checked - they scale based on queue depth")
 
-        # New 4-container gateway pod takes up to ~30s to fully serve traffic after
-        # k8s readiness probe passes. Retry 20x at 2s = 40s max.
+        # Wait for Deployment Available — ensures old pod exited grace period and is
+        # removed from Service endpoints before we check connectivity.
+        e2e_helper.kubectl(
+            "wait", "deployment/asya-gateway",
+            "--for=condition=available",
+            "--timeout=120s",
+        )
         e2e_helper.ensure_gateway_connectivity(max_retries=20, retry_interval=2.0)
 
         logger.info("Checking if system recovered...")

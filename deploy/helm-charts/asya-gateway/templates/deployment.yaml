@@ -89,10 +89,11 @@ spec:
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: /health
+            path: /ready
             port: mesh-ext
           initialDelaySeconds: 3
           periodSeconds: 5
+          failureThreshold: 12
         resources:
           {{- toYaml .Values.meshApi.resources | nindent 12 }}
         volumeMounts:

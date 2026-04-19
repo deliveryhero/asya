@@ -15,6 +15,7 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/store"
 	"github.com/deliveryhero/asya/asya-gateway/internal/tracing"
+	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 func main() {
@@ -92,15 +93,31 @@ func main() {
 	sender := mesh.NewQueueClientSender(queueClient)
 	handler := mesh.NewHandler(msgStore, sender, gatewayURL, prefix)
 
+	// readyHandler checks that the state-proxy (Unix socket) is reachable.
+	// Used as readinessProbe — only passes once the store is functional.
+	readyHandler := func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		// A lightweight List with limit=1 exercises the full socket path.
+		if _, _, err := msgStore.List(ctx, types.ListParams{Limit: 1}); err != nil {
+			http.Error(w, "store not ready: "+err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintln(w, "OK")
+	}
+
 	// External server (port 8080)
 	extMux := http.NewServeMux()
 	handler.RegisterExternal(extMux)
 	extMux.HandleFunc("/health", healthHandler)
+	extMux.HandleFunc("/ready", readyHandler)
 
 	// Internal server (port 8081)
 	intMux := http.NewServeMux()
 	handler.RegisterInternal(intMux)
 	intMux.HandleFunc("/health", healthHandler)
+	intMux.HandleFunc("/ready", readyHandler)
 
 	extServer := &http.Server{
 		Addr:        ":" + extPort,
