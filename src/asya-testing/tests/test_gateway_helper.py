@@ -17,7 +17,7 @@ class FakeMCPHandler(BaseHTTPRequestHandler):
     recorded_requests: list = []
     SESSION_ID = "test-session-001"
 
-    def do_POST(self):
+    def do_POST(self):  # noqa: N802
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length)
         req = json.loads(body)
@@ -108,7 +108,7 @@ def test_call_mcp_tool_no_task_id_raises(fake_mcp_server):
     handler_cls.task_id = None
 
     class NoMetaHandler(BaseHTTPRequestHandler):
-        def do_POST(self):
+        def do_POST(self):  # noqa: N802
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
             req = json.loads(body)

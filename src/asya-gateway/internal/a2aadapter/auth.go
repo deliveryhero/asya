@@ -33,6 +33,7 @@ func NewAPIKeyAuthenticator(key string) *APIKeyAuthenticator {
 	return &APIKeyAuthenticator{key: key}
 }
 
+// Authenticate checks the X-API-Key header against the configured key.
 func (a *APIKeyAuthenticator) Authenticate(r *http.Request) bool {
 	provided := r.Header.Get("X-API-Key")
 	return subtle.ConstantTimeCompare([]byte(provided), []byte(a.key)) == 1
@@ -167,6 +168,7 @@ func NewJWTAuthenticator(jwksURL, issuer, audience string) (*JWTAuthenticator, e
 // Close stops the JWKS background refresh goroutine.
 func (j *JWTAuthenticator) Close() { j.jwks.close() }
 
+// Authenticate validates the Bearer JWT in the Authorization header.
 func (j *JWTAuthenticator) Authenticate(r *http.Request) bool {
 	h := r.Header.Get("Authorization")
 	if !strings.HasPrefix(h, "Bearer ") {

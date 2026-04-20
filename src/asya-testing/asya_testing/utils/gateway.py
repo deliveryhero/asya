@@ -85,9 +85,7 @@ class GatewayTestHelper:
         resp.raise_for_status()
         session_id = resp.headers.get("Mcp-Session-Id") or resp.headers.get("mcp-session-id")
         if not session_id:
-            raise RuntimeError(
-                f"MCP initialize returned no Mcp-Session-Id. Headers: {dict(resp.headers)}"
-            )
+            raise RuntimeError(f"MCP initialize returned no Mcp-Session-Id. Headers: {dict(resp.headers)}")
         return session_id
 
     def call_mcp_tool(
@@ -138,10 +136,7 @@ class GatewayTestHelper:
         task_id = meta.get("task_id")
 
         if task_id is None:
-            raise RuntimeError(
-                f"MCP tools/call for {tool_name!r} returned no task_id in _meta. "
-                f"Response: {data}"
-            )
+            raise RuntimeError(f"MCP tools/call for {tool_name!r} returned no task_id in _meta. Response: {data}")
 
         logger.debug(f"MCP task ID: {task_id}")
         return {
