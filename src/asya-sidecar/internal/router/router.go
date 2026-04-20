@@ -34,6 +34,9 @@ const (
 	statusFailed    = "failed"
 )
 
+// osExit is the function called to terminate the process. Replaced in tests.
+var osExit = os.Exit
+
 // Router handles envelope routing between queues and runtime client
 type Router struct {
 	cfg              *config.Config
@@ -254,7 +257,8 @@ func (r *Router) isMeshStatusEnabled(msg *envelopes.Envelope) bool {
 // - Process the envelope through runtime
 // - Do NOT route responses anywhere (terminal processing)
 // - Report final status to gateway
-func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Envelope, msgBody []byte, startTime time.Time) error {
+func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Envelope, queueMsg transport.QueueMessage, startTime time.Time) error {
+	msgBody := queueMsg.Body
 	slog.Debug("End actor processing message", "id", msg.ID, "actor", r.actorName)
 
 	// IMPORTANT: End actors are terminal - they do NOT route to any queue
@@ -297,9 +301,16 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Enve
 				_ = r.getReporter(&msg).ReportFinalError(errorCtx, msg.ID, "Runtime timeout exceeded")
 			}
 
+			// ACK before exit to prevent redelivery and CrashLoopBackOff accumulation.
+			ackCtx, ackCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			if ackErr := r.transport.Ack(ackCtx, queueMsg); ackErr != nil {
+				slog.Warn("Failed to ACK message before exit", "id", msg.ID, "error", ackErr)
+			}
+			ackCancel()
+
 			slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
 			tracing.ForceFlush(context.Background())
-			os.Exit(1)
+			osExit(1)
 		}
 
 		return fmt.Errorf("runtime error in end actor: %w", err)
@@ -924,7 +935,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	}
 
 	if r.cfg.IsEndActor {
-		return r.processEndActorEnvelope(ctx, *msg, queueMsg.Body, startTime)
+		return r.processEndActorEnvelope(ctx, *msg, queueMsg, startTime)
 	}
 
 	if r.isMeshStatusEnabled(msg) {
@@ -1088,7 +1099,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	}
 
 	if err != nil {
-		return r.handleRuntimeCallError(ctx, msg, err, queueMsg.Body, startTime)
+		return r.handleRuntimeCallError(ctx, msg, err, queueMsg, startTime)
 	}
 
 	// Check for dispatch errors from the callback
@@ -1116,7 +1127,8 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 // handleRuntimeCallError handles errors returned by CallRuntime, including SSE
 // handler errors (*RuntimeError), infrastructure errors, and timeouts.
-func (r *Router) handleRuntimeCallError(ctx context.Context, msg *envelopes.Envelope, err error, originalBody []byte, startTime time.Time) error {
+func (r *Router) handleRuntimeCallError(ctx context.Context, msg *envelopes.Envelope, err error, queueMsg transport.QueueMessage, startTime time.Time) error {
+	originalBody := queueMsg.Body
 	// Generator handlers signal errors via SSE error events, which the
 	// runtime client wraps as *RuntimeError. Convert these back into a
 	// normal error response so that retry/MRO logic in handleErrorResponse
@@ -1153,9 +1165,18 @@ func (r *Router) handleRuntimeCallError(ctx context.Context, msg *envelopes.Enve
 			slog.Error("Failed to send timeout error to error queue - exiting anyway", "error", err)
 		}
 
+		// ACK the message before exiting so it is not redelivered to the restarted pod.
+		// Without this, SQS re-enqueues after visibilityTimeout, causing a second crash
+		// and accumulating CrashLoopBackOff backoff.
+		ackCtx, ackCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if ackErr := r.transport.Ack(ackCtx, queueMsg); ackErr != nil {
+			slog.Warn("Failed to ACK message before exit", "id", msg.ID, "error", ackErr)
+		}
+		ackCancel()
+
 		slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
 		tracing.ForceFlush(context.Background())
-		os.Exit(1)
+		osExit(1)
 	}
 
 	if err := r.sendToSumpQueue(ctx, originalBody, errorMsg); err != nil {

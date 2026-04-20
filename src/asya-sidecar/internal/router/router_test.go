@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -4499,5 +4500,64 @@ func TestResolveGatewayURL_RejectsInvalidScheme(t *testing.T) {
 	got := router.resolveGatewayURL(msg)
 	if got != "http://default-gw:8080" {
 		t.Errorf("Expected fallback to default gateway, got %q", got)
+	}
+}
+
+// ackRecordingTransport extends mockTransport to record Ack calls.
+type ackRecordingTransport struct {
+	mockTransport
+	ackCalled bool
+	ackMsg    transport.QueueMessage
+}
+
+func (m *ackRecordingTransport) Ack(_ context.Context, msg transport.QueueMessage) error {
+	m.ackCalled = true
+	m.ackMsg = msg
+	return nil
+}
+
+// TestHandleRuntimeCallError_TimeoutAcksBeforeExit verifies that when a runtime
+// timeout triggers os.Exit(1), the SQS message is ACKed first so it is not
+// redelivered to the restarted pod (which would accumulate CrashLoopBackOff).
+func TestHandleRuntimeCallError_TimeoutAcksBeforeExit(t *testing.T) {
+	tr := &ackRecordingTransport{}
+
+	router := &Router{
+		cfg: &config.Config{
+			ActorName: "test-timeout",
+			Timeout:   5 * time.Second,
+			SinkQueue: "x-sink",
+			SumpQueue: "x-sump",
+		},
+		transport: tr,
+		actorName: "test-timeout",
+		sinkQueue: "x-sink",
+		sumpQueue: "x-sump",
+	}
+
+	exitCode := -1
+	osExit = func(code int) { exitCode = code }
+	t.Cleanup(func() { osExit = os.Exit })
+
+	queueMsg := transport.QueueMessage{
+		ID:   "msg-123",
+		Body: []byte(`{"id":"task-abc","route":{"prev":[],"curr":"test-timeout","next":[]},"payload":{},"headers":{}}`),
+	}
+
+	msg := &envelopes.Envelope{ID: "task-abc"}
+
+	_ = router.handleRuntimeCallError(
+		context.Background(),
+		msg,
+		context.DeadlineExceeded,
+		queueMsg,
+		time.Now(),
+	)
+
+	if exitCode != 1 {
+		t.Errorf("Expected osExit(1) to be called, got exitCode=%d", exitCode)
+	}
+	if !tr.ackCalled {
+		t.Error("Expected Ack to be called before exit to prevent SQS redelivery")
 	}
 }

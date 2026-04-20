@@ -641,14 +641,6 @@ def test_tasks_cancel_transitions_to_cancelled():
             "task completed before cancel arrived (fast actor race — see "
             "aint.a2a-cancel-race-test-fix.w5p1r)"
         )
-    # If the a2a-go subscription channel closed before cancel arrived (e.g. the
-    # streaming client disconnected), the library returns -32603 "queue is closed".
-    # This is a timing race in the adapter — treat as xfail same as -32002.
-    err = cancel_result.get("error", {})
-    if err.get("code") == -32603 and "queue is closed" in str(err.get("data", {}).get("error", "")):
-        pytest.xfail(
-            "subscription channel closed before cancel (adapter timing race)"
-        )
     assert "result" in cancel_result, f"tasks/cancel must return result: {cancel_result}"
     task = cancel_result["result"]
     cancel_state = task.get("status", {}).get("state") or task.get("state")

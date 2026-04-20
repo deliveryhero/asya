@@ -3,6 +3,7 @@ package a2aadapter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -186,8 +187,15 @@ func (e *Executor) Cancel(
 		return fmt.Errorf("cancel task %q: %w", taskID, err)
 	}
 
-	return eq.Write(ctx, a2alib.NewStatusUpdateEvent(
+	err := eq.Write(ctx, a2alib.NewStatusUpdateEvent(
 		reqCtx, a2alib.TaskStateCanceled, nil))
+	// If the event queue is already closed the task reached a terminal state
+	// (completed/canceled by another path) before this cancel request arrived.
+	// Treat it as ErrTaskNotCancelable so callers get -32002 instead of -32603.
+	if errors.Is(err, eventqueue.ErrQueueClosed) {
+		return fmt.Errorf("cancelation failed: %w", a2alib.ErrTaskNotCancelable)
+	}
+	return err
 }
 
 // handleResume dispatches a resume message for paused tasks.
