@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.25
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.9.1
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/mark3labs/mcp-go v0.48.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/stretchr/testify v1.11.1
