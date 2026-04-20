@@ -138,8 +138,17 @@ def test_slow_actor_exceeds_sla(e2e_helper, namespace):
     except Exception as exc:
         logger.warning(f"Queue purge failed (non-fatal): {exc}")
 
+    # Reset pod if it is in CrashLoopBackOff from previous test runs.
+    # After 6+ crashes k8s applies exponential backoff (~5min) which would
+    # exceed our pod-ready wait window. A rollout restart clears the backoff.
     initial_restarts = _get_pod_restart_count(e2e_helper, "test-timeout")
     logger.info(f"Initial pod restart count: {initial_restarts}")
+    if initial_restarts >= 3:
+        logger.info(f"High restart count ({initial_restarts}), rolling restart to clear CrashLoopBackOff backoff...")
+        e2e_helper.kubectl("rollout", "restart", "deployment/test-timeout")
+        e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout", timeout=120)
+        initial_restarts = _get_pod_restart_count(e2e_helper, "test-timeout")
+        logger.info(f"Post-restart pod restart count: {initial_restarts}")
 
     response = e2e_helper.call_mcp_tool(
         tool_name="test_timeout",
