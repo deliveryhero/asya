@@ -31,7 +31,10 @@ Changing status moves the file automatically.
 ```bash
 git aint init                              # setup .aint/ worktree (idempotent)
 git aint new --title "Fix auth"            # create aint in active/
+git aint new --slug "fix-auth"             # create aint (title derived from slug)
 git aint new --title "Subtask" --in <id>   # create child aint
+git aint new --title "RFC" --dir           # create as directory-form aint
+git aint new --title "X" --depends-on <id> # create with dependency
 git aint get                               # table of all active aints
 git aint get <id>                          # one aint (table row)
 git aint get <id> -o detail                # full detail view
@@ -45,8 +48,12 @@ git aint get --with dependants             # include dependants
 git aint get --with blockers               # include blockers
 git aint get --status closed               # show merged + rejected
 git aint get --deps clear                  # unblocked aints only
+git aint get --in <parent-id>              # filter by parent directory
+git aint get --stats                       # summary statistics only
+git aint get --limit 5                     # limit number of results
 git aint set <id> --status working         # update status (moves file if needed)
 git aint set <id> --priority 1             # update priority
+git aint set <id> --title "New title"      # update title
 git aint set <id> --add-tag "pr:123"       # add tag
 git aint set <id> --add-dep <other-id>     # add dependency (with cycle detection)
 git aint set <id> --slug new-name          # rename file/directory
@@ -74,6 +81,7 @@ git aint worktree remove <id>     # remove worktree + clean tags
 git aint tmux attach <id>         # attach/create tmux session
 git aint tmux list                # show all tmux sessions
 git aint tmux kill <id>           # kill tmux session
+git aint status                   # show working/pushed aints with worktrees, branches, PRs
 git aint aliases                  # list all aliases with descriptions
 ```
 

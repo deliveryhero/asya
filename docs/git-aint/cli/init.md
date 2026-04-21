@@ -6,7 +6,7 @@ Safe to run multiple times — every step is idempotent.
 ## Usage
 
 ```
-git aint init [--no-hooks] [--overwrite-aliases]
+git aint init [--overwrite-aliases]
 ```
 
 ## What it does
@@ -23,7 +23,7 @@ git aint init [--no-hooks] [--overwrite-aliases]
    - Config values under `aint.*`
    - Merge driver `regenerate` for auto-generated files (see below)
 5. **Pushes to remote** on first init; pulls from remote on subsequent inits.
-6. **Configures agent integrations** — auto-detects Claude, GitHub, etc. and patches hook files.
+6. **Configures agent integrations** — auto-detects Claude, GitHub, etc. and patches agent instruction files.
 7. **Writes `.ignore`** — marks `.aint/` for IDE file indexing.
 
 ## Idempotency
@@ -44,7 +44,6 @@ the worktree from it — existing aints are preserved.
 
 | Flag | Effect |
 |------|--------|
-| `--no-hooks` | Skip agent hook file patching |
 | `--overwrite-aliases` | Overwrite aliases that differ from defaults (normally user customizations are preserved) |
 
 ## Init results
