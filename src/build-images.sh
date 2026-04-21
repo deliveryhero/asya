@@ -69,6 +69,8 @@ while [[ $# -gt 0 ]]; do
       echo "  - asya-lab"
       echo "  - asya-scalers"
       echo "  - asya-sidecar"
+      echo "  - asya-state-proxy-go"
+      echo "  - asya-state-proxy-py"
       echo "  - asya-testing"
       echo "  - asya-ui"
       echo "  - function-asya-flavors"
@@ -197,16 +199,29 @@ declare -a ALL_IMAGES=(
   "asya-lab"
   "asya-scalers"
   "asya-sidecar"
+  "asya-state-proxy-go"
+  "asya-state-proxy-py"
   "asya-testing"
   "asya-ui"
   "function-asya-flavors"
 )
 
 # Resolve build context for an image name.
-# Most images live at src/{name}/.
 get_build_context() {
   local name=$1
-  echo "src/$name"
+  case "$name" in
+    asya-state-proxy-go | asya-state-proxy-py) echo "src/asya-state-proxy" ;;
+    *) echo "src/$name" ;;
+  esac
+}
+
+# Resolve Dockerfile name for an image.
+get_dockerfile() {
+  local name=$1
+  case "$name" in
+    asya-state-proxy-go) echo "Dockerfile.go" ;;
+    *) echo "Dockerfile" ;;
+  esac
 }
 
 # Filter images if specific ones are requested
@@ -240,7 +255,8 @@ time {
     index=$((i + 1))
 
     context=$(get_build_context "$name")
-    build_image "$name" "$context" "Dockerfile" "$index" "$TOTAL_IMAGES" &
+    dockerfile=$(get_dockerfile "$name")
+    build_image "$name" "$context" "$dockerfile" "$index" "$TOTAL_IMAGES" &
 
     BUILD_PIDS+=($!)
   done
