@@ -136,6 +136,20 @@ spec:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
 
+                initContainers:
+                  type: array
+                  description: Init containers to run before the asya-runtime container starts
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+
+                sidecars:
+                  type: array
+                  description: Additional sidecar containers for the actor pod
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+
                 scaling:
                   type: object
                   description: KEDA autoscaling configuration

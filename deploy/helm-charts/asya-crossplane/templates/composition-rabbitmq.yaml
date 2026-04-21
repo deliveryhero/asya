@@ -469,6 +469,12 @@ spec:
                           - name: state-sockets
                             mountPath: /var/run/asya/state
                         {{`{{- end }}`}}
+                        {{`{{- range $xrSpec.initContainers | default list }}`}}
+                        - {{`{{ . | toYaml | nindent 12 }}`}}
+                        {{`{{- end }}`}}
+                        {{`{{- range $xrSpec.sidecars | default list }}`}}
+                        - {{`{{ . | toYaml | nindent 12 }}`}}
+                        {{`{{- end }}`}}
                         volumes:
                         - name: socket-dir
                           emptyDir: {}
