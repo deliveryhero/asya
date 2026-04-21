@@ -2079,3 +2079,146 @@ def test_asyncactor_infrastructure_keda_ready_updates(e2e_helper):
         raise
     finally:
         _cleanup_actor(name, e2e_helper.namespace)
+
+
+# ---------------------------------------------------------------------------
+# Tests: initContainers and sidecars
+# ---------------------------------------------------------------------------
+
+
+def test_init_containers_rendered(e2e_helper):
+    """
+    E2E: Test initContainers are rendered into the pod spec.
+
+    Scenario:
+    1. Create AsyncActor with initContainers spec (no-op init)
+    2. Verify Pod has init containers in addition to runtime + sidecar
+
+    Expected: initContainers section present in the rendered Pod spec
+    """
+    name = "test-init-containers"
+    manifest = f"""\
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {name}
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: {name}
+  scaling:
+    enabled: false
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+  initContainers:
+  - name: init-setup
+    image: ghcr.io/deliveryhero/asya-testing:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "echo initializing"]"""
+
+    try:
+        logger.info("Creating AsyncActor with initContainers...")
+        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready...")
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=300), (
+            "AsyncActor should reach Ready"
+        )
+
+        logger.info("Checking Pod init containers...")
+        result = subprocess.run(
+            [
+                "kubectl",
+                "get",
+                "pods",
+                "-n",
+                e2e_helper.namespace,
+                "-l",
+                f"asya.sh/actor={name}",
+                "-o",
+                "jsonpath={.items[0].spec.initContainers}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        assert result.stdout.strip(), "Pod should have initContainers"
+
+        init_containers_spec = json.loads(result.stdout)
+        init_names = [c["name"] for c in init_containers_spec]
+        logger.info(f"Pod initContainers: {init_names}")
+
+        assert "init-setup" in init_names, (
+            f"init-setup init container should be present, got: {init_names}"
+        )
+
+        logger.info("[+] initContainers rendering verified")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(name, e2e_helper.namespace)
+
+
+def test_sidecar_containers_rendered(e2e_helper):
+    """
+    E2E: Test custom sidecar containers are rendered alongside asya-sidecar.
+
+    Scenario:
+    1. Create AsyncActor with sidecars spec
+    2. Verify Pod has 3 containers (runtime + sidecar + custom sidecar)
+
+    Expected: Custom sidecar rendered alongside asya-sidecar
+    """
+    name = "test-sidecars"
+    manifest = f"""\
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {name}
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: {name}
+  scaling:
+    enabled: false
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+  sidecars:
+  - name: test-sidecar
+    image: ghcr.io/deliveryhero/asya-testing:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "sleep 3600"]"""
+
+    try:
+        logger.info("Creating AsyncActor with sidecars...")
+        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready...")
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=300), (
+            "AsyncActor should reach Ready"
+        )
+
+        logger.info("Checking Pod containers...")
+        containers = _get_pod_containers(name, e2e_helper.namespace)
+        container_names = [c["name"] for c in containers]
+        logger.info(f"Pod containers: {container_names}")
+
+        assert len(containers) == 3, (
+            f"Pod should have 3 containers (runtime + sidecar + test-sidecar), "
+            f"got {len(containers)}: {container_names}"
+        )
+        assert "asya-sidecar" in container_names, "Sidecar should be present"
+        assert "asya-runtime" in container_names, "Runtime container should exist"
+        assert "test-sidecar" in container_names, (
+            f"test-sidecar should be present, got: {container_names}"
+        )
+
+        logger.info("[+] Custom sidecars rendering verified")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(name, e2e_helper.namespace)

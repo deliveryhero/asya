@@ -506,3 +506,81 @@ class TestScaledObjectWatchEnabled:
             "ScaledObject Object resource must have watch: true so provider-kubernetes "
             "observes status changes and populates status.atProvider.manifest.status"
         )
+
+
+class TestInitContainersAndSidecarsXrdSchema:
+    """Test XRD schema for spec.initContainers and spec.sidecars fields."""
+
+    @pytest.fixture
+    def spec_schema(self) -> dict:
+        docs = helm_template()
+        xrd = find_xrd(docs, "xasyncactors.asya.sh")
+        assert xrd is not None
+        versions = xrd["spec"]["versions"]
+        v1alpha1 = next(v for v in versions if v["name"] == "v1alpha1")
+        return v1alpha1["schema"]["openAPIV3Schema"]["properties"]["spec"]
+
+    def test_init_containers_field_exists(self, spec_schema):
+        """Test that initContainers is defined in the XRD schema."""
+        assert "initContainers" in spec_schema["properties"]
+
+    def test_init_containers_is_opaque_array(self, spec_schema):
+        """Test that initContainers is an array of opaque objects."""
+        field = spec_schema["properties"]["initContainers"]
+        assert field["type"] == "array"
+        assert field["items"]["type"] == "object"
+        assert field["items"].get("x-kubernetes-preserve-unknown-fields") is True
+
+    def test_sidecars_field_exists(self, spec_schema):
+        """Test that sidecars is defined in the XRD schema."""
+        assert "sidecars" in spec_schema["properties"]
+
+    def test_sidecars_is_opaque_array(self, spec_schema):
+        """Test that sidecars is an array of opaque objects."""
+        field = spec_schema["properties"]["sidecars"]
+        assert field["type"] == "array"
+        assert field["items"]["type"] == "object"
+        assert field["items"].get("x-kubernetes-preserve-unknown-fields") is True
+
+
+class TestInitContainersAndSidecarsCompositionTemplates:
+    """Test compositions render initContainers and sidecars in the correct pod spec location.
+
+    Regression: initContainers must be rendered as spec.initContainers (sibling of
+    spec.containers), not as items inside the containers list.
+    """
+
+    @pytest.fixture(params=["asyncactor-sqs", "asyncactor-rabbitmq"])
+    def deployment_template(self, request) -> str:
+        """Get the render-deployment Go template from each composition."""
+        docs = helm_template()
+        comp = find_composition(docs, request.param)
+        assert comp is not None, f"{request.param} Composition should exist"
+        step = get_pipeline_step(comp, "render-deployment")
+        return step["input"]["inline"]["template"]
+
+    def test_init_containers_has_own_key(self, deployment_template):
+        """Test initContainers is rendered as a pod spec key, not inside containers."""
+        assert "initContainers:" in deployment_template
+
+    def test_init_containers_is_conditional(self, deployment_template):
+        """Test initContainers rendering is gated on the field being set."""
+        assert "if $xrSpec.initContainers" in deployment_template
+
+    def test_init_containers_not_inside_containers_list(self, deployment_template):
+        """Regression: initContainers range must not appear between containers: and volumes:."""
+        containers_pos = deployment_template.index("containers:")
+        volumes_pos = deployment_template.index("volumes:")
+        containers_section = deployment_template[containers_pos:volumes_pos]
+        assert "range $xrSpec.initContainers" not in containers_section, (
+            "initContainers should be rendered as spec.initContainers, "
+            "not as items inside the spec.containers list"
+        )
+
+    def test_sidecars_rendered_inside_containers(self, deployment_template):
+        """Test sidecars are additional items in the containers list."""
+        assert "range $xrSpec.sidecars" in deployment_template
+        containers_pos = deployment_template.index("containers:")
+        volumes_pos = deployment_template.index("volumes:")
+        containers_section = deployment_template[containers_pos:volumes_pos]
+        assert "range $xrSpec.sidecars" in containers_section
