@@ -24,17 +24,19 @@ some synthetic. Collect/clean dataset, train model, evaluate, iterate manually.
 | S3 access from workbench | S3 Mountpoint CSI or aws CLI | part of ugr4f |
 | Training AsyncActor | Reads S3 (existing state proxy), trains ViT, writes TFEvents + checkpoint to S3 | (manual, actor manifest) |
 | Code delivery | ConfigMap for small handler scripts | (existing) |
+| Init container code delivery | git-sync or pip-install init container for full repos | jf7uo (depends on cynl0) |
+| XRD init/sidecar containers | Extend AsyncActor to support init containers | cynl0 (moved from tier 2) |
+| Shared storage (EFS) | EFS CSI for ReadWriteMany PVCs (workbench + actors) | g87or |
 | Trigger flow | POST to gateway | (existing) |
 | TensorBoard | Runs on workbench, reads S3 directly | part of ugr4f |
-| Dataset visualization | FiftyOne on workbench for image pair browsing + quick labeling | new |
+| Dataset visualization | FiftyOne on workbench for image pair browsing + quick labeling | bh1rg |
 | Git state proxy (read-only) | Optional: mount repo in training actor for larger codebases | cy0p1 (stretch) |
 
 ### What's NOT needed
 - x-deploy, memory proxy, dataset versioning, autoresearch loop
 - Route enforcement, cron, append mode
-- Custom Docker image building
 
-### Aints: ugr4f (workbench), new (dataset viz), cy0p1 (stretch)
+### Aints: ugr4f, bh1rg, cynl0, jf7uo, g87or, cy0p1 (stretch)
 
 ---
 
@@ -47,9 +49,10 @@ Enables more complex training pipelines without manual kubectl.
 |---|---|
 | jbtnm | Append mode state proxy |
 | pr3ib | Periodic flush for buffered writes |
-| cynl0 | XRD init/sidecar containers |
 | cy0p1 | Git state proxy (full read-write, if not done in tier 1) |
 | 34yhs | Cron flow pattern + observability |
+
+**Moved to Tier 1**: cynl0 (XRD init/sidecar containers)
 
 ---
 

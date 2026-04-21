@@ -14,6 +14,7 @@ training pipelines without manual kubectl for every code change.
 
 - [jbtnm] Append mode state proxy
 - [pr3ib] Periodic flush for buffered writes
-- [cynl0] XRD init/sidecar containers (git-sync)
 - [cy0p1] Git state proxy (full read-write)
 - [34yhs] Cron flow pattern + observability
+
+**Moved to Tier 1**: [cynl0] XRD init/sidecar containers — blocks code delivery for experimentation

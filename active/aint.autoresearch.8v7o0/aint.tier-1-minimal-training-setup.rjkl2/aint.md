@@ -32,4 +32,15 @@ synthetic. Collect/clean dataset, train model, evaluate, iterate manually.
 ## What's NOT Needed
 
 x-deploy, memory proxy, dataset versioning, autoresearch loop, route
-enforcement, cron, append mode, custom Docker image building
+enforcement, cron, append mode
+
+## Aints
+
+| Aint | Title | Status |
+|---|---|---|
+| ugr4f | Workbench devcontainer setup | running (pod deployed, surviving restarts) |
+| bh1rg | Dataset visualization (FiftyOne) | open |
+| cynl0 | XRD init/sidecar containers | open (moved from tier 2 — blocks code delivery) |
+| jf7uo | Init container code delivery for training actors | open (depends on cynl0) |
+| g87or | EFS CSI driver for shared ReadWriteMany storage | open |
+| cy0p1 | Git state proxy (stretch) | open |
