@@ -570,10 +570,10 @@ spec:
                             mountPath: /var/run/asya/state
                         {{`{{- end }}`}}
                         {{`{{- range $xrSpec.initContainers | default list }}`}}
-                        - {{`{{ . | toYaml | nindent 12 }}`}}
+                        - {{`{{ . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
                         {{`{{- range $xrSpec.sidecars | default list }}`}}
-                        - {{`{{ . | toYaml | nindent 12 }}`}}
+                        - {{`{{ . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
                         volumes:
                         - name: socket-dir

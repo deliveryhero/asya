@@ -2197,7 +2197,7 @@ spec:
         cpu: "10m"
       limits:
         memory: "32Mi"
-        cpu: "50m\""""
+        cpu: 50m"""
 
     try:
         logger.info("Creating AsyncActor with sidecars...")
