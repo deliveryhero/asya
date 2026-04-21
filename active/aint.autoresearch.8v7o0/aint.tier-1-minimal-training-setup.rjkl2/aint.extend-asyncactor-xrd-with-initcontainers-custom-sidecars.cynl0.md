@@ -1,6 +1,6 @@
 ---
 title: Extend AsyncActor XRD with initContainers and custom sidecars
-status: open
+status: working
 priority: 1 # high
 tags: [tier-2, autoresearch, crossplane, xrd]
 ---

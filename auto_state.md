@@ -1,51 +1,9 @@
-git-aint state | 2026-04-18T10:17:50Z
+git-aint state | 2026-04-21T11:50:02Z
 
-Working(8) Open(144) Closed(370)
+Working(8) Open(143) Closed(372)
 
-[n6g6h] "asya-lab"  P2 working  [1/14 done]
-  .aint/active/aint.asya-lab.n6g6h/ adr.click-over-argparse.md, adr.compiler-template-not-helm.md, adr.ds-config-management-research.md, adr.k-d-command-split.md, adr.kustomize-not-extra-dependency.md, adr.no-cog.md, conversation-tilt.txt, refactor-config-with-templates.md, research-build-system.md, research-compiler-knowledge-base.md, research-compiler-resolution.md, research-config-setup.md, research-no-dockerfile.md, research-seamless-build.md, rfc-ui-components.md, rfc.md
-  ├── [assek] "Document skaffold as Python source resolver for compile-time imports"  open
-  ├── [6wvo1] "Adapt compiler for asya-lab flows"  open
-  ├── [i6o8a] "Phase 5: Docker Compose CLI + socket transport"  working
-  ├── [3qmnw] "Improve XR handler syntax: support file.py:function format for explicit handler resolution"  open
-  ├── [eysnv] "Compiler: context-aware while loop exit (preserve route.next for composability)"  open
-  ├── [vppe7] "Hands-on demo: Skaffold vs Tilt for multi-team actor repos"  working
-  ├── [pfbxg] "Minor code review comments"  open
-  ├── [ppsug] "Compiler: prevent shared base/ dir when stamping manifests without project config"  open
-  ├── [v9nm3] "Adapt e2e flow tests to use asya-lab CLI for compilation instead of hand-crafted Helm charts"  open
-  ├── [e4u90] "Phase 6: @asya/ui React components + asya serve + Jupyter widget"  working
-  ├── [c80q9] "Compiler: support # asya: actor directive on imported function definitions"  open
-  ├── [bggre] "ConfigMap-mount single-file actors (no custom image)"  open
-  ├── [8su9b] "Add socket transport component test suite"  open
-  └── [xnwlj] "Restructure examples: teaser in asya, full samples in asya-samples"  merged
-
-[00000] "Miscellaneous"  P2 working  [0/25]
-  .aint/active/aint.miscellaneous.00000/
-  ├── [1fqon] "Add Asya-level runtime metrics via response JSON"  open
-  ├── [atewx] "Research: SOCI/Stargz lazy image loading for scale-to-zero with large ML images"  open
-  ├── [1fx95] "Research AGNTCY protocol feasibility for Asya Gateway"  open
-  ├── [1lnzc] "Post-compilation invariant checks: all routers visible in DOT with proper connectivity"  open
-  ├── [1fzx5] "Auto-detect runtime container instead of requiring asya-runtime name"  open
-  ├── [1qey0] "Flow DSL: support local variable assignments from state accessors"  open
-  ├── [1fvmw] "Research: HolmesGPT for AI-assisted Asya debugging"  open
-  ├── [1m1vg] "Fix test_asyncactor_label_propagation: update assertions to match Crossplane labeling"  open
-  ├── [oz2o7] "E2E: fix gateway restart timing in test_gateway_restart_during_processing"  open
-  ├── [wkv3k] "OAuth 2.1 scope enforcement per MCP endpoint (post-v0)"  open
-  ├── [tlu5q] "Migrate XRD from apiextensions.crossplane.io/v1 to v2"  open
-  ├── [1ip8k] "Implement nats-kv-buffered-cas connector"  open
-  ├── [h6h2z] "Configure DLQ redrive policy in Crossplane compositions"  open
-  ├── [vp72j] "Upgrade Go toolchain to 1.25 (CVE-2026-25679, CVE-2026-27139, CVE-2026-27142)"  open
-  ├── [1jhl4] "Integration test: verify exponential backoff delays grow geometrically"  open
-  ├── [1folc] "Research: Actor warm-up pattern before scale-to-zero"  open
-  ├── [ws0sy] "scaler-pubsub: handle DeadlineExceeded as empty queue"  working
-  ├── [aljc8] "docs: actor flavors tutorial"  working
-  ├── [1fswe] "Implement load testing suite for operator reconciliation and actor autoscaling"  open
-  ├── [d2h77] "feat(sidecar): support ASYA_BASE_PREFIX for single-gateway deployments with URL prefix"  open
-  ├── [1f1sh] "(EPIC) Enable workloadRef: Bring Your Own Deployment"  open
-  ├── [w5tgs] "Shorten default kubectl get asya view"  pushed
-  ├── [zlsem] "fix(sidecar): strip trailing slash from gatewayURL in NewReporter"  open
-  ├── [1fvxp] "Enhance AGENTS.md with decision trees for faster agent comprehension"  open
-  └── [1j0yi] "Gateway: remove queue-name fallback once status.phase is stable"  open
+[kzy6w] "Gateway rearchitect debt"  P3 open  (recently modified)
+  .aint/active/aint.gateway-rearchitect-debt.kzy6w/
 
 [8v7o0] "autoresearch"  P2 open  (recently modified)
   .aint/active/aint.autoresearch.8v7o0/ adr.compiled-flow-not-free-routing-actor.md, adr.dual-mount-same-backend.md, adr.git-state-proxy-over-git-sync.md, adr.rl-framing-for-experiment-loop.md, design.dataset-state-proxy.md, rfc.md
@@ -53,48 +11,87 @@ Working(8) Open(144) Closed(370)
 [63keu] "RFC: Replace asya-gateway with asya-mesh-api + protocol adapters"  P1 open  (recently modified)
   .aint/active/aint.gateway-rearchitect.63keu/ adr.agentgateway-mcp-only.md, adr.db-metadata-only.md, adr.envelope-gateway-url.md, adr.mcp-a2a-siblings.md, adr.mesh-universal-api.md, adr.protocol-adapters-as-sidecars.md, adr.two-step-dispatch.md, adr.uri-based-consistent-hash.md, rfc-addendum.md, rfc.md
 
-[kzy6w] "Gateway rearchitect debt"  P3 open  (recently modified)
-  .aint/active/aint.gateway-rearchitect-debt.kzy6w/
+[n6g6h] "asya-lab"  P2 working  [1/14 done]
+  .aint/active/aint.asya-lab.n6g6h/ adr.click-over-argparse.md, adr.compiler-template-not-helm.md, adr.ds-config-management-research.md, adr.k-d-command-split.md, adr.kustomize-not-extra-dependency.md, adr.no-cog.md, conversation-tilt.txt, refactor-config-with-templates.md, research-build-system.md, research-compiler-knowledge-base.md, research-compiler-resolution.md, research-config-setup.md, research-no-dockerfile.md, research-seamless-build.md, rfc-ui-components.md, rfc.md
+  ├── [vppe7] "Hands-on demo: Skaffold vs Tilt for multi-team actor repos"  working
+  ├── [e4u90] "Phase 6: @asya/ui React components + asya serve + Jupyter widget"  working
+  ├── [6wvo1] "Adapt compiler for asya-lab flows"  open
+  ├── [ppsug] "Compiler: prevent shared base/ dir when stamping manifests without project config"  open
+  ├── [bggre] "ConfigMap-mount single-file actors (no custom image)"  open
+  ├── [v9nm3] "Adapt e2e flow tests to use asya-lab CLI for compilation instead of hand-crafted Helm charts"  open
+  ├── [eysnv] "Compiler: context-aware while loop exit (preserve route.next for composability)"  open
+  ├── [c80q9] "Compiler: support # asya: actor directive on imported function definitions"  open
+  ├── [8su9b] "Add socket transport component test suite"  open
+  ├── [pfbxg] "Minor code review comments"  open
+  ├── [i6o8a] "Phase 5: Docker Compose CLI + socket transport"  working
+  ├── [assek] "Document skaffold as Python source resolver for compile-time imports"  open
+  ├── [3qmnw] "Improve XR handler syntax: support file.py:function format for explicit handler resolution"  open
+  └── [xnwlj] "Restructure examples: teaser in asya, full samples in asya-samples"  merged
 
-[ezpsa] "Observability init"  P2 working  [0/2]
-  .aint/active/aint.observability-init.ezpsa/ rfc.md
-  ├── [n84dj] "Retry delay observability: per-retry-event metrics and logging"  open
-  └── [1f4gd] "Configure OTEL env vars for user metrics in runtime container"  open
-
-[emmc5] "Implement A2A protocol"  P2 open
-
-[fd73j] "Actor Warm-Up Pattern for Scale-to-Zero Validation"  P2 open
-
-[0yjeo] "agentic-claw-code"  P2 open
-
-[00001] "Tech debt"  P2 open
-
-[pj0fo] "compiler-simplify"  P2 open
-
-[7b55c] "Agentic - Umbrella"  P2 open
+[00000] "Miscellaneous"  P2 working  [0/25]
+  .aint/active/aint.miscellaneous.00000/
+  ├── [1lnzc] "Post-compilation invariant checks: all routers visible in DOT with proper connectivity"  open
+  ├── [w5tgs] "Shorten default kubectl get asya view"  pushed
+  ├── [atewx] "Research: SOCI/Stargz lazy image loading for scale-to-zero with large ML images"  open
+  ├── [aljc8] "docs: actor flavors tutorial"  working
+  ├── [tlu5q] "Migrate XRD from apiextensions.crossplane.io/v1 to v2"  open
+  ├── [1fswe] "Implement load testing suite for operator reconciliation and actor autoscaling"  open
+  ├── [1fzx5] "Auto-detect runtime container instead of requiring asya-runtime name"  open
+  ├── [1qey0] "Flow DSL: support local variable assignments from state accessors"  open
+  ├── [vp72j] "Upgrade Go toolchain to 1.25 (CVE-2026-25679, CVE-2026-27139, CVE-2026-27142)"  open
+  ├── [zlsem] "fix(sidecar): strip trailing slash from gatewayURL in NewReporter"  open
+  ├── [ws0sy] "scaler-pubsub: handle DeadlineExceeded as empty queue"  working
+  ├── [1f1sh] "(EPIC) Enable workloadRef: Bring Your Own Deployment"  open
+  ├── [wkv3k] "OAuth 2.1 scope enforcement per MCP endpoint (post-v0)"  open
+  ├── [1jhl4] "Integration test: verify exponential backoff delays grow geometrically"  open
+  ├── [1folc] "Research: Actor warm-up pattern before scale-to-zero"  open
+  ├── [1fx95] "Research AGNTCY protocol feasibility for Asya Gateway"  open
+  ├── [1fvxp] "Enhance AGENTS.md with decision trees for faster agent comprehension"  open
+  ├── [1fvmw] "Research: HolmesGPT for AI-assisted Asya debugging"  open
+  ├── [1ip8k] "Implement nats-kv-buffered-cas connector"  open
+  ├── [d2h77] "feat(sidecar): support ASYA_BASE_PREFIX for single-gateway deployments with URL prefix"  open
+  ├── [oz2o7] "E2E: fix gateway restart timing in test_gateway_restart_during_processing"  open
+  ├── [h6h2z] "Configure DLQ redrive policy in Crossplane compositions"  open
+  ├── [1m1vg] "Fix test_asyncactor_label_propagation: update assertions to match Crossplane labeling"  open
+  ├── [1j0yi] "Gateway: remove queue-name fallback once status.phase is stable"  open
+  └── [1fqon] "Add Asya-level runtime metrics via response JSON"  open
 
 [ob6f9] "Asya Lens: Self-Hosted Dashboard and IDE"  P2 open
 
-[ty5he] "Typed Handler Signatures"  P2 open
+[pj0fo] "compiler-simplify"  P2 open
 
-[kchkv] "Agentic security"  P2 open
+[akgyg] "E2E rabbitmq-minio: Crossplane Requirements API race blocks flavored actors"  P2 open
 
-[l899s] "New transports"  P2 open
+[fd73j] "Actor Warm-Up Pattern for Scale-to-Zero Validation"  P2 open
 
 [hb1v1] "Local testing workflow in docker-compose"  P2 open
 
-[enren] "Design workflow for asya flows"  P2 open
+[0yjeo] "agentic-claw-code"  P2 open
+
+[1fw7s] "Implement AG-UI event streaming endpoint"  P2 open
+
+[1f7aw] "Implement input_required state for human-in-the-loop"  P2 open
+
+[1f53y] "Implement push notification configuration endpoints"  P4 open
+
+[1fgyz] "Add A2UI payload support (optional)"  P4 open
+
+[1foq3] "Add gRPC transport support"  P3 open
+
+[1fgex] "Implement GET /tasks endpoint (list tasks)"  P3 open
+
+[1fkil] "Research: Adapt Gateway API to A2A/ACP/A2UI standards"  P3 open
 
 [mxzgo] "Flow DSL Free Variables and Iteration"  P2 open
 
-[2w664] "A/B/N Traffic Routing for Actor Pipelines"  P2 open
+[9v62d] "Message Serialization Optimization"  P2 open
 
 10 open aints not shown (git aint get)
 
 Closed(5):
-[mtlj2] "Fix flaky SLA integration test (sidecar-runtime rabbitmq)"  merged
-[1frc7] "Implement 01-single-agent: OpenAI Agents SDK"  merged
-[1fzhp] "Research: kubectl-asya via Krew vs custom CLI wrapper"  rejected
-[1frs7] "XRD: Add spec.flavors field to AsyncActor"  merged
-[1jnjg] "E2E: Enable function-asya-flavors once ghcr.io image is public"  merged
-... and 365 more
+[bvs44] "fix(flow-compiler): generate SVG instead of PNG to eliminate non-deterministic pre-commit regeneration"  merged
+[oihm2] "Unify terminology: task=A2A, tool=MCP, envelope=mesh"  merged
+[1f2ww] "Runtime: AsyncGenerator handler support"  merged
+[1fw74] "Sidecar: multi-frame streaming protocol (runtime <-> sidecar)"  rejected
+[1fld6] "Clean up build system, CI pipelines, and documentation after operator removal"  merged
+... and 367 more
