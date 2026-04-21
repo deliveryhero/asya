@@ -56,7 +56,7 @@ a2a:
 stateProxy:
   mesh:
     image:
-      repository: ghcr.io/deliveryhero/asya-state-proxy-pg-kv
+      repository: ghcr.io/deliveryhero/asya-state-proxy-go
       tag: ""
       pullPolicy: IfNotPresent
     resources:
@@ -71,7 +71,7 @@ stateProxy:
   envelopes:
     enabled: false
     image:
-      repository: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww
+      repository: ghcr.io/deliveryhero/asya-state-proxy-py
       tag: ""
       pullPolicy: IfNotPresent
     resources:

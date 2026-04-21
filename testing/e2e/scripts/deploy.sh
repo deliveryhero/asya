@@ -113,24 +113,18 @@ time {
   docker build -t "function-asya-flavors:latest" "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
-  # Build PG state-proxy connector (always needed for mesh-api)
-  echo "[.] Building state-proxy pg-kv image..."
-  docker build -t "${IMAGE_PREFIX}asya-state-proxy-pg-kv:dev" \
-    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.pg-kv" \
+  # Build state-proxy-go (pg-kv, always needed for mesh-api)
+  echo "[.] Building asya-state-proxy-go image..."
+  docker build -t "${IMAGE_PREFIX}asya-state-proxy-go:dev" \
+    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.go" \
     "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
   PG_KV_BUILD_PID=$!
 
-  # Build state-proxy connector image for the active profile
-  if [[ "$PROFILE" == "sqs-s3" ]]; then
-    echo "[.] Building state-proxy S3 connector image..."
-    docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3-buffered-lww:dev" \
-      -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-buffered-lww" \
-      "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-    STATE_PROXY_BUILD_PID=$!
-  elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
-    echo "[.] Building state-proxy GCS connector image..."
-    docker build -t "${IMAGE_PREFIX}asya-state-proxy-gcs-buffered-lww:dev" \
-      -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.gcs-buffered-lww" \
+  # Build state-proxy-py (Python connectors, for active profile)
+  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "pubsub-gcs" ]]; then
+    echo "[.] Building asya-state-proxy-py image..."
+    docker build -t "${IMAGE_PREFIX}asya-state-proxy-py:dev" \
+      -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile" \
       "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
     STATE_PROXY_BUILD_PID=$!
   fi
@@ -149,10 +143,10 @@ time {
   echo "[+] function-asya-flavors image built"
 
   if ! wait "$PG_KV_BUILD_PID"; then
-    echo "[-] state-proxy pg-kv build failed"
+    echo "[-] asya-state-proxy-go build failed"
     exit 1
   fi
-  echo "[+] state-proxy pg-kv image built"
+  echo "[+] asya-state-proxy-go image built"
 
   if [[ -n "${STATE_PROXY_BUILD_PID:-}" ]]; then
     if ! wait "$STATE_PROXY_BUILD_PID"; then
@@ -223,13 +217,11 @@ time {
     "asya-sidecar:latest"
     "asya-crew:latest"
     "asya-testing:latest"
-    "asya-state-proxy-pg-kv:dev"
+    "asya-state-proxy-go:dev"
   )
 
-  if [[ "$PROFILE" == "sqs-s3" ]]; then
-    IMAGES_TO_LOAD+=("asya-state-proxy-s3-buffered-lww:dev")
-  elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
-    IMAGES_TO_LOAD+=("asya-state-proxy-gcs-buffered-lww:dev")
+  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "pubsub-gcs" ]]; then
+    IMAGES_TO_LOAD+=("asya-state-proxy-py:dev")
   fi
 
   LOAD_PIDS=()

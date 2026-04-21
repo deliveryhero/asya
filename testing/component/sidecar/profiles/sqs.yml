@@ -50,7 +50,7 @@ services:
   pg-kv:
     build:
       context: ../../../../src/asya-state-proxy
-      dockerfile: Dockerfile.pg-kv
+      dockerfile: Dockerfile.go
       target: builder
     command: ["go", "run", "./cmd/pg-kv/"]
     environment:

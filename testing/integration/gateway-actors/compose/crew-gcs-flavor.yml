@@ -16,9 +16,10 @@ services:
   asya-x-sink-state-proxy:
     build:
       context: ../../../../src/asya-state-proxy
-      dockerfile: Dockerfile.gcs-buffered-lww
+      dockerfile: Dockerfile
     logging: *default-logging
     environment:
+      ASYA_CONNECTOR: gcs_buffered_lww
       CONNECTOR_SOCKET: /var/run/asya/state/results.sock
       STATE_BUCKET: asya-results
       STORAGE_EMULATOR_HOST: http://fake-gcs:4443
@@ -39,9 +40,10 @@ services:
   asya-x-sump-state-proxy:
     build:
       context: ../../../../src/asya-state-proxy
-      dockerfile: Dockerfile.gcs-buffered-lww
+      dockerfile: Dockerfile
     logging: *default-logging
     environment:
+      ASYA_CONNECTOR: gcs_buffered_lww
       CONNECTOR_SOCKET: /var/run/asya/state/errors.sock
       STATE_BUCKET: asya-errors
       STORAGE_EMULATOR_HOST: http://fake-gcs:4443

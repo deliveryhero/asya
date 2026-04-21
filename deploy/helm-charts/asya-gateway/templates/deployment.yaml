@@ -261,6 +261,8 @@ spec:
         image: "{{ .Values.stateProxy.envelopes.image.repository }}:{{ .Values.stateProxy.envelopes.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.stateProxy.envelopes.image.pullPolicy }}
         env:
+        - name: ASYA_CONNECTOR
+          value: s3_buffered_lww
         - name: CONNECTOR_SOCKET
           value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.envelopes.socketDir | quote }}
         - name: STATE_BUCKET

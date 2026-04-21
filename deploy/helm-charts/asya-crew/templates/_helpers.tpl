@@ -237,11 +237,7 @@ If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
 {{- $bucket := default $values.persistence.config.bucket .bucket }}
 {{- $connectorImage := dict "val" $values.persistence.connector.image }}
 {{- if not $connectorImage.val }}
-  {{- if eq $values.persistence.backend "s3" }}
-    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:{{ $.Chart.AppVersion }}" }}
-  {{- else if eq $values.persistence.backend "gcs" }}
-    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:{{ $.Chart.AppVersion }}" }}
-  {{- end }}
+  {{- $_ := set $connectorImage "val" (printf "ghcr.io/deliveryhero/asya-state-proxy-py:%s" $.Chart.AppVersion) }}
 {{- end }}
 - name: checkpoints
   mount:
@@ -249,6 +245,8 @@ If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
   connector:
     image: {{ $connectorImage.val }}
     env:
+      - name: ASYA_CONNECTOR
+        value: {{ if eq $values.persistence.backend "s3" }}s3_buffered_lww{{ else }}gcs_buffered_lww{{ end }}
       - name: STATE_BUCKET
         value: {{ $bucket | quote }}
       {{- if eq $values.persistence.backend "s3" }}
