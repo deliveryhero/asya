@@ -11,6 +11,9 @@ jobs:
   dco-check:
     name: DCO Sign-off
     runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.user.login != 'github-actions[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
 
     steps:
     - name: Check DCO sign-off

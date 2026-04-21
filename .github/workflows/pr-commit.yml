@@ -12,6 +12,9 @@ jobs:
   validate-title:
     name: Validate PR title
     runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.user.login != 'github-actions[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
 
     steps:
     - name: Check for Semantic Title
