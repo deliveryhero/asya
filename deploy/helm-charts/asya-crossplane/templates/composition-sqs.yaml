@@ -425,6 +425,12 @@ spec:
                         {{- if .Values.irsa.enabled }}
                         serviceAccountName: {{ .Values.irsa.serviceAccountName }}
                         {{- end }}
+                        {{`{{- if $xrSpec.initContainers }}`}}
+                        initContainers:
+                        {{`{{- range $xrSpec.initContainers }}`}}
+                        - {{`{{ . | toYaml | nindent 14 }}`}}
+                        {{`{{- end }}`}}
+                        {{`{{- end }}`}}
                         containers:
                         - name: asya-runtime
                           image: {{`{{ $xrSpec.image | quote }}`}}
@@ -605,9 +611,6 @@ spec:
                           volumeMounts:
                           - name: state-sockets
                             mountPath: /var/run/asya/state
-                        {{`{{- end }}`}}
-                        {{`{{- range $xrSpec.initContainers | default list }}`}}
-                        - {{`{{ . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
                         {{`{{- range $xrSpec.sidecars | default list }}`}}
                         - {{`{{ . | toYaml | nindent 14 }}`}}

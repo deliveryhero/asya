@@ -2082,7 +2082,7 @@ def test_asyncactor_infrastructure_keda_ready_updates(e2e_helper):
 
 
 # ---------------------------------------------------------------------------
-# New tests: initContainers and sidecars (cynl0)
+# Tests: initContainers and sidecars
 # ---------------------------------------------------------------------------
 
 
@@ -2091,7 +2091,7 @@ def test_init_containers_rendered(e2e_helper):
     E2E: Test initContainers are rendered into the pod spec.
 
     Scenario:
-    1. Create AsyncActor with initContainers spec (alpine:latest as a no-op init)
+    1. Create AsyncActor with initContainers spec (no-op init)
     2. Verify Pod has init containers in addition to runtime + sidecar
 
     Expected: initContainers section present in the rendered Pod spec
@@ -2112,11 +2112,9 @@ spec:
   handler: asya_testing.handlers.payload.echo_handler
   initContainers:
   - name: init-setup
-    image: alpine:3.20
-    command: ["sh", "-c", "echo initializing && sleep 1"]
-    volumeMounts:
-    - name: tmp
-      mountPath: /tmp"""
+    image: ghcr.io/deliveryhero/asya-testing:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "echo initializing"]"""
 
     try:
         logger.info("Creating AsyncActor with initContainers...")
@@ -2168,7 +2166,7 @@ def test_sidecar_containers_rendered(e2e_helper):
     E2E: Test custom sidecar containers are rendered alongside asya-sidecar.
 
     Scenario:
-    1. Create AsyncActor with sidecars spec (busybox as a test sidecar)
+    1. Create AsyncActor with sidecars spec
     2. Verify Pod has 3 containers (runtime + sidecar + custom sidecar)
 
     Expected: Custom sidecar rendered alongside asya-sidecar
@@ -2189,15 +2187,9 @@ spec:
   handler: asya_testing.handlers.payload.echo_handler
   sidecars:
   - name: test-sidecar
-    image: busybox:1.37
-    command: ["sh", "-c", "echo running sidecar && sleep 3600"]
-    resources:
-      requests:
-        memory: "16Mi"
-        cpu: "10m"
-      limits:
-        memory: "32Mi"
-        cpu: 50m"""
+    image: ghcr.io/deliveryhero/asya-testing:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "sleep 3600"]"""
 
     try:
         logger.info("Creating AsyncActor with sidecars...")
