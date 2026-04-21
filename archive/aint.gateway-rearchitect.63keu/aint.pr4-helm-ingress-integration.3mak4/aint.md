@@ -1,10 +1,14 @@
 ---
 title: "PR4: Helm chart + Ingress + deployment integration + docs"
-status: open
-priority: 1
-dependencies: [cjrxo, iq8gi]
-tags: [gateway-rearchitect]
+status: merged
+priority: 1 # high
+tags:
+  - gateway-rearchitect
+dependencies:
+  - cjrxo
+  - iq8gi
 ---
+
 
 Helm chart for asya-gateway deployment (mesh-api + adapters + state-proxies),
 nginx Ingress config (external + internal, consistent hash), Crossplane
