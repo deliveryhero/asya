@@ -15,21 +15,9 @@ spec:
     requests:
       storage: 50Gi
 ---
-# EFS StorageClass (create once, requires EFS filesystem ID)
-# To find/create EFS filesystem:
-#   aws efs create-file-system --performance-mode generalPurpose --tags Key=Name,Value=asya-workbench Key=dh_app,Value=asya Key=dh_squad,Value=aimc Key=dh_tribe,Value=foodscience --region eu-central-1
-#   aws efs create-mount-target --file-system-id <FS_ID> --subnet-id <SUBNET_ID> --security-groups <SG_ID>
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: efs-sc
-provisioner: efs.csi.aws.com
-parameters:
-  provisioningMode: efs-ap
-  fileSystemId: <EFS_FILESYSTEM_ID>  # TODO: replace with actual EFS filesystem ID
-  directoryPerms: "700"
-  basePath: "/workbench"
----
+# RWO PVCs — only workbench mounts them. Training actors sync data via S3
+# (see ONBOARDING.md). EFS attempted (fs-0935ec28d3fe22f9d) but no EFS CSI
+# driver installed on cluster — see secret/eks-stg-setup.md for details.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -41,8 +29,25 @@ metadata:
     dh_squad: aimc
     dh_tribe: foodscience
 spec:
-  accessModes: [ReadWriteMany]
-  storageClassName: efs-sc
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 200Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flow-storage  # identical copy to workbench-storage since we don't have CSI driver for EFS installed and cannot mount PVC twice simultaneously
+  namespace: atem
+  labels:
+    app: workbench
+    dh_app: asya
+    dh_squad: aimc
+    dh_tribe: foodscience
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp2
   resources:
     requests:
       storage: 200Gi
@@ -58,8 +63,8 @@ metadata:
     dh_squad: aimc
     dh_tribe: foodscience
 spec:
-  accessModes: [ReadWriteMany]
-  storageClassName: efs-sc
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp2
   resources:
     requests:
       storage: 20Gi

@@ -60,8 +60,8 @@ spec:
               value: foodsci-img-gen-dev-1407-1448
           resources:
             requests:
-              cpu: "2"
-              memory: 8Gi
+              cpu: "500m"
+              memory: 4Gi
             limits:
               cpu: "4"
               memory: 16Gi

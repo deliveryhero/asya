@@ -87,18 +87,19 @@ data:
       cp /home/dev/.cargo/bin/git-aint /home/dev/.local/bin/
     fi
 
-    if ! command -v gcloud &>/dev/null; then
+    if [ ! -x /home/dev/.local/google-cloud-sdk/bin/gcloud ]; then
       echo "[+] installing gcloud CLI"
       su dev -c 'curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/home/dev/.local'
     fi
 
     # --- GCP auth (activate SA if key exists and not already activated) ---
-    if [ -f /secrets/gcp/key.json ]; then
-      export PATH="/home/dev/.local/google-cloud-sdk/bin:$PATH"
-      if ! su dev -c 'gcloud auth list 2>/dev/null | grep -q ACTIVE'; then
-        su dev -c 'gcloud auth activate-service-account --key-file=/secrets/gcp/key.json'
-        echo "[+] GCP service account activated"
+    if [ -f /secrets/gcp/key.json ] && [ -x /home/dev/.local/google-cloud-sdk/bin/gcloud ]; then
+      GCLOUD=/home/dev/.local/google-cloud-sdk/bin/gcloud
+      if ! su dev -c "$GCLOUD auth list 2>/dev/null | grep -q ACTIVE"; then
+        su dev -c "$GCLOUD auth activate-service-account --key-file=/secrets/gcp/key.json" || \
+          echo "[!] gcloud auth activate failed (non-fatal)"
       fi
+      echo "[+] GCP service account check complete"
     fi
 
     # --- Claude Code statusline (copy from ConfigMap mount if not on PVC) ---
