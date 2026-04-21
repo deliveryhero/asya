@@ -3,10 +3,9 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
-from urllib.parse import urlparse
+from typing import ClassVar
 
 import pytest
-
 from asya_testing.utils.gateway import GatewayTestHelper
 
 
@@ -14,7 +13,7 @@ class FakeMCPHandler(BaseHTTPRequestHandler):
     """Minimal MCP adapter stub: handles initialize + tools/call."""
 
     task_id = "test-task-abc123"
-    recorded_requests: list = []
+    recorded_requests: ClassVar[list] = []
     SESSION_ID = "test-session-001"
 
     def do_POST(self):  # noqa: N802
@@ -118,9 +117,15 @@ def test_call_mcp_tool_no_task_id_raises(fake_mcp_server):
                 self.send_header("Mcp-Session-Id", "no-meta-session")
             self.end_headers()
             if req.get("method") == "initialize":
-                response = {"jsonrpc": "2.0", "id": req["id"], "result": {
-                    "protocolVersion": "2025-03-26", "capabilities": {}, "serverInfo": {"name": "x", "version": "1"}
-                }}
+                response = {
+                    "jsonrpc": "2.0",
+                    "id": req["id"],
+                    "result": {
+                        "protocolVersion": "2025-03-26",
+                        "capabilities": {},
+                        "serverInfo": {"name": "x", "version": "1"},
+                    },
+                }
             else:
                 response = {
                     "jsonrpc": "2.0",
