@@ -6,4 +6,5 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install ".[s3,gcs,redis]"
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+USER nobody
 ENTRYPOINT ["/entrypoint.sh"]
