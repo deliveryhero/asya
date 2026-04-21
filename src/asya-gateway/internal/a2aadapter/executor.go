@@ -3,6 +3,7 @@ package a2aadapter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -26,13 +27,15 @@ const resultArtifactID = "result"
 type Executor struct {
 	registry   *AgentRegistry
 	meshClient *meshclient.Client
+	store      *StoreAdapter // for registering a2a task ID → mesh message ID
 }
 
 // NewExecutor creates a new A2A executor.
-func NewExecutor(registry *AgentRegistry, meshClient *meshclient.Client) *Executor {
+func NewExecutor(registry *AgentRegistry, meshClient *meshclient.Client, store *StoreAdapter) *Executor {
 	return &Executor{
 		registry:   registry,
 		meshClient: meshClient,
+		store:      store,
 	}
 }
 
@@ -87,6 +90,11 @@ func (e *Executor) Execute(
 	if err != nil {
 		slog.Error("Mesh create failed", "task_id", taskID, "error", err)
 		return fmt.Errorf("dispatch: %w", err)
+	}
+
+	// Register a2a task ID → mesh message ID so tasks/get can resolve it
+	if e.store != nil {
+		e.store.RegisterTask(taskID, createResp.ID)
 	}
 
 	// Write submitted event
@@ -169,12 +177,25 @@ func (e *Executor) Cancel(
 ) error {
 	taskID := reqCtx.TaskID
 
-	if err := e.meshClient.Cancel(ctx, string(taskID)); err != nil {
+	meshID := string(taskID)
+	if e.store != nil {
+		if mapped, ok := e.store.lookupMeshID(taskID); ok {
+			meshID = mapped
+		}
+	}
+	if err := e.meshClient.Cancel(ctx, meshID); err != nil {
 		return fmt.Errorf("cancel task %q: %w", taskID, err)
 	}
 
-	return eq.Write(ctx, a2alib.NewStatusUpdateEvent(
+	err := eq.Write(ctx, a2alib.NewStatusUpdateEvent(
 		reqCtx, a2alib.TaskStateCanceled, nil))
+	// If the event queue is already closed the task reached a terminal state
+	// (completed/canceled by another path) before this cancel request arrived.
+	// Treat it as ErrTaskNotCancelable so callers get -32002 instead of -32603.
+	if errors.Is(err, eventqueue.ErrQueueClosed) {
+		return fmt.Errorf("cancelation failed: %w", a2alib.ErrTaskNotCancelable)
+	}
+	return err
 }
 
 // handleResume dispatches a resume message for paused tasks.
@@ -304,9 +325,14 @@ func messageToPayload(msg *a2alib.Message, taskID, contextID string) map[string]
 
 	var payload map[string]any
 
-	// Single data part, no text -> unwrap at root
+	// Single data part, no text -> copy fields into new map (do NOT use dataParts[0]
+	// directly as payload; we later add payload["a2a"] to it which would create a cycle
+	// if messageToHistoryEntry references the same map via payload["a2a"]["task"]["history"]).
 	if len(dataParts) == 1 && len(textParts) == 0 {
-		payload = dataParts[0]
+		payload = make(map[string]any, len(dataParts[0])+1)
+		for k, v := range dataParts[0] {
+			payload[k] = v
+		}
 	} else {
 		payload = make(map[string]any)
 		for _, dp := range dataParts {
@@ -342,5 +368,34 @@ func messageToHistoryEntry(msg *a2alib.Message) any {
 	if msg == nil {
 		return map[string]any{}
 	}
-	return msg
+	// Return a simplified representation to avoid embedding the full *Message
+	// struct (with ContentParts) in the payload map[string]any. Embedding the
+	// actual *Message causes circular JSON encoding (message → DataPart.Data →
+	// history → message → ...) leading to a fatal goroutine stack overflow.
+	entry := map[string]any{
+		"id":   string(msg.ID),
+		"role": string(msg.Role),
+	}
+	for _, part := range msg.Parts {
+		switch p := part.(type) {
+		case *a2alib.TextPart:
+			entry["text"] = p.Text
+		case a2alib.TextPart:
+			entry["text"] = p.Text
+		case *a2alib.DataPart:
+			// copy the data map to avoid sharing with the payload root
+			dataCopy := make(map[string]any, len(p.Data))
+			for k, v := range p.Data {
+				dataCopy[k] = v
+			}
+			entry["data"] = dataCopy
+		case a2alib.DataPart:
+			dataCopy := make(map[string]any, len(p.Data))
+			for k, v := range p.Data {
+				dataCopy[k] = v
+			}
+			entry["data"] = dataCopy
+		}
+	}
+	return entry
 }

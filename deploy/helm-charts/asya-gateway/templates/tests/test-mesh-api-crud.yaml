@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-gateway.fullname" . }}-test-crud"
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      set -ex
+      MESH_URL="http://{{ include "asya-gateway.meshApi.fullname" . }}:{{ .Values.service.meshApi.port }}"
+
+      echo "[.] Creating test message..."
+      CREATE_RESP=$(curl -v -X POST "$MESH_URL/api/v1/mesh/?actor=test-echo" \
+        -H "Content-Type: application/json" \
+        -d '{"payload":{"test":true},"timeout":60}' 2>&1) || {
+        echo "[-] Create failed: $CREATE_RESP"
+        exit 1
+      }
+      echo "[+] Create response: $CREATE_RESP"
+      MSG_ID=$(echo "$CREATE_RESP" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+      echo "[+] Message ID: $MSG_ID"
+
+      if [ -z "$MSG_ID" ]; then
+        echo "[-] No message ID in response"
+        exit 1
+      fi
+
+      echo "[.] Getting message status..."
+      GET_RESP=$(curl -s "$MESH_URL/api/v1/mesh/$MSG_ID")
+      echo "[+] Get response: $GET_RESP"
+
+      echo "[.] Canceling message..."
+      curl -s -X DELETE "$MESH_URL/api/v1/mesh/$MSG_ID"
+      echo "[+] Canceled"
+
+      echo "[+] CRUD test passed"

@@ -43,13 +43,18 @@ gateway:
 
   service:
     type: NodePort
-    port: 8080
-    nodePort: 30080
-    meshType: NodePort
-    meshNodePort: 30081
-
-  config:
-    port: "8080"
+    meshApi:
+      port: 8080
+      nodePort: 30080
+    meshApiInternal:
+      port: 8081
+      type: ClusterIP
+    mcp:
+      port: 8082
+      nodePort: 30082
+    a2a:
+      port: 8083
+      nodePort: 30083
 
   transports:
     rabbitmq:
@@ -107,7 +112,6 @@ crew:
     enabled: true
     name: x-sink
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:
@@ -129,7 +133,6 @@ crew:
     enabled: true
     name: x-sump
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:

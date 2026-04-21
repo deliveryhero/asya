@@ -232,10 +232,15 @@ A2A task state mapping: `pending` → `submitted`, `running` → `working`, `suc
 2. Work exclusively in the worktree
 3. Commit, push, create a PR — never merge directly
 
-### DCO Sign-off
+### DCO Sign-off (REQUIRED)
 
-All commits **must** include a DCO (Developer Certificate of Origin) sign-off line.
-Always use `git commit -s` (or `git commit --signoff`). CI will reject unsigned commits.
+All commits **must** include a `Signed-off-by:` trailer (DCO — Developer
+Certificate of Origin). CI will reject PRs with unsigned commits.
+
+- **Every commit**: use `git commit --signoff` (or `-s`)
+- **After rebase**: `git rebase --exec 'git commit --amend --no-edit --signoff'`
+- **Verify before push**: `git log --format='%h %s | SOB:%(trailers:key=Signed-off-by,valueonly)'`
+- **Never use** `--no-verify` to bypass pre-commit hooks
 
 ### Command Hierarchy
 

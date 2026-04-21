@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -118,6 +120,10 @@ func (c *SQSClient) resolveQueueURL(ctx context.Context, queueName string) (stri
 		QueueName: aws.String(queueName),
 	})
 	if err != nil {
+		var notFound *sqstypes.QueueDoesNotExist
+		if errors.As(err, &notFound) {
+			return "", fmt.Errorf("%w: %s", ErrActorNotFound, queueName)
+		}
 		return "", fmt.Errorf("failed to resolve queue URL for %s: %w", queueName, err)
 	}
 
@@ -150,7 +156,7 @@ func (c *SQSClient) resolveQueueURL(ctx context.Context, queueName string) (stri
 	return queueURL, nil
 }
 
-// sqsMessage wraps SQS message for the QueueMessage interface
+// sqsMessage wraps SQS message for the Message interface
 type sqsMessage struct {
 	body          []byte
 	deliveryTag   uint64
@@ -205,7 +211,7 @@ func (c *SQSClient) SendMessage(ctx context.Context, envelope *types.Envelope) e
 }
 
 // Receive receives a message from the specified queue
-func (c *SQSClient) Receive(ctx context.Context, queueName string) (QueueMessage, error) {
+func (c *SQSClient) Receive(ctx context.Context, queueName string) (Message, error) {
 	queueURL, err := c.resolveQueueURL(ctx, queueName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve queue URL: %w", err)
@@ -246,7 +252,7 @@ func (c *SQSClient) Receive(ctx context.Context, queueName string) (QueueMessage
 }
 
 // Ack acknowledges a message by deleting it from the queue
-func (c *SQSClient) Ack(ctx context.Context, msg QueueMessage) error {
+func (c *SQSClient) Ack(ctx context.Context, msg Message) error {
 	sqsMsg, ok := msg.(*sqsMessage)
 	if !ok {
 		return fmt.Errorf("invalid message type: expected *sqsMessage")

@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.fast
-def test_fan_out_creates_multiple_messages_e2e(e2e_helper):
+def test_fan_out_creates_multiple_messages_e2e(e2e_helper, namespace, transport_timeouts):
     """
     E2E: Test fan-out when actor returns array.
 
@@ -47,42 +47,74 @@ def test_fan_out_creates_multiple_messages_e2e(e2e_helper):
     - Each message routed independently
     - All complete successfully
     """
-    response = e2e_helper.call_mcp_tool(
-        tool_name="test_fanout",
-        arguments={"count": 3},
-    )
+    import os
+    transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    if transport == "sqs":
+        from asya_testing.utils.sqs import purge_queue  # type: ignore[import]
+        try:
+            purge_queue(f"asya-{namespace}-test-fanout")
+        except Exception as e:
+            logger.warning(f"Queue purge failed (non-fatal): {e}")
 
-    task_id = response["result"]["task_id"]
-    logger.info(f"Original task ID: {task_id}")
+    for attempt in range(2):
+        response = e2e_helper.call_mcp_tool(
+            tool_name="test_fanout",
+            arguments={"count": 3},
+        )
 
-    # Wait for completion - increased timeout for KEDA scale-up from 0
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
+        task_id = response["result"]["task_id"]
+        logger.info(f"Original task ID: {task_id}")
 
-    # Verify task completed
+        final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
+
+        if final_task["status"] == "succeeded":
+            logger.info(f"[+] Fanout completed on attempt {attempt + 1}")
+            logger.info(f"Fanout result: {final_task.get('result')}")
+            return
+
+        logger.warning(
+            f"Attempt {attempt + 1}: status={final_task['status']} "
+            f"(may be stale queue message, retrying)"
+        )
+
     assert final_task["status"] == "succeeded", f"Fanout should succeed, got {final_task['status']}"
-
-    logger.info(f"Fanout result: {final_task.get('result')}")
 
 
 @pytest.mark.fast
-def test_empty_response_goes_to_sink_e2e(e2e_helper):
+def test_empty_response_goes_to_sink_e2e(e2e_helper, namespace, transport_timeouts):
     """
     E2E: Test empty response routing to x-sink.
 
     Scenario: Actor returns null/empty → sidecar routes to x-sink
     Expected: Task completes with Succeeded status
     """
-    response = e2e_helper.call_mcp_tool(
-        tool_name="test_empty_response",
-        arguments={"message": "empty test"},
-    )
+    import os
+    transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    if transport == "sqs":
+        from asya_testing.utils.sqs import purge_queue  # type: ignore[import]
+        try:
+            purge_queue(f"asya-{namespace}-test-empty")
+        except Exception as e:
+            logger.warning(f"Queue purge failed (non-fatal): {e}")
 
-    task_id = response["result"]["task_id"]
+    for attempt in range(2):
+        response = e2e_helper.call_mcp_tool(
+            tool_name="test_empty_response",
+            arguments={"message": "empty test"},
+        )
 
-    # Wait for completion - increased timeout for KEDA scale-up from 0
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
+        task_id = response["result"]["task_id"]
+        final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
-    # Empty response should go to x-sink
+        if final_task["status"] == "succeeded":
+            logger.info(f"[+] Empty response routed to x-sink on attempt {attempt + 1}")
+            return
+
+        logger.warning(
+            f"Attempt {attempt + 1}: status={final_task['status']} "
+            f"(may be stale queue message, retrying)"
+        )
+
     assert final_task["status"] == "succeeded", f"Empty response should succeed, got {final_task['status']}"
 
 

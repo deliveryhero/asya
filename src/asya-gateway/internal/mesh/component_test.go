@@ -226,7 +226,7 @@ func TestComponentList(t *testing.T) {
 	msgs := result["messages"].([]any)
 	assert.Len(t, msgs, 2)
 	total := result["total"].(float64)
-	assert.GreaterOrEqual(t, int(total), 3)
+	assert.Equal(t, 2, int(total))
 }
 
 func TestComponentFlyEvent(t *testing.T) {
@@ -285,4 +285,154 @@ func TestComponentGatewayURLInEnvelope(t *testing.T) {
 	gwURL, ok := headers["x-asya-gateway-url"].(string)
 	require.True(t, ok, "x-asya-gateway-url should be set in message data headers")
 	assert.NotEmpty(t, gwURL)
+}
+
+func TestComponentProgressEnrichment(t *testing.T) {
+	base := meshURL(t)
+	intBase := meshInternalURL(t)
+
+	// Create task
+	resp, err := http.Post(base+"/api/v1/mesh/?actor=mesh-echo", "application/json",
+		strings.NewReader(`{"payload":{}}`))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Simulate sidecar "received" event with a 3-hop route: prev=[], curr=a, next=[b,c]
+	// Expected: status=running, progress_percent=100/3 ≈ 33.33
+	body := `{"type":"status","status":"received","data":{"actor":"a","prev":[],"curr":"a","next":["b","c"]}}`
+	r2, err := http.Post(intBase+"/api/v1/mesh/"+id+"/events", "application/json", strings.NewReader(body))
+	require.NoError(t, err)
+	r2.Body.Close()
+	assert.Equal(t, http.StatusNoContent, r2.StatusCode)
+
+	// GET and verify
+	resp3, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp3.Body.Close()
+	var got map[string]any
+	require.NoError(t, json.NewDecoder(resp3.Body).Decode(&got))
+
+	assert.Equal(t, "running", got["status"], "sidecar 'received' should map to 'running'")
+	data, _ := got["data"].(map[string]any)
+	pp, ok := data["progress_percent"].(float64)
+	require.True(t, ok, "progress_percent should be present")
+	assert.InDelta(t, 100.0/3, pp, 0.1, "progress_percent for pos 1/3 should be ~33.3")
+}
+
+func TestComponentProgressEnrichment_FinalHopIs100(t *testing.T) {
+	base := meshURL(t)
+	intBase := meshInternalURL(t)
+
+	resp, err := http.Post(base+"/api/v1/mesh/?actor=mesh-echo", "application/json",
+		strings.NewReader(`{"payload":{}}`))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Final hop: prev=[a,b], curr=c, next=[] → progress=100%
+	body := `{"type":"status","status":"completed","data":{"actor":"c","prev":["a","b"],"curr":"c","next":[]}}`
+	r2, err := http.Post(intBase+"/api/v1/mesh/"+id+"/events", "application/json", strings.NewReader(body))
+	require.NoError(t, err)
+	r2.Body.Close()
+
+	resp3, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp3.Body.Close()
+	var got map[string]any
+	require.NoError(t, json.NewDecoder(resp3.Body).Decode(&got))
+
+	data, _ := got["data"].(map[string]any)
+	pp, ok := data["progress_percent"].(float64)
+	require.True(t, ok, "progress_percent should be present")
+	assert.Equal(t, 100.0, pp)
+}
+
+func TestComponentBackstopReapsExpiredTask(t *testing.T) {
+	base := meshURL(t)
+
+	// Create with timeout=1s so deadline_at fires almost immediately.
+	// ASYA_BACKSTOP_INTERVAL=1s is set in the compose profile, so reap
+	// happens within ~2s of the deadline passing.
+	resp, err := http.Post(
+		base+"/api/v1/mesh/?actor=mesh-echo",
+		"application/json",
+		strings.NewReader(`{"payload":{},"timeout":1}`),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Wait long enough for the deadline to pass and backstop to fire (≤4s).
+	// deadline fires at +1s, backstop ticks every 1s, so at most +2s after deadline.
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		time.Sleep(500 * time.Millisecond)
+		statusResp, err := http.Get(base + "/api/v1/mesh/" + id)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.NewDecoder(statusResp.Body).Decode(&got))
+		statusResp.Body.Close()
+		if got["status"] == "failed" {
+			data, _ := got["data"].(map[string]any)
+			assert.Equal(t, "task timed out", data["error"], "backstop should set error=task timed out")
+			return
+		}
+	}
+	t.Fatal("task was not reaped by backstop within 5s")
+}
+
+func TestComponentDeadlinePreservedAfterStatusUpdate(t *testing.T) {
+	base := meshURL(t)
+	intBase := meshInternalURL(t)
+
+	// Create with timeout so deadline_at is stamped
+	resp, err := http.Post(
+		base+"/api/v1/mesh/?actor=mesh-echo",
+		"application/json",
+		strings.NewReader(`{"payload":{},"timeout":45}`),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created))
+	id := created["id"].(string)
+
+	// Verify deadline_at is set immediately after creation
+	resp2, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp2.Body.Close()
+	var initial map[string]any
+	require.NoError(t, json.NewDecoder(resp2.Body).Decode(&initial))
+	data0, _ := initial["data"].(map[string]any)
+	deadlineBefore, ok := data0["deadline_at"].(string)
+	require.True(t, ok, "deadline_at must be set after creation with timeout")
+	require.NotEmpty(t, deadlineBefore)
+
+	// Simulate sidecar posting a status update (running)
+	runBody := `{"type":"status","status":"running","data":{"actor":"mesh-echo","progress":50}}`
+	r, err := http.Post(intBase+"/api/v1/mesh/"+id+"/events", "application/json", strings.NewReader(runBody))
+	require.NoError(t, err)
+	r.Body.Close()
+
+	// deadline_at must survive the status update
+	resp3, err := http.Get(base + "/api/v1/mesh/" + id)
+	require.NoError(t, err)
+	defer resp3.Body.Close()
+	var after map[string]any
+	require.NoError(t, json.NewDecoder(resp3.Body).Decode(&after))
+	data1, _ := after["data"].(map[string]any)
+	deadlineAfter, ok := data1["deadline_at"].(string)
+	require.True(t, ok, "deadline_at must be preserved after status update")
+	assert.Equal(t, deadlineBefore, deadlineAfter, "deadline_at must not change on status update")
 }

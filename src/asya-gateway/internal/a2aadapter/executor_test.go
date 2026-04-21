@@ -10,6 +10,7 @@ import (
 
 	a2alib "github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2asrv"
+	"github.com/a2aproject/a2a-go/a2asrv/eventqueue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -66,7 +67,7 @@ func TestExecutor_Execute_Success(t *testing.T) {
 	})
 
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	// Use a collecting queue to capture events written by the executor
 	cq := &collectingQueue{}
@@ -109,7 +110,7 @@ func TestExecutor_Cancel(t *testing.T) {
 
 	reg := a2aadapter.NewAgentRegistry()
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	reqCtx := &a2asrv.RequestContext{
@@ -134,7 +135,7 @@ func TestExecutor_Resume(t *testing.T) {
 
 	reg := a2aadapter.NewAgentRegistry()
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	reqCtx := &a2asrv.RequestContext{
@@ -180,7 +181,7 @@ func TestExecutor_MessageToPayload_TextOnly(t *testing.T) {
 	})
 
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	_ = executor.Execute(context.Background(), &a2asrv.RequestContext{
@@ -215,7 +216,7 @@ func TestExecutor_FailedTask(t *testing.T) {
 	})
 
 	mc := meshclient.New(srv.URL, srv.URL)
-	executor := a2aadapter.NewExecutor(reg, mc)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
 
 	cq := &collectingQueue{}
 	err := executor.Execute(context.Background(), &a2asrv.RequestContext{
@@ -232,4 +233,43 @@ func TestExecutor_FailedTask(t *testing.T) {
 		assert.True(t, su.Final)
 		assert.Equal(t, a2alib.TaskStateFailed, su.Status.State)
 	}
+}
+
+// closedQueue simulates an event queue that has been closed (task already terminal).
+type closedQueue struct{}
+
+func (q *closedQueue) Write(_ context.Context, _ a2alib.Event) error {
+	return eventqueue.ErrQueueClosed
+}
+func (q *closedQueue) WriteVersioned(_ context.Context, _ a2alib.Event, _ a2alib.TaskVersion) error {
+	return eventqueue.ErrQueueClosed
+}
+func (q *closedQueue) Read(_ context.Context) (a2alib.Event, a2alib.TaskVersion, error) {
+	return nil, 0, eventqueue.ErrQueueClosed
+}
+func (q *closedQueue) Close() error { return nil }
+
+// TestExecutor_Cancel_QueueClosed verifies that when the event queue is already
+// closed (task reached terminal state before cancel arrived), Cancel returns
+// ErrTaskNotCancelable (-32002) instead of an internal error (-32603).
+func TestExecutor_Cancel_QueueClosed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer srv.Close()
+
+	reg := a2aadapter.NewAgentRegistry()
+	mc := meshclient.New(srv.URL, srv.URL)
+	executor := a2aadapter.NewExecutor(reg, mc, nil)
+
+	err := executor.Cancel(context.Background(), &a2asrv.RequestContext{
+		TaskID:    "task-cancel-closed",
+		ContextID: "ctx-cancel-closed",
+	}, &closedQueue{})
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, a2alib.ErrTaskNotCancelable,
+		"Cancel with closed queue must return ErrTaskNotCancelable, not internal error")
 }

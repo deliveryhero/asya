@@ -12,6 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace/noop"
+
+	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/store"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -20,8 +26,9 @@ import (
 
 // mockSender records envelopes sent to actor queues.
 type mockSender struct {
-	mu   sync.Mutex
-	sent []sentEnvelope
+	mu      sync.Mutex
+	sent    []sentEnvelope
+	sendErr error // if set, returned by Send
 }
 
 type sentEnvelope struct {
@@ -30,6 +37,9 @@ type sentEnvelope struct {
 }
 
 func (m *mockSender) Send(_ context.Context, actor string, body []byte) error {
+	if m.sendErr != nil {
+		return m.sendErr
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.sent = append(m.sent, sentEnvelope{actor: actor, body: body})
@@ -434,6 +444,38 @@ func TestHandleList_FilterByStatus(t *testing.T) {
 	assert.Len(t, msgs, 2)
 }
 
+func TestHandleCreate_InjectsTraceparent(t *testing.T) {
+	// Set up a real tracer provider with W3C propagator so traceparent gets injected.
+	// Without an OTEL endpoint the default is a no-op provider — use a real one for this test.
+	tp := sdktrace.NewTracerProvider()
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	t.Cleanup(func() {
+		otel.SetTracerProvider(noop.NewTracerProvider())
+		otel.SetTextMapPropagator(propagation.TraceContext{})
+	})
+
+	h, _, sender := setupTestHandler()
+	extSrv, _ := setupTestServer(h)
+	defer extSrv.Close()
+
+	resp, err := http.Post(
+		extSrv.URL+"/api/v1/mesh/?actor=echo",
+		"application/json",
+		strings.NewReader(`{"payload":{}}`),
+	)
+	require.NoError(t, err)
+	resp.Body.Close()
+
+	last := sender.lastSent()
+	var envelope map[string]any
+	require.NoError(t, json.Unmarshal(last.body, &envelope))
+	headers, ok := envelope["headers"].(map[string]any)
+	require.True(t, ok)
+	_, hasTraceparent := headers["traceparent"]
+	assert.True(t, hasTraceparent, "envelope headers must contain traceparent for distributed tracing")
+}
+
 func TestHandleCreate_StampsGatewayURL(t *testing.T) {
 	h, _, sender := setupTestHandler()
 	extSrv, _ := setupTestServer(h)
@@ -482,6 +524,65 @@ func TestHandleList_Empty(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
 	msgs := result["messages"].([]any)
 	assert.Len(t, msgs, 0)
+}
+
+func TestHandleCreate_ActorNotFound_Returns404(t *testing.T) {
+	_, s, sender := setupTestHandler()
+	extSrv, _ := setupTestServer(NewHandler(s, sender, "http://internal.test:8081", "/api/v1"))
+	defer extSrv.Close()
+
+	sender.sendErr = fmt.Errorf("%w: unknown-actor", queue.ErrActorNotFound)
+
+	resp, err := http.Post(
+		extSrv.URL+"/api/v1/mesh/?actor=unknown-actor",
+		"application/json",
+		strings.NewReader(`{"payload":{}}`),
+	)
+	require.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+func TestHandleCreate_ForbidsRoutingFields(t *testing.T) {
+	h, _, _ := setupTestHandler()
+	extSrv, _ := setupTestServer(h)
+	defer extSrv.Close()
+
+	cases := []struct {
+		name string
+		body string
+	}{
+		{"route field", `{"payload":{},"route":{"prev":[],"curr":"a","next":["b"]}}`},
+		{"route_next field", `{"payload":{},"route_next":["b","c"]}`},
+		{"next field", `{"payload":{},"next":["b"]}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, err := http.Post(
+				extSrv.URL+"/api/v1/mesh/?actor=echo",
+				"application/json",
+				strings.NewReader(tc.body),
+			)
+			require.NoError(t, err)
+			resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "routing fields must be rejected")
+		})
+	}
+}
+
+func TestHandleCreate_AllowsNormalBody(t *testing.T) {
+	h, _, _ := setupTestHandler()
+	extSrv, _ := setupTestServer(h)
+	defer extSrv.Close()
+
+	resp, err := http.Post(
+		extSrv.URL+"/api/v1/mesh/?actor=echo",
+		"application/json",
+		strings.NewReader(`{"payload":{"k":"v"},"timeout":30}`),
+	)
+	require.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 }
 
 func TestInternalGet_HeartbeatCheck(t *testing.T) {

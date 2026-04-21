@@ -10,21 +10,18 @@ services:
       context: ../../../../src/asya-gateway
       dockerfile: Dockerfile
     logging: *default-logging
+    command: ["./mesh-api"]
     env_file:
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
+      ASYA_MESH_EXTERNAL_PORT: "8080"
+      ASYA_MESH_INTERNAL_PORT: "8081"
+      ASYA_STATEPROXY_SOCKET: /tmp/stateproxy.sock
+      ASYA_INTERNAL_URL: http://gateway:8081
+      ASYA_NAMESPACE: test
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
-      ASYA_GATEWAY_PORT: 8080
-      ASYA_A2A_API_KEY: test-a2a-key
-      ASYA_GATEWAY_MODE: testing
-      # Shared with x-sink so GetTask can serve history from persisted envelopes.
-      ASYA_PERSISTENCE_MOUNT: /tmp/checkpoints/results
-      # Flow registry: ConfigMap-based YAML hot-reload
-      ASYA_CONFIG_PATH: /etc/asya/flows
     volumes:
-    - asya-checkpoints-results:/tmp/checkpoints/results:ro
-    - ../configs/gateway-flows.yaml:/etc/asya/flows/flows.yaml:ro
+    - stateproxy-socket:/tmp
     ports:
     - "8081:8080"
     healthcheck:
@@ -32,6 +29,26 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    depends_on:
+      pg-kv:
+        condition: service_started
+
+  pg-kv:
+    build:
+      context: ../../../../src/asya-state-proxy
+      dockerfile: Dockerfile.pg-kv
+      target: builder
+    logging: *default-logging
+    command: ["go", "run", "./cmd/pg-kv/"]
+    environment:
+      CONNECTOR_SOCKET: /tmp/stateproxy.sock
+      STATE_PROXY_PG_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
+      STATE_PROXY_PG_INDEXES: "status"
+    volumes:
+    - stateproxy-socket:/tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
-  asya-checkpoints-results:
+  stateproxy-socket:

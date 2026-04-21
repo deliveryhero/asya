@@ -16,8 +16,9 @@ COPY . .
 # Build all binaries
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway && \
-    CGO_ENABLED=0 GOOS=linux go build -o mesh-api ./cmd/mesh-api
+    CGO_ENABLED=0 GOOS=linux go build -o mesh-api ./cmd/mesh-api && \
+    CGO_ENABLED=0 GOOS=linux go build -o mcp-adapter ./cmd/mcp-adapter && \
+    CGO_ENABLED=0 GOOS=linux go build -o a2a-adapter ./cmd/a2a-adapter
 
 # Test image
 FROM builder AS tester
@@ -26,18 +27,17 @@ WORKDIR /build
 # Runtime image
 FROM alpine:latest
 
-# Install PostgreSQL client for database operations
-RUN apk --no-cache add ca-certificates postgresql-client
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
-COPY --from=builder /build/gateway .
 COPY --from=builder /build/mesh-api .
-COPY db/ /app/db/
+COPY --from=builder /build/mcp-adapter .
+COPY --from=builder /build/a2a-adapter .
 
-# Default port
-ENV ASYA_GATEWAY_PORT=8080
+RUN adduser -D -u 1000 appuser
+USER appuser
 
-EXPOSE 8080
+EXPOSE 8080 8081 8082 8083
 
-CMD ["./gateway"]
+CMD ["./mesh-api"]

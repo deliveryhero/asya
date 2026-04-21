@@ -633,6 +633,14 @@ def test_tasks_cancel_transitions_to_cancelled():
     cancel_result = _a2a_post("tasks/cancel", {"id": task_id}, timeout=15)
     t.join(timeout=65)
 
+    # If actor raced to completion before cancel arrived, a2a-go correctly
+    # rejects with ErrTaskNotCancelable (-32002). This is by design (monotonic
+    # ordering). Mark as xfail rather than hard-failing in fast CI environments.
+    if cancel_result.get("error", {}).get("code") == -32002:
+        pytest.xfail(
+            "task completed before cancel arrived (fast actor race — see "
+            "aint.a2a-cancel-race-test-fix.w5p1r)"
+        )
     assert "result" in cancel_result, f"tasks/cancel must return result: {cancel_result}"
     task = cancel_result["result"]
     cancel_state = task.get("status", {}).get("state") or task.get("state")

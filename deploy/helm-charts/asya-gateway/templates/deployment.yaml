@@ -1,0 +1,311 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  minReadySeconds: {{ .Values.minReadySeconds | default 15 }}
+  selector:
+    matchLabels:
+      {{- include "asya-gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.mcp.enabled }}
+        checksum/mcp-tools: {{ include (print $.Template.BasePath "/configmap-mcp-tools.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.a2a.enabled }}
+        checksum/a2a-agents: {{ include (print $.Template.BasePath "/configmap-a2a-agents.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "asya-gateway.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "asya-gateway.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- include "asya-gateway.validateTransports" . }}
+      terminationGracePeriodSeconds: 35
+      containers:
+      # --- mesh-api: core HTTP server ---
+      - name: mesh-api
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.meshApi.image.repository }}:{{ .Values.meshApi.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.meshApi.image.pullPolicy }}
+        ports:
+        - name: mesh-ext
+          containerPort: 8080
+          protocol: TCP
+        - name: mesh-int
+          containerPort: 8081
+          protocol: TCP
+        env:
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: ASYA_MESH_EXTERNAL_PORT
+          value: "8080"
+        - name: ASYA_MESH_INTERNAL_PORT
+          value: "8081"
+        - name: ASYA_INTERNAL_URL
+          value: {{ include "asya-gateway.internalURL" . | quote }}
+        - name: ASYA_STATEPROXY_SOCKET
+          value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.mesh.socketDir | quote }}
+        - name: ASYA_NAMESPACE
+          value: {{ .Release.Namespace | quote }}
+        - name: OTEL_SERVICE_NAME
+          value: {{ .Values.tracing.serviceName | default "asya-gateway" | quote }}
+        {{- if .Values.tracing.endpoint }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ .Values.tracing.endpoint | quote }}
+        {{- end }}
+        envFrom:
+        - configMapRef:
+            name: {{ include "asya-gateway.fullname" . }}
+        {{- with .Values.extraEnvFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: mesh-ext
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: mesh-ext
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          failureThreshold: 12
+        resources:
+          {{- toYaml .Values.meshApi.resources | nindent 12 }}
+        volumeMounts:
+        - name: state-proxy-mesh-socket
+          mountPath: {{ .Values.stateProxy.mesh.socketDir }}
+
+      # --- state-proxy-pg-kv: PG connector sidecar ---
+      - name: state-proxy-mesh
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.stateProxy.mesh.image.repository }}:{{ .Values.stateProxy.mesh.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.stateProxy.mesh.image.pullPolicy }}
+        env:
+        - name: CONNECTOR_SOCKET
+          value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.mesh.socketDir | quote }}
+        - name: STATE_PROXY_PG_INDEXES
+          value: {{ .Values.stateProxy.mesh.indexes | quote }}
+        {{- if .Values.database.existingSecret }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.database.existingSecret }}
+              key: {{ .Values.database.existingSecretKey }}
+        {{- else }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "asya-gateway.fullname" . }}-db
+              key: password
+        {{- end }}
+        - name: STATE_PROXY_PG_URL
+          value: "host={{ .Values.database.host }} port={{ .Values.database.port }} dbname={{ .Values.database.name }} user={{ .Values.database.username }} password=$(DB_PASSWORD) sslmode={{ .Values.database.sslMode }}"
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "test -S {{ .Values.stateProxy.mesh.socketDir }}/state-proxy.sock"]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.stateProxy.mesh.resources | nindent 12 }}
+        volumeMounts:
+        - name: state-proxy-mesh-socket
+          mountPath: {{ .Values.stateProxy.mesh.socketDir }}
+
+      {{- if .Values.mcp.enabled }}
+      # --- mcp-adapter: MCP Streamable HTTP ---
+      - name: mcp-adapter
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.mcp.image.repository }}:{{ .Values.mcp.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.mcp.image.pullPolicy }}
+        command: ["./mcp-adapter"]
+        ports:
+        - name: mcp
+          containerPort: 8082
+          protocol: TCP
+        env:
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: ASYA_MCP_PORT
+          value: "8082"
+        - name: MESH_API_URL
+          value: "http://127.0.0.1:8080"
+        - name: MESH_INGRESS_URL
+          {{- if .Values.ingress.enabled }}
+          value: "http://{{ include "asya-gateway.meshApi.fullname" . }}:{{ .Values.service.meshApi.port }}"
+          {{- else }}
+          value: "http://127.0.0.1:8080"
+          {{- end }}
+        - name: ASYA_MCP_CONFIG_DIR
+          value: "/etc/asya/mcp"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: mcp
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: mcp
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.mcp.resources | nindent 12 }}
+        volumeMounts:
+        - name: mcp-tools
+          mountPath: /etc/asya/mcp
+          readOnly: true
+      {{- end }}
+
+      {{- if .Values.a2a.enabled }}
+      # --- a2a-adapter: A2A JSON-RPC ---
+      - name: a2a-adapter
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.a2a.image.repository }}:{{ .Values.a2a.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.a2a.image.pullPolicy }}
+        command: ["./a2a-adapter"]
+        ports:
+        - name: a2a
+          containerPort: 8083
+          protocol: TCP
+        env:
+        - name: ASYA_A2A_PORT
+          value: "8083"
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: MESH_API_URL
+          value: "http://127.0.0.1:8080"
+        - name: MESH_INGRESS_URL
+          {{- if .Values.ingress.enabled }}
+          value: "http://{{ include "asya-gateway.meshApi.fullname" . }}:{{ .Values.service.meshApi.port }}"
+          {{- else }}
+          value: "http://127.0.0.1:8080"
+          {{- end }}
+        - name: ASYA_A2A_CONFIG_DIR
+          value: "/etc/asya/a2a"
+        {{- with .Values.a2a.auth.apiKey }}
+        - name: ASYA_A2A_API_KEY
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.a2a.auth.jwt.jwksURL }}
+        - name: ASYA_A2A_JWT_JWKS_URL
+          value: {{ . | quote }}
+        - name: ASYA_A2A_JWT_ISSUER
+          value: {{ $.Values.a2a.auth.jwt.issuer | quote }}
+        - name: ASYA_A2A_JWT_AUDIENCE
+          value: {{ $.Values.a2a.auth.jwt.audience | quote }}
+        {{- end }}
+        {{- if .Values.stateProxy.envelopes.enabled }}
+        - name: ASYA_ENVELOPE_PROXY_SOCKET
+          value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.envelopes.socketDir | quote }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: a2a
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: a2a
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.a2a.resources | nindent 12 }}
+        volumeMounts:
+        - name: a2a-agents
+          mountPath: /etc/asya/a2a
+          readOnly: true
+        {{- if .Values.stateProxy.envelopes.enabled }}
+        - name: state-proxy-envelopes-socket
+          mountPath: {{ .Values.stateProxy.envelopes.socketDir }}
+        {{- end }}
+      {{- end }}
+
+      {{- if .Values.stateProxy.envelopes.enabled }}
+      # --- state-proxy-envelopes: S3 connector for A2A history ---
+      - name: state-proxy-envelopes
+        image: "{{ .Values.stateProxy.envelopes.image.repository }}:{{ .Values.stateProxy.envelopes.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.stateProxy.envelopes.image.pullPolicy }}
+        env:
+        - name: CONNECTOR_SOCKET
+          value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.envelopes.socketDir | quote }}
+        - name: STATE_BUCKET
+          value: {{ .Values.stateProxy.envelopes.config.bucket | quote }}
+        - name: AWS_REGION
+          value: {{ .Values.stateProxy.envelopes.config.region | quote }}
+        {{- with .Values.stateProxy.envelopes.config.endpoint }}
+        - name: AWS_ENDPOINT_URL
+          value: {{ . | quote }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.stateProxy.envelopes.resources | nindent 12 }}
+        volumeMounts:
+        - name: state-proxy-envelopes-socket
+          mountPath: {{ .Values.stateProxy.envelopes.socketDir }}
+      {{- end }}
+
+      volumes:
+      - name: state-proxy-mesh-socket
+        emptyDir: {}
+      {{- if .Values.mcp.enabled }}
+      - name: mcp-tools
+        configMap:
+          name: {{ include "asya-gateway.fullname" . }}-mcp-tools
+          optional: true
+      {{- end }}
+      {{- if .Values.a2a.enabled }}
+      - name: a2a-agents
+        configMap:
+          name: {{ include "asya-gateway.fullname" . }}-a2a-agents
+          optional: true
+      {{- end }}
+      {{- if .Values.stateProxy.envelopes.enabled }}
+      - name: state-proxy-envelopes-socket
+        emptyDir: {}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

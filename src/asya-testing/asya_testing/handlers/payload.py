@@ -19,6 +19,7 @@ Sync handlers remain for error/edge-case testing where async adds no value.
 """
 
 import asyncio
+import os
 import time
 from collections.abc import Generator
 from typing import Any
@@ -531,29 +532,30 @@ async def param_flow_actor_2(payload: dict[str, Any]) -> dict[str, Any]:
 # =============================================================================
 
 
-async def multihop_handler(payload: dict[str, Any]) -> dict[str, Any]:
+def multihop_handler(payload: dict[str, Any]) -> Generator:
     """
-    Multi-hop handler: Passes message through chain of actors.
+    Multi-hop handler: Passes message through a chain of test-multihop-N actors.
 
-    Tracks which actors have processed the message by appending to a list.
-    Used for testing long actor chains (10-20 actors).
-
-    Args:
-        payload: Should contain {"hop_number": N, "processed_by": [...]}
-
-    Returns:
-        Updated payload with current hop recorded
+    Uses ABI yield to set route.next to the next actor in the chain.
+    HOP_NUMBER env var identifies this actor's position (0-indexed).
+    Chain length is HOP_TOTAL (default 15). Last actor routes to x-sink (empty next).
     """
-    hop_number = payload.get("hop_number", 0)
-    processed_by = payload.get("processed_by", [])
+    hop_number = int(os.environ.get("HOP_NUMBER", "0"))
+    hop_total = int(os.environ.get("HOP_TOTAL", "15"))
 
+    next_hop = hop_number + 1
+    if next_hop < hop_total:
+        yield "SET", ".route.next", [f"test-multihop-{next_hop}"]
+    # else: route.next stays [] → sidecar routes to x-sink
+
+    processed_by = list(payload.get("processed_by", []))
     processed_by.append(f"hop-{hop_number}")
 
-    await asyncio.sleep(0.5)  # Delay to allow SSE to capture intermediate progress updates
+    time.sleep(0.5)  # Slow each hop so SSE can capture intermediate progress
 
-    return {
+    yield {
         **payload,
-        "hop_number": hop_number + 1,
+        "hop_number": next_hop,
         "processed_by": processed_by,
         "timestamp": time.time(),
     }

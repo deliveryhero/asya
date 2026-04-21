@@ -110,15 +110,11 @@ jobs:
           component: flow-compiler
           config_var: _UNUSED
           config_value: default
-        # Gateway component tests - test both transports
-        - name: gateway (sqs)
-          component: gateway
+        # Mesh-API component tests
+        - name: mesh-api (sqs)
+          component: mesh-api
           config_var: ASYA_TRANSPORT
           config_value: sqs
-        - name: gateway (rabbitmq)
-          component: gateway
-          config_var: ASYA_TRANSPORT
-          config_value: rabbitmq
         # Runtime component tests
         - name: runtime
           component: runtime
@@ -193,12 +189,14 @@ jobs:
       matrix:
         include:
         # Simple integration tests (no parametrization)
-        - name: gateway
-          target: gateway
         - name: sidecar
           target: sidecar
+          transport: ""
+          storage: ""
         - name: stateful-actors
           target: stateful-actors
+          transport: ""
+          storage: ""
         # Sidecar-runtime tests (2 transports)
         ##rabbitmq - disabled for now to save resources
         # - name: sidecar-runtime (rabbitmq)
@@ -207,23 +205,21 @@ jobs:
         - name: sidecar-runtime (sqs)
           target: sidecar-runtime
           transport: sqs
+          storage: ""
         - name: sidecar-runtime (pubsub)
           target: sidecar-runtime
           transport: pubsub
-        # Gateway-actors tests (2 transport-storage combos)
-        ##rabbitmq - disabled for now to save resources
-        # - name: gateway-actors (rabbitmq-minio)
-        #   target: gateway-actors
-        #   transport: rabbitmq
-        #   storage: minio
-        - name: gateway-actors (sqs-s3)
-          target: gateway-actors
-          transport: sqs
-          storage: s3
-        - name: gateway-actors (pubsub-gcs)
-          target: gateway-actors
-          transport: pubsub
-          storage: gcs
+          storage: ""
+          # Gateway-actors tests — disabled pending rewrite for mesh-api routes
+          # (old tests use /tools/call and /mesh/{id} which don't exist in new arch)
+          # - name: gateway-actors (sqs-s3)
+          #   target: gateway-actors
+          #   transport: sqs
+          #   storage: s3
+          # - name: gateway-actors (pubsub-gcs)
+          #   target: gateway-actors
+          #   transport: pubsub
+          #   storage: gcs
 
     steps:
     - uses: actions/checkout@v6
@@ -237,7 +233,7 @@ jobs:
       run: make build-images
 
     - name: Run simple integration tests
-      if: matrix.target == 'gateway' || matrix.target == 'sidecar'
+      if: matrix.target == 'sidecar'
       run: |
         source .venv/bin/activate
         make -C testing/integration/${{ matrix.target }} test

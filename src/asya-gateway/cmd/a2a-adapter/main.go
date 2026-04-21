@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/gob"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -16,6 +17,16 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/meshclient"
 	"github.com/deliveryhero/asya/asya-gateway/internal/watcher"
 )
+
+func init() {
+	// Register concrete types that appear in map[string]any (from JSON decoding)
+	// so that gob.Encode doesn't panic when deep-copying a2a.DataPart.Data fields.
+	gob.Register(map[string]any{})
+	gob.Register([]any{})
+	gob.Register(float64(0))
+	gob.Register(bool(false))
+	gob.Register(string(""))
+}
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -37,9 +48,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create A2A executor and store adapter
-	executor := a2aadapter.NewExecutor(registry, mc)
+	// Create store adapter and executor (executor needs store to register task ID mapping)
 	storeAdapter := a2aadapter.NewStoreAdapter(mc)
+	executor := a2aadapter.NewExecutor(registry, mc, storeAdapter)
 	cardProducer := a2aadapter.NewCardProducer(registry)
 
 	// Create A2A handler using a2a-go library
@@ -59,9 +70,29 @@ func main() {
 		return registry.LoadFromDir(dir)
 	})
 
+	// Build auth middleware from env vars (optional; no auth if env vars are unset)
+	var auths []a2aadapter.Authenticator
+	if apiKey := os.Getenv("ASYA_A2A_API_KEY"); apiKey != "" {
+		auths = append(auths, a2aadapter.NewAPIKeyAuthenticator(apiKey))
+		slog.Info("A2A API key auth enabled")
+	}
+	if jwksURL := os.Getenv("ASYA_A2A_JWT_JWKS_URL"); jwksURL != "" {
+		issuer := os.Getenv("ASYA_A2A_JWT_ISSUER")
+		audience := os.Getenv("ASYA_A2A_JWT_AUDIENCE")
+		jwtAuth, err := a2aadapter.NewJWTAuthenticator(jwksURL, issuer, audience)
+		if err != nil {
+			slog.Error("Failed to initialize JWT authenticator", "error", err)
+			os.Exit(1)
+		}
+		defer jwtAuth.Close()
+		auths = append(auths, jwtAuth)
+		slog.Info("A2A JWT auth enabled", "jwks", jwksURL, "issuer", issuer)
+	}
+	authMW := a2aadapter.AuthMiddleware(auths...)
+
 	// Create HTTP server
 	mux := http.NewServeMux()
-	mux.Handle("/a2a/", a2aHTTPHandler)
+	mux.Handle("/a2a/", authMW(a2aHTTPHandler))
 	mux.Handle("/.well-known/agent.json", a2asrv.NewAgentCardHandler(cardProducer))
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

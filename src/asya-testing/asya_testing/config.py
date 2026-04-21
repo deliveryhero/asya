@@ -149,7 +149,7 @@ class TestConfig:
         storage = Storage(storage_str)
 
         # Required: Service URLs
-        gateway_url = require_env("ASYA_GATEWAY_URL")
+        gateway_url = os.getenv("ASYA_MESH_API_URL") or require_env("ASYA_GATEWAY_URL")
 
         # Storage-specific URLs (conditionally required)
         s3_endpoint = ""

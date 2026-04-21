@@ -97,24 +97,24 @@ func (c *PubSubClient) SendMessage(ctx context.Context, envelope *types.Envelope
 	return nil
 }
 
-// pubsubQueueMessage wraps a Pub/Sub message for the QueueMessage interface
-type pubsubQueueMessage struct {
+// pubsubMessage wraps a Pub/Sub message for the Message interface
+type pubsubMessage struct {
 	body []byte
 	tag  uint64
 	msg  *pubsub.Message
 }
 
-func (m *pubsubQueueMessage) Body() []byte {
+func (m *pubsubMessage) Body() []byte {
 	return m.body
 }
 
-func (m *pubsubQueueMessage) DeliveryTag() uint64 {
+func (m *pubsubMessage) DeliveryTag() uint64 {
 	return m.tag
 }
 
 // Receive receives a message from the specified subscription.
 // The subscription name follows the same convention as the topic: asya-{namespace}-{actorName}
-func (c *PubSubClient) Receive(ctx context.Context, queueName string) (QueueMessage, error) {
+func (c *PubSubClient) Receive(ctx context.Context, queueName string) (Message, error) {
 	sub := c.client.Subscription(queueName)
 	sub.ReceiveSettings.MaxOutstandingMessages = 1
 
@@ -136,7 +136,7 @@ func (c *PubSubClient) Receive(ctx context.Context, queueName string) (QueueMess
 
 	select {
 	case msg := <-msgCh:
-		return &pubsubQueueMessage{
+		return &pubsubMessage{
 			body: msg.Data,
 			tag:  0,
 			msg:  msg,
@@ -149,10 +149,10 @@ func (c *PubSubClient) Receive(ctx context.Context, queueName string) (QueueMess
 }
 
 // Ack acknowledges a Pub/Sub message
-func (c *PubSubClient) Ack(_ context.Context, msg QueueMessage) error {
-	psMsg, ok := msg.(*pubsubQueueMessage)
+func (c *PubSubClient) Ack(_ context.Context, msg Message) error {
+	psMsg, ok := msg.(*pubsubMessage)
 	if !ok {
-		return fmt.Errorf("invalid message type: expected *pubsubQueueMessage")
+		return fmt.Errorf("invalid message type: expected *pubsubMessage")
 	}
 
 	psMsg.msg.Ack()

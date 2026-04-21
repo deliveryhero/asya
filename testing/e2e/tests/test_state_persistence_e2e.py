@@ -88,7 +88,7 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
     logger.info("Task completed, restarting gateway...")
     pods = e2e_helper.kubectl(
         "get", "pods",
-        "-l", "app.kubernetes.io/component=mesh",
+        "-l", "app.kubernetes.io/name=asya-gateway",
         "-o", "jsonpath='{.items[*].metadata.name}'"
     )
 
@@ -100,9 +100,16 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
             e2e_helper.delete_pod(pod_name)
 
             logger.info("Waiting for new gateway mesh pod...")
-            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/component=mesh", timeout=180)
+            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=180)
 
-            e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
+            # Wait for the Deployment's Available condition — this also ensures the old
+            # pod has been removed from Service endpoints (terminationGracePeriod completes).
+            e2e_helper.kubectl(
+                "wait", "deployment/asya-gateway",
+                "--for=condition=available",
+                "--timeout=120s",
+            )
+            e2e_helper.ensure_gateway_connectivity(max_retries=20, retry_interval=2.0)
     else:
         pytest.fail("No gateway pod found to restart")
 
@@ -391,9 +398,14 @@ def test_database_connection_recovery(e2e_helper):
         assert e2e_helper.wait_for_pod_ready("app=postgresql", timeout=120)
 
         logger.info("Waiting for gateway to recover...")
-        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/component=mesh", timeout=180)
+        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=180)
 
-        e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
+        e2e_helper.kubectl(
+            "wait", "deployment/asya-gateway",
+            "--for=condition=available",
+            "--timeout=120s",
+        )
+        e2e_helper.ensure_gateway_connectivity(max_retries=20, retry_interval=2.0)
 
         logger.info("Waiting for gateway to reconnect to database after postgres recovery...")
         max_db_wait = 60
@@ -467,9 +479,14 @@ def test_storage_error_retry_logic(e2e_helper):
         assert kubectl_wait_for_pod_ready("app=s3", namespace=e2e_helper.system_namespace, timeout=60)
 
         logger.info("Waiting for gateway to recover...")
-        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/component=mesh", timeout=30)
+        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=60)
 
-        e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
+        e2e_helper.kubectl(
+            "wait", "deployment/asya-gateway",
+            "--for=condition=available",
+            "--timeout=120s",
+        )
+        e2e_helper.ensure_gateway_connectivity(max_retries=20, retry_interval=2.0)
 
         logger.info("Waiting for task to reach terminal state after storage recovery...")
         final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)

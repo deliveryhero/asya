@@ -27,12 +27,17 @@ services:
       service: gateway
     env_file: .env.pubsub-gcs
     depends_on:
+      pg-kv:
+        condition: service_started
       pubsub:
         condition: service_healthy
       queue-setup:
         condition: service_completed_successfully
-      postgres-migrate:
-        condition: service_completed_successfully
+
+  pg-kv:
+    extends:
+      file: ../../../shared/compose/asya/gateway.yml
+      service: pg-kv
 
   tester:
     extends:
@@ -46,8 +51,6 @@ services:
         condition: service_healthy
       queue-setup:
         condition: service_completed_successfully
-      postgres-migrate:
-        condition: service_completed_successfully
       storage-setup:
         condition: service_completed_successfully
       gateway:
@@ -58,6 +61,7 @@ services:
         condition: service_completed_successfully
 
 volumes:
+  stateproxy-socket:
   asya-echo-sockets:
   asya-doubler-sockets:
   asya-incrementer-sockets:

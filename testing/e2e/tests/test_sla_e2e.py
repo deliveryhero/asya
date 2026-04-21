@@ -167,10 +167,12 @@ def test_slow_actor_exceeds_sla(e2e_helper, namespace):
     )
     logger.info(f"[+] Deadline was stamped: {deadline_raw}")
 
-    # Verify pod crashed and was restarted by KEDA
+    # Verify pod crashed and was restarted by KEDA.
+    # call_mcp_tool blocked for ~30s (backstop), so the crash already happened.
+    # Give KEDA up to 120s to detect and rescale (pollingInterval=5s + CI load headroom).
     logger.info("Waiting for pod to restart after crash-on-timeout...")
     time.sleep(5)  # Brief wait for crash to register in Kubernetes
-    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout", timeout=60)
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout", timeout=120)
     assert pod_ready, "KEDA should rescale test-timeout pod after crash-on-timeout"
 
     final_restarts = _get_pod_restart_count(e2e_helper, "test-timeout")

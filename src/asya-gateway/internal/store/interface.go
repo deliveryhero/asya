@@ -24,6 +24,8 @@ type MessageStore interface {
 	UpdateStatus(ctx context.Context, id string, status types.MessageStatus, data json.RawMessage) error
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context, params types.ListParams) ([]*types.Message, int, error)
+	// FindExpired returns IDs of non-terminal messages whose deadline_at has passed.
+	FindExpired(ctx context.Context) ([]string, error)
 
 	// In-process publish/subscribe via Go channels (ephemeral, not persisted)
 	Subscribe(id string) <-chan types.Event

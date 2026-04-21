@@ -8,6 +8,7 @@ import (
 // MessageStatus represents the lifecycle status of a mesh message.
 type MessageStatus string
 
+// Message lifecycle statuses with monotonic ordering.
 const (
 	MessageStatusPending   MessageStatus = "pending"
 	MessageStatusRunning   MessageStatus = "running"

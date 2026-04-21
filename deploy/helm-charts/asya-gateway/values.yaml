@@ -1,10 +1,175 @@
 replicaCount: 1
+# Seconds to wait after readiness probe passes before routing traffic.
+# The 4-container pod (mesh-api, mcp-adapter, a2a-adapter, state-proxy-mesh)
+# needs this buffer so the Unix socket and HTTP servers fully initialize.
+minReadySeconds: 15
 
-image:
-  repository: ghcr.io/deliveryhero/asya-gateway
-  pullPolicy: IfNotPresent
-  tag: "latest"
+# --- Container images ---
+meshApi:
+  image:
+    repository: ghcr.io/deliveryhero/asya-mesh-api
+    tag: "" # defaults to Chart.AppVersion
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 
+mcp:
+  enabled: false
+  image:
+    repository: ghcr.io/deliveryhero/asya-mcp-adapter
+    tag: ""
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+a2a:
+  enabled: false
+  image:
+    repository: ghcr.io/deliveryhero/asya-a2a-adapter
+    tag: ""
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+  auth:
+    apiKey: ""
+    jwt:
+      jwksURL: ""
+      issuer: ""
+      audience: ""
+
+# --- State proxy sidecars ---
+stateProxy:
+  mesh:
+    image:
+      repository: ghcr.io/deliveryhero/asya-state-proxy-pg-kv
+      tag: ""
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    socketDir: /var/run/asya-state-proxy-mesh
+    indexes: "status"
+  envelopes:
+    enabled: false
+    image:
+      repository: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww
+      tag: ""
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+    socketDir: /var/run/asya-state-proxy-envelopes
+    config:
+      bucket: ""
+      region: us-east-1
+      endpoint: ""
+
+# --- Database (for state-proxy-pg-kv) ---
+database:
+  host: ""
+  port: 5432
+  name: asya_gateway
+  username: asya
+  password: ""
+  existingSecret: ""
+  existingSecretKey: password
+  sslMode: disable # use "require" in production
+
+# --- Transport (mesh-api needs queue publish) ---
+transports:
+  rabbitmq:
+    enabled: false
+    config:
+      url: "amqp://guest:guest@rabbitmq:5672/"
+      exchange: "asya"
+      poolSize: 20
+  sqs:
+    enabled: false
+    config:
+      endpoint: ""
+      region: "us-east-1"
+      visibilityTimeout: 300
+      waitTimeSeconds: 20
+  pubsub:
+    enabled: false
+    config:
+      projectId: ""
+      endpoint: ""
+
+# --- Ingress ---
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  internalHost: ""
+  annotations: {}
+  tls: []
+  internalAnnotations: {}
+
+# --- Services ---
+service:
+  type: ClusterIP
+  meshApi:
+    port: 8080
+  meshApiInternal:
+    port: 8081
+    type: ClusterIP
+  mcp:
+    port: 8082
+  a2a:
+    port: 8083
+
+# --- MCP tool definitions (mounted as ConfigMap) ---
+mcpTools: []
+# - name: train_model
+#   description: "Train a model"
+#   actor: start-my-flow
+#   timeout: 3600
+#   inputSchema:
+#     type: object
+#     properties:
+#       lr: {type: number}
+#     required: [lr]
+#   progress: true
+
+# --- A2A agent definitions (mounted as ConfigMap) ---
+a2aAgents: []
+# - name: autoresearch
+#   description: "Autonomous ML agent"
+#   actor: start-autoresearch
+#   timeout: 14400
+#   streaming: true
+#   skills:
+#     - id: experiment
+#       name: Run experiment
+#       description: "Execute experiments"
+#   inputModes: [text/plain, application/json]
+#   outputModes: [text/plain, application/json]
+
+# --- Pod configuration ---
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -18,6 +183,10 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
+# Extra envFrom sources injected into the mesh-api container (e.g. AWS credential secrets).
+# Example: [{secretRef: {name: aws-creds}}]
+extraEnvFrom: []
+
 podSecurityContext:
   fsGroup: 2000
 
@@ -29,139 +198,28 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 1000
 
-service:
-  type: ClusterIP
-  port: 80
-  targetPort: 8080
-
-ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-  hosts:
-  - host: asya-gateway.local
-    paths:
-    - path: /
-      pathType: Prefix
-  tls: []
-
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 250m
-    memory: 256Mi
-
 autoscaling:
   enabled: false
   minReplicaCount: 1
   maxReplicaCount: 10
   targetCPUUtilizationPercentage: 80
 
-volumes: []
-volumeMounts: []
+podDisruptionBudget:
+  enabled: false
+  maxUnavailable: 1
 
 nodeSelector: {}
 tolerations: []
 affinity: {}
 
-# Gateway configuration
-config:
-  port: "8080"
+# --- Tracing ---
+tracing:
+  endpoint: ""
+  # serviceName is sent as OTEL_SERVICE_NAME. Default "asya-gateway" maintains
+  # backward compatibility with existing Tempo/Grafana dashboards.
+  serviceName: "asya-gateway"
 
-# Transport configuration
-# Choose exactly one transport to enable; all others should be disabled
-transports:
-  rabbitmq:
-    enabled: false
-    config:
-      url: "amqp://guest:guest@rabbitmq:5672/"
-      exchange: "asya"
-      poolSize: 20
-
-  sqs:
-    enabled: false
-    config:
-      endpoint: "" # Leave empty for AWS SQS; set to http://sqs:4566 for LocalStack
-      region: "us-east-1"
-      visibilityTimeout: 300
-      waitTimeSeconds: 20
-
-  pubsub:
-    enabled: false
-    config:
-      projectId: ""
-      endpoint: ""
-
-# PostgreSQL configuration
-postgresql:
-  enabled: true
-  auth:
-    database: asya_gateway
-    username: asya
-    password: asya-password # Change in production!
-  primary:
-    persistence:
-      enabled: true
-      size: 8Gi
-    resources:
-      limits:
-        memory: 256Mi
-      requests:
-        memory: 128Mi
-
-# Database migration job
-migration:
-  enabled: true
-  resources:
-    limits:
-      cpu: 200m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  backoffLimit: 5
-
-# Flow registry: flows are registered via ConfigMaps in /etc/asya/flows/.
-# The gateway reads all *.yaml files and hot-reloads on changes.
-#
-# Two ways to register flows:
-#   1. Helm-managed (seed at deploy time):
-#      exposedFlows:
-#      - name: my-flow
-#        entrypoint: start-my-flow
-#        description: "My flow"
-#        mcp: {}
-#
-#   2. Per-flow ConfigMaps (deployed by `asya k apply`):
-#      flowConfigMaps:
-#      - asya-flow-text-flow-config
-#      - asya-flow-greet-flow-config
-#
-# Per-flow CMs are created by `asya expose` and deployed alongside actors.
-# The gateway mounts them via projected volume into the same directory.
-exposedFlows: []
-flowConfigMaps: []
-flowsExposerGroup: "asya-flow-exposers"
-
-# External database (if postgresql.enabled=false)
-# Leave host empty to use in-memory store (no persistence)
-externalDatabase:
-  host: "" # Set to hostname for external PostgreSQL, or leave empty for in-memory store
-  port: 5432
-  database: asya_gateway
-  username: asya
-  password: "" # Password for external database (only used if existingSecret is not set)
-  existingSecret: "" # Name of existing secret containing database password (recommended)
-  existingSecretKey: password # Key in existingSecret that contains the password
-
-# Test image configuration (for Helm test pods)
-# Override to use a pre-loaded image in Kind clusters
+# --- Helm test configuration ---
 tests:
   image: alpine/k8s:1.28.3
   imagePullPolicy: IfNotPresent
-
-# Distributed tracing configuration
-tracing:
-  endpoint: ""

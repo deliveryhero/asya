@@ -239,8 +239,17 @@ class TestLogs:
         logger.info("[+] Found %d sidecar log streams (%d entries)", len(results), total_entries)
 
     def test_gateway_logs_collected(self):
-        """Gateway container logs are in Loki."""
-        data = _query_loki('{container="gateway"}', limit=3)
+        """Gateway container logs are in Loki.
+
+        Container name changed from 'gateway' to 'mesh-api' in the new
+        multi-container deployment. Query by pod label instead.
+        """
+        # New deployment uses container="mesh-api"; fall back to pod label selector
+        data = _query_loki('{container="mesh-api"}', limit=3)
         results = data.get("data", {}).get("result", [])
+        if not results:
+            # Try broader pod-level query for backward compat
+            data = _query_loki('{pod=~"asya-gateway-.*"}', limit=3)
+            results = data.get("data", {}).get("result", [])
         assert len(results) > 0, "No gateway logs found in Loki"
         logger.info("[+] Found %d gateway log streams", len(results))

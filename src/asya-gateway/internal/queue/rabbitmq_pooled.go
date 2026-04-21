@@ -95,7 +95,7 @@ func (m *pooledRabbitMQMessage) DeliveryTag() uint64 {
 
 // Receive receives a message from the specified queue using a persistent consumer
 // This creates ONE consumer per queue (not per Receive call) to avoid consumer leaks
-func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (QueueMessage, error) {
+func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (Message, error) {
 	// Check if we already have a persistent consumer for this queue
 	c.consumersMu.Lock()
 	consumer, exists := c.consumers[queueName]
@@ -195,7 +195,7 @@ func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (Q
 
 // Ack acknowledges a message
 // Note: Channel is NOT returned to pool since it's a persistent consumer channel
-func (c *RabbitMQClientPooled) Ack(ctx context.Context, msg QueueMessage) error {
+func (c *RabbitMQClientPooled) Ack(ctx context.Context, msg Message) error {
 	pooledMsg, ok := msg.(*pooledRabbitMQMessage)
 	if !ok {
 		return fmt.Errorf("invalid message type: expected *pooledRabbitMQMessage")

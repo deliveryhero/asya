@@ -2,14 +2,44 @@ package mesh
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
+
+var meshTracer = otel.Tracer("asya-mesh-api")
+
+// mapCarrier adapts map[string]any to the OTEL TextMapCarrier interface.
+type mapCarrier map[string]any
+
+func (m mapCarrier) Get(key string) string {
+	v, ok := m[key]
+	if !ok {
+		return ""
+	}
+	s, _ := v.(string)
+	return s
+}
+func (m mapCarrier) Set(key, value string) { m[key] = value }
+func (m mapCarrier) Keys() []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Ensure mapCarrier satisfies propagation.TextMapCarrier at compile time.
+var _ propagation.TextMapCarrier = mapCarrier{}
 
 // createRequest is the JSON body for POST /api/v1/mesh/?actor={name}.
 type createRequest struct {
@@ -29,27 +59,46 @@ type createRequest struct {
 //  6. Build envelope and send to actor queue
 //  7. Return 201 {"id": "..."}
 func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
+	ctx, span := meshTracer.Start(r.Context(), "gateway.task.execute")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	actor := r.URL.Query().Get("actor")
 	if actor == "" {
 		http.Error(w, `{"error":"actor query parameter required"}`, http.StatusBadRequest)
 		return
 	}
+	span.SetAttributes(attribute.String("asya.actor", actor))
 
-	var req createRequest
-	if err := readJSON(r, &req); err != nil {
+	// Parse once into a combined struct: known fields + forbidden routing fields.
+	// Routing at dispatch time is forbidden — actors declare successors via ABI yields.
+	var raw struct {
+		createRequest
+		Route     json.RawMessage `json:"route"`
+		RouteNext json.RawMessage `json:"route_next"`
+		Next      json.RawMessage `json:"next"`
+	}
+	if err := readJSON(r, &raw); err != nil {
 		http.Error(w, `{"error":"invalid JSON body"}`, http.StatusBadRequest)
 		return
 	}
+	if raw.Route != nil || raw.RouteNext != nil || raw.Next != nil {
+		http.Error(w, `{"error":"routing fields (route, route_next, next) are not allowed; use ?actor= for entrypoint only"}`, http.StatusBadRequest)
+		return
+	}
+	req := raw.createRequest
 
 	// Generate message ID
 	id := uuid.New().String()
 	now := time.Now().UTC()
 
-	// Stamp gateway URL into headers
+	// Stamp gateway URL and W3C trace context into headers
 	if req.Headers == nil {
 		req.Headers = make(map[string]any)
 	}
 	req.Headers["x-asya-gateway-url"] = h.gatewayURL
+	// Inject traceparent/tracestate so the first actor continues this trace.
+	otel.GetTextMapPropagator().Inject(ctx, mapCarrier(req.Headers))
 
 	// Calculate deadline
 	deadlineAt := ""
@@ -111,6 +160,12 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Dispatch to actor queue
 	if err := h.sender.Send(r.Context(), actor, envelopeBytes); err != nil {
+		if errors.Is(err, queue.ErrActorNotFound) {
+			// Clean up the already-stored message before returning
+			_ = h.store.Delete(r.Context(), id)
+			http.Error(w, `{"error":"actor not found"}`, http.StatusNotFound)
+			return
+		}
 		slog.Error("Failed to send envelope to queue", "error", err, "actor", actor)
 		http.Error(w, `{"error":"failed to dispatch message"}`, http.StatusInternalServerError)
 		return

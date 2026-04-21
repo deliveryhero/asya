@@ -20,6 +20,7 @@ linters:
   - misspell
   - nolintlint
   - ineffassign
+  - revive
 
 linters-settings:
   errcheck:
@@ -43,6 +44,15 @@ linters-settings:
     min-len: 3
     min-occurrences: 3
     ignore-tests: true
+
+  revive:
+    rules:
+    - name: error-return
+    - name: error-naming
+    - name: error-strings
+    - name: exported
+    - name: increment-decrement
+    - name: var-naming
 
 issues:
   exclude-use-default: false

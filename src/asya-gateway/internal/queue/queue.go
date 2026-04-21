@@ -2,11 +2,16 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
+
+// ErrActorNotFound is returned when the target actor's queue does not exist.
+// Callers should map this to a 404 response.
+var ErrActorNotFound = errors.New("actor not found")
 
 // ActorEnvelopeStatus represents the lifecycle status of a message
 type ActorEnvelopeStatus struct {
@@ -23,6 +28,7 @@ type ActorEnvelopeStatus struct {
 type ActorEnvelope struct {
 	ID      string               `json:"id"`
 	Route   types.Route          `json:"route"`
+	Headers map[string]any       `json:"headers,omitempty"`
 	Payload any                  `json:"payload"`
 	Status  *ActorEnvelopeStatus `json:"status,omitempty"`
 }
@@ -52,6 +58,7 @@ func NewActorEnvelope(envelope *types.Envelope) (ActorEnvelope, error) {
 	msg := ActorEnvelope{
 		ID:      envelope.ID,
 		Route:   envelope.Route,
+		Headers: envelope.Headers,
 		Payload: envelope.Payload,
 		Status:  status,
 	}
@@ -59,8 +66,8 @@ func NewActorEnvelope(envelope *types.Envelope) (ActorEnvelope, error) {
 	return msg, nil
 }
 
-// QueueMessage represents a message received from a queue
-type QueueMessage interface {
+// Message represents a message received from a queue
+type Message interface {
 	Body() []byte
 	DeliveryTag() uint64
 }
@@ -68,7 +75,7 @@ type QueueMessage interface {
 // Client defines the interface for sending and receiving messages from queues
 type Client interface {
 	SendMessage(ctx context.Context, envelope *types.Envelope) error
-	Receive(ctx context.Context, queueName string) (QueueMessage, error)
-	Ack(ctx context.Context, msg QueueMessage) error
+	Receive(ctx context.Context, queueName string) (Message, error)
+	Ack(ctx context.Context, msg Message) error
 	Close() error
 }
