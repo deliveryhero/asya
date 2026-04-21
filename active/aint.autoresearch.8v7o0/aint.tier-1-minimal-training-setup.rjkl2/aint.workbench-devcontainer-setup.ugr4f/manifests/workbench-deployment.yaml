@@ -26,6 +26,10 @@ spec:
       serviceAccountName: default
       priorityClassName: workbench-high
       terminationGracePeriodSeconds: 10
+      tolerations:
+        - key: aimc/node-type
+          value: gpu-l4
+          effect: NoSchedule
       containers:
         - name: workbench
           image: ubuntu:24.04
@@ -62,9 +66,11 @@ spec:
             requests:
               cpu: "500m"
               memory: 4Gi
+              nvidia.com/gpu: "1"
             limits:
               cpu: "4"
-              memory: 16Gi
+              memory: 14Gi
+              nvidia.com/gpu: "1"
       volumes:
         - name: work
           persistentVolumeClaim:
