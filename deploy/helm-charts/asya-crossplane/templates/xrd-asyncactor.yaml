@@ -145,7 +145,7 @@ spec:
 
                 sidecars:
                   type: array
-                  description: Additional sidecar containers for the actor pod
+                  description: "Additional sidecar containers for the actor pod (names 'asya-runtime' and 'asya-sidecar' are reserved)"
                   items:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
