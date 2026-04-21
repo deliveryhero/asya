@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.1.0] - 2026-04-21
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Features
+* feat(gateway): PR1 — PG state-proxy connector + asya-mesh-api core by @atemate in https://github.com/deliveryhero/asya/pull/442
+* feat(gateway): PR2 — MCP Streamable HTTP + A2A JSON-RPC adapters by @atemate in https://github.com/deliveryhero/asya/pull/444
+* feat(sidecar): PR3 — envelope gateway URL + unified events + pre-flight check by @atemate in https://github.com/deliveryhero/asya/pull/443
+* feat(gateway): PR4 — Helm chart + Ingress + Crossplane integration by @atemate in https://github.com/deliveryhero/asya/pull/445
+* feat(crossplane): add initContainers and sidecars to AsyncActor XRD [cynl0] by @atemate in https://github.com/deliveryhero/asya/pull/452
+### Bug Fixes
+* fix(asya-lab): decouple PyPI version from repo tags by @atemate in https://github.com/deliveryhero/asya/pull/446
+* fix(lint): Fix lint by @atemate in https://github.com/deliveryhero/asya/pull/451
+### Documentation
+* chore: add DCO enforcement and CNCF sandbox prep by @atemate in https://github.com/deliveryhero/asya/pull/438
+* docs: add frontmatter descriptions for agent discovery, fix mkdocs nav by @atemate in https://github.com/deliveryhero/asya/pull/441
+* chore: Add GEMINI.md and CLAUDE.md by @atemate in https://github.com/deliveryhero/asya/pull/447
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.0.9...v1.1.0
+
+
+
 
 ## [1.0.9] - 2026-04-15
 
@@ -1575,6 +1599,9 @@ All images are published to GitHub Container Registry:
 
 [1.0.8]: https://github.com/deliveryhero/asya/releases/tag/v1.0.8
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.9...HEAD
 [1.0.9]: https://github.com/deliveryhero/asya/releases/tag/v1.0.9
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/deliveryhero/asya/releases/tag/v1.1.0
 
