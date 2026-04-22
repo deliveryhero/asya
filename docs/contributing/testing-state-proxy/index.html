@@ -2948,7 +2948,7 @@ make<span class="w"> </span>-C<span class="w"> </span>testing/integration/gatewa
 <ul>
 <li>The <code>x-sink</code> crew actor correctly persists the processed envelope to storage
   after routing through sidecar → runtime → x-sink sidecar → x-sink runtime</li>
-<li>The connector image (built from <code>Dockerfile.gcs-buffered-lww</code>) loads and
+<li>The connector image (<code>asya-state-proxy-py</code> with <code>ASYA_CONNECTOR=gcs_buffered_lww</code>) loads and
   connects successfully inside a real container</li>
 <li>Bucket existence is verified: tests assert the object appeared in the bucket
   using the emulator API</li>
@@ -3034,10 +3034,10 @@ backend-specific credential vars.</p>
 <h3 id="connector-image-build-and-loading">Connector image build and loading<a class="headerlink" href="#connector-image-build-and-loading" title="Permanent link">#</a></h3>
 <p>For E2E tests, connector images are built locally and loaded into Kind:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># scripts/deploy.sh (pubsub-gcs profile)</span>
-docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-state-proxy-gcs-buffered-lww:dev<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>src/asya-state-proxy/Dockerfile.gcs-buffered-lww<span class="w"> </span><span class="se">\</span>
+docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-state-proxy-py:dev<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>src/asya-state-proxy/Dockerfile<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>src/asya-state-proxy/
-kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-state-proxy-gcs-buffered-lww:dev<span class="w"> </span><span class="se">\</span>
+kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-state-proxy-py:dev<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--name<span class="w"> </span>asya-e2e-pubsub-gcs
 </code></pre></div>
 <p>For component and integration tests, Docker Compose builds the image from the
