@@ -1,0 +1,23 @@
+# go-duckdb requires CGO and glibc — use debian-based images, not alpine.
+FROM golang:1.25 AS builder
+ENV GOTOOLCHAIN=local
+ENV CGO_ENABLED=1
+WORKDIR /app/go
+
+COPY go/go.mod go/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+COPY go/ .
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -o /s3-kv ./cmd/s3-kv/
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /s3-kv /s3-kv
+ENTRYPOINT ["/s3-kv"]

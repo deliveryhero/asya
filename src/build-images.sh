@@ -71,6 +71,7 @@ while [[ $# -gt 0 ]]; do
       echo "  - asya-sidecar"
       echo "  - asya-state-proxy-go"
       echo "  - asya-state-proxy-py"
+      echo "  - asya-state-proxy-s3kv"
       echo "  - asya-testing"
       echo "  - asya-ui"
       echo "  - function-asya-flavors"
@@ -201,6 +202,7 @@ declare -a ALL_IMAGES=(
   "asya-sidecar"
   "asya-state-proxy-go"
   "asya-state-proxy-py"
+  "asya-state-proxy-s3kv"
   "asya-testing"
   "asya-ui"
   "function-asya-flavors"
@@ -210,7 +212,7 @@ declare -a ALL_IMAGES=(
 get_build_context() {
   local name=$1
   case "$name" in
-    asya-state-proxy-go | asya-state-proxy-py) echo "src/asya-state-proxy" ;;
+    asya-state-proxy-go | asya-state-proxy-py | asya-state-proxy-s3kv) echo "src/asya-state-proxy" ;;
     *) echo "src/$name" ;;
   esac
 }
@@ -220,6 +222,7 @@ get_dockerfile() {
   local name=$1
   case "$name" in
     asya-state-proxy-go) echo "Dockerfile.go" ;;
+    asya-state-proxy-s3kv) echo "Dockerfile.s3-kv" ;;
     *) echo "Dockerfile" ;;
   esac
 }

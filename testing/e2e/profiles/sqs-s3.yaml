@@ -99,10 +99,18 @@ gateway:
         audience: "asya-gateway-e2e"
   stateProxy:
     mesh:
+      backend: s3kv # Go connector with DuckDB — supports /query endpoint
       image:
-        repository: ghcr.io/deliveryhero/asya-state-proxy-go
+        repository: ghcr.io/deliveryhero/asya-state-proxy-s3kv
         tag: dev
         pullPolicy: Never
+      config:
+        bucket: asya-results # pre-created by s3-create-buckets job
+        prefix: mesh/msg
+        region: us-east-1
+        endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
+        accessKey: test
+        secretKey: test
   database:
     host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
     port: 5432

@@ -55,8 +55,9 @@ a2a:
 # --- State proxy sidecars ---
 stateProxy:
   mesh:
+    backend: pg-kv # pg-kv | s3kv | s3 | gcs
     image:
-      repository: ghcr.io/deliveryhero/asya-state-proxy-go
+      repository: "" # auto-selected from backend when empty
       tag: ""
       pullPolicy: IfNotPresent
     resources:
@@ -67,7 +68,22 @@ stateProxy:
         cpu: 200m
         memory: 128Mi
     socketDir: /var/run/asya-state-proxy-mesh
+    # pg-kv config (backend: pg-kv)
     indexes: "status"
+    # s3kv/s3/gcs config (backend: s3kv, s3, or gcs)
+    config:
+      bucket: ""
+      prefix: "" # optional key prefix inside the bucket (e.g. "mesh")
+      # s3:
+      region: us-east-1
+      endpoint: ""
+      # accessKey/secretKey: dev/LocalStack only — leave empty in production
+      # and use IRSA or extraEnvFrom with an AWS credentials Secret instead
+      accessKey: ""
+      secretKey: ""
+      # gcs:
+      project: ""
+      emulatorHost: "" # leave empty in production; set for GCS emulator only
   envelopes:
     enabled: false
     image:
