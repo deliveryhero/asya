@@ -99,18 +99,10 @@ gateway:
         audience: "asya-gateway-e2e"
   stateProxy:
     mesh:
-      backend: s3
       image:
-        repository: ghcr.io/deliveryhero/asya-state-proxy-py
+        repository: ghcr.io/deliveryhero/asya-state-proxy-go
         tag: dev
         pullPolicy: Never
-      config:
-        bucket: asya-results # pre-created by s3-create-buckets job
-        prefix: mesh
-        region: us-east-1
-        endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
-        accessKey: test
-        secretKey: test
   database:
     host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
     port: 5432

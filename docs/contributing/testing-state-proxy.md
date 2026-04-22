@@ -260,15 +260,20 @@ The storage emulator must be reachable from pytest (running on the host).
 
 ### Gateway mesh state proxy backend (per-profile)
 
-The `asya-gateway` chart sidecar (`stateProxy.mesh`) uses a different backend
-per E2E profile, reusing the same storage emulator already deployed for crew
-persistence. Both images are always built and loaded into Kind by `deploy.sh`:
+The `asya-gateway` chart sidecar (`stateProxy.mesh`) uses `pg-kv` in all
+current E2E profiles because the mesh-api depends on the `/query` endpoint
+(Mango-style filter DSL) which only the Go pg-kv connector implements.
+The Python s3/gcs connectors provide only `/keys/*` CRUD — sufficient for
+actor state but not for mesh-api's operational queries.
 
 | Profile | `stateProxy.mesh.backend` | Image loaded |
 |---------|--------------------------|--------------|
-| `sqs-s3` | `s3` | `asya-state-proxy-py:dev` |
-| `pubsub-gcs` | `gcs` | `asya-state-proxy-py:dev` |
+| `sqs-s3` | `pg-kv` (default) | `asya-state-proxy-go:dev` |
+| `pubsub-gcs` | `pg-kv` (default) | `asya-state-proxy-go:dev` |
 | `rabbitmq-minio` (local) | `pg-kv` (default) | `asya-state-proxy-go:dev` |
+
+The `s3` and `gcs` backend options exist in the chart values for future use
+once the Python connectors implement the `/query` endpoint.
 
 Relevant profile values (example: `sqs-s3`):
 ```yaml
