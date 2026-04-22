@@ -105,7 +105,8 @@ gateway:
         tag: dev
         pullPolicy: Never
       config:
-        bucket: asya-mesh-state
+        bucket: asya-results # pre-created by s3-create-buckets job
+        prefix: mesh
         region: us-east-1
         endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
         accessKey: test

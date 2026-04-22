@@ -141,6 +141,10 @@ spec:
           value: s3_buffered_lww
         - name: STATE_BUCKET
           value: {{ .Values.stateProxy.mesh.config.bucket | quote }}
+        {{- with .Values.stateProxy.mesh.config.prefix }}
+        - name: STATE_PREFIX
+          value: {{ . | quote }}
+        {{- end }}
         - name: AWS_REGION
           value: {{ .Values.stateProxy.mesh.config.region | default "us-east-1" | quote }}
         {{- with .Values.stateProxy.mesh.config.endpoint }}
@@ -160,6 +164,10 @@ spec:
           value: gcs_buffered_lww
         - name: STATE_BUCKET
           value: {{ .Values.stateProxy.mesh.config.bucket | quote }}
+        {{- with .Values.stateProxy.mesh.config.prefix }}
+        - name: STATE_PREFIX
+          value: {{ . | quote }}
+        {{- end }}
         {{- with .Values.stateProxy.mesh.config.project }}
         - name: GCS_PROJECT
           value: {{ . | quote }}
