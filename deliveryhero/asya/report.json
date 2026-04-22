@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "c4de0812143795f7b14cee67e9aadc8b78b4addd",
+  "commit": "0ed3a42ed03c80016e8ff5b54f69955cdd1dcd56",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -21854,7 +21854,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 30315,
+    "code": 30329,
     "test": 14997,
     "code_files": [
       {
@@ -23069,6 +23069,13 @@
         "language": "Go"
       },
       {
+        "code": 14,
+        "comment": 0,
+        "blank": 4,
+        "path": "src/asya-state-proxy/Dockerfile.go",
+        "language": "Go"
+      },
+      {
         "code": 2,
         "comment": 0,
         "blank": 2,
@@ -24045,6 +24052,6 @@
       }
     ]
   },
-  "test_execution_time": 334000000000,
-  "timestamp": "2026-04-21T14:37:58.61073305Z"
+  "test_execution_time": 300000000000,
+  "timestamp": "2026-04-22T10:15:10.63367938Z"
 }
