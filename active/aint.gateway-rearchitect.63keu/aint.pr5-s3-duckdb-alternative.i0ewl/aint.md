@@ -1,13 +1,16 @@
 ---
 title: "PR5: S3 state-proxy with DuckDB query (high-latency alternative)"
-status: working
+status: pushed
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
   - gateway-rearchitect
+  - pr:458
+  - branch:gateway-rearchitect/i0ewl.s3-kv-duckdb
 dependencies:
   - 9bb3j
 ---
+
 
 
 S3 state-proxy connector with DuckDB for /query support. Alternative to PG
