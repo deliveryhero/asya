@@ -55,6 +55,8 @@ def test_query_sort_and_limit(proxy):
     data = json.loads(resp.read())
     rows = data["rows"] or []
     assert len(rows) == 2
+    # total is pre-limit count; rows is the paginated slice.
+    assert data["total"] == 3
     assert rows[0]["value"]["progress"] == 90
 
 

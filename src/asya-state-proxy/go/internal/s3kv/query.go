@@ -14,6 +14,10 @@ import (
 	_ "github.com/marcboeker/go-duckdb" // registers "duckdb" database/sql driver
 )
 
+// maxQueryKeys caps the number of S3 objects fetched per query to prevent disk
+// space exhaustion and unbounded AWS egress costs.
+const maxQueryKeys = 10_000
+
 // QueryRequest is the JSON body for POST /query.
 type QueryRequest struct {
 	Prefix string         `json:"prefix,omitempty"`
@@ -31,6 +35,7 @@ type QueryResponse struct {
 }
 
 // validField rejects field names that would allow SQL injection via column references.
+// Documents are flat JSON (no nested fields), so dot-notation is not needed.
 var validField = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 // QueryEngine executes Mango-style queries against S3 JSON objects using DuckDB.
@@ -69,23 +74,26 @@ func (q *QueryEngine) Close() error {
 // returns filtered/sorted rows.
 //
 // Steps:
-//  1. List S3 keys matching req.Prefix
+//  1. List S3 keys matching req.Prefix (capped at maxQueryKeys)
 //  2. Fetch all documents via aws-sdk (parallel goroutines)
 //  3. Write to a temp directory as individual .json files
-//  4. DuckDB: CREATE TABLE tmp AS SELECT filename, * FROM read_json_auto(glob)
-//  5. SELECT with WHERE / ORDER BY / LIMIT / OFFSET
+//  4. DuckDB: CREATE TABLE _tmp AS SELECT filename, * FROM read_json_auto(glob)
+//  5. COUNT(*) for Total (before limit); SELECT rows with WHERE/ORDER BY/LIMIT
 //  6. Parse results, strip _ca/_ua, build []KVRow
 func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryResponse, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	// Step 1: collect matching keys.
+	// Step 1: collect matching keys (bounded).
 	keys, err := q.connector.List(ctx, req.Prefix)
 	if err != nil {
 		return nil, fmt.Errorf("list for query: %w", err)
 	}
 	if len(keys) == 0 {
 		return &QueryResponse{Rows: nil, Total: 0}, nil
+	}
+	if len(keys) > maxQueryKeys {
+		return nil, fmt.Errorf("query prefix %q matches %d objects, limit is %d — use a narrower prefix", req.Prefix, len(keys), maxQueryKeys)
 	}
 
 	// Step 2+3: fetch docs and write to temp dir.
@@ -99,7 +107,8 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	q.logger.Debug("duckdb query", "glob", glob, "keys", len(keys))
 
 	// Step 4: load into DuckDB.
-	loadSQL := fmt.Sprintf(
+	// glob is a system-generated temp path (os.MkdirTemp) — no user input.
+	loadSQL := fmt.Sprintf( // nosemgrep
 		`CREATE OR REPLACE TABLE _tmp AS
 		 SELECT filename, * EXCLUDE (filename)
 		 FROM read_json_auto('%s', filename=true, union_by_name=true, ignore_errors=true)`,
@@ -109,12 +118,13 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 		return nil, fmt.Errorf("duckdb load: %w", err)
 	}
 
+	where, args, err := buildWhereClause(req.Filter)
+	if err != nil {
+		return nil, err
+	}
+
 	// Count query path.
 	if req.Count {
-		where, args, err := buildWhereClause(req.Filter)
-		if err != nil {
-			return nil, err
-		}
 		var total int
 		if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil {
 			return nil, fmt.Errorf("duckdb count: %w", err)
@@ -122,11 +132,13 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 		return &QueryResponse{Total: total}, nil
 	}
 
-	// Step 5: SELECT with filter/sort/limit.
-	where, args, err := buildWhereClause(req.Filter)
-	if err != nil {
-		return nil, err
+	// Step 5a: count total matching rows before applying LIMIT (for pagination metadata).
+	var total int
+	if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("duckdb count: %w", err)
 	}
+
+	// Step 5b: SELECT paginated rows.
 	orderBy, err := buildOrderBy(req.Sort)
 	if err != nil {
 		return nil, err
@@ -161,8 +173,8 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 		return nil, fmt.Errorf("duckdb rows: %w", err)
 	}
 
-	q.logger.Debug("query done", "count", len(result))
-	return &QueryResponse{Rows: result, Total: len(result)}, nil
+	q.logger.Debug("query done", "returned", len(result), "total", total)
+	return &QueryResponse{Rows: result, Total: total}, nil
 }
 
 // fetchToTempDir downloads S3 documents for the given logical keys and writes
@@ -193,15 +205,13 @@ func (q *QueryEngine) fetchToTempDir(ctx context.Context, keys []string) (string
 				results <- result{key: k, err: err}
 				return
 			}
-			// Write the full stored document (including _ca/_ua for DuckDB to parse).
-			// We re-build it by marshalling the parsed fields + timestamps back.
+			// Re-build the stored document (including _ca/_ua) for DuckDB to parse.
 			storedDoc, err := buildStored(row.Value, row.CreatedAt, row.UpdatedAt)
 			if err != nil {
 				results <- result{key: k, err: err}
 				return
 			}
-			// Use a safe filename: replace / with __ to avoid subdirs.
-			safeName := strings.ReplaceAll(k, "/", "__") + ".json"
+			safeName := encodeKeyAsFilename(k) + ".json"
 			path := filepath.Join(tmpDir, safeName)
 			if writeErr := os.WriteFile(path, storedDoc, 0600); writeErr != nil {
 				results <- result{key: k, err: writeErr}
@@ -220,12 +230,24 @@ func (q *QueryEngine) fetchToTempDir(ctx context.Context, keys []string) (string
 	return tmpDir, cleanup, nil
 }
 
-// logicalKeyFromFile reconstructs the logical key from the temp-file path.
-// e.g. "/tmp/s3kv-123/msg__test-1.json" -> "msg/test-1"
+// encodeKeyAsFilename encodes a logical key into a flat filename that is
+// collision-free even when keys contain "/" or "%".
+//
+// Encoding: "%" → "%25", then "/" → "%2F".
+// Decoding (decodeFilenameAsKey): "%2F" → "/", then "%25" → "%".
+func encodeKeyAsFilename(key string) string {
+	key = strings.ReplaceAll(key, "%", "%25")
+	return strings.ReplaceAll(key, "/", "%2F")
+}
+
+// logicalKeyFromFile reconstructs the logical key from a temp-file path.
+// e.g. "/tmp/s3kv-123/msg%2Ftest-1.json" → "msg/test-1"
 func logicalKeyFromFile(filename, tmpDir string) string {
 	base := filepath.Base(filename)
-	key := strings.TrimSuffix(base, ".json")
-	return strings.ReplaceAll(key, "__", "/")
+	encoded := strings.TrimSuffix(base, ".json")
+	// Reverse the encoding: %2F → /, %25 → %  (order matters).
+	key := strings.ReplaceAll(encoded, "%2F", "/")
+	return strings.ReplaceAll(key, "%25", "%")
 }
 
 // buildWhereClause translates a Mango-style filter map into a DuckDB WHERE clause.
@@ -290,29 +312,25 @@ func buildOperatorCondition(field, op string, operand any, idx int) (cond string
 	case "$lte":
 		return fmt.Sprintf("%s <= $%d", field, idx), []any{operand}, idx + 1, nil
 	case "$in":
-		vals := toStringSlice(operand)
+		vals := toAnySlice(operand)
 		if len(vals) == 0 {
 			return "FALSE", nil, idx, nil // empty $in never matches
 		}
 		phs := make([]string, len(vals))
-		iargs := make([]any, len(vals))
-		for i, v := range vals {
+		for i := range vals {
 			phs[i] = fmt.Sprintf("$%d", idx+i)
-			iargs[i] = v
 		}
-		return fmt.Sprintf("%s IN (%s)", field, strings.Join(phs, ", ")), iargs, idx + len(vals), nil
+		return fmt.Sprintf("%s IN (%s)", field, strings.Join(phs, ", ")), vals, idx + len(vals), nil
 	case "$nin":
-		vals := toStringSlice(operand)
+		vals := toAnySlice(operand)
 		if len(vals) == 0 {
 			return "", nil, idx, nil // empty $nin is a no-op
 		}
 		phs := make([]string, len(vals))
-		iargs := make([]any, len(vals))
-		for i, v := range vals {
+		for i := range vals {
 			phs[i] = fmt.Sprintf("$%d", idx+i)
-			iargs[i] = v
 		}
-		return fmt.Sprintf("%s NOT IN (%s)", field, strings.Join(phs, ", ")), iargs, idx + len(vals), nil
+		return fmt.Sprintf("%s NOT IN (%s)", field, strings.Join(phs, ", ")), vals, idx + len(vals), nil
 	case "$exists":
 		b, _ := operand.(bool)
 		if b {
@@ -358,14 +376,11 @@ func buildLimitOffset(limit, offset int) string {
 	return sb.String()
 }
 
-func toStringSlice(v any) []string {
+// toAnySlice converts a []any interface value to []any, preserving element types.
+func toAnySlice(v any) []any {
 	arr, ok := v.([]any)
 	if !ok {
 		return nil
 	}
-	out := make([]string, 0, len(arr))
-	for _, item := range arr {
-		out = append(out, fmt.Sprintf("%v", item))
-	}
-	return out
+	return arr
 }

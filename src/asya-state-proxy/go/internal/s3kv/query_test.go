@@ -66,6 +66,8 @@ func TestBuildWhere_Nin(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, where, "status NOT IN ($1, $2, $3)")
 	assert.Equal(t, 3, len(args))
+	// Types must be preserved ([]any, not []string).
+	assert.IsType(t, "succeeded", args[0])
 }
 
 func TestBuildWhere_ExistsTrue(t *testing.T) {
@@ -144,30 +146,51 @@ func TestBuildLimitOffset_Both(t *testing.T) {
 	assert.Equal(t, " LIMIT 10 OFFSET 5", buildLimitOffset(10, 5))
 }
 
-// --- logicalKeyFromFile ---
+// --- encodeKeyAsFilename / logicalKeyFromFile ---
+
+func TestEncodeKeyAsFilename_Plain(t *testing.T) {
+	assert.Equal(t, "abc", encodeKeyAsFilename("abc"))
+}
+
+func TestEncodeKeyAsFilename_Slash(t *testing.T) {
+	assert.Equal(t, "msg%2Ftest-1", encodeKeyAsFilename("msg/test-1"))
+}
+
+func TestEncodeKeyAsFilename_Percent(t *testing.T) {
+	// A key that already contains "%" must not collide with a slash-encoded key.
+	assert.Equal(t, "a%252Fb", encodeKeyAsFilename("a%2Fb"))
+}
+
+func TestEncodeDecodeRoundTrip(t *testing.T) {
+	keys := []string{"abc", "msg/test-1", "a%2Fb", "x/y/z", "no-special"}
+	for _, key := range keys {
+		encoded := encodeKeyAsFilename(key)
+		decoded := logicalKeyFromFile("/tmp/q/"+encoded+".json", "/tmp/q")
+		assert.Equal(t, key, decoded, "round-trip for key %q", key)
+	}
+}
 
 func TestLogicalKeyFromFile(t *testing.T) {
 	assert.Equal(t, "abc", logicalKeyFromFile("/tmp/s3kv-123/abc.json", "/tmp/s3kv-123"))
 }
 
 func TestLogicalKeyFromFile_WithSlashInKey(t *testing.T) {
-	// Keys containing "/" are stored as "__" in filenames.
-	assert.Equal(t, "msg/test-1", logicalKeyFromFile("/tmp/s3kv-123/msg__test-1.json", "/tmp/s3kv-123"))
+	assert.Equal(t, "msg/test-1", logicalKeyFromFile("/tmp/s3kv-123/msg%2Ftest-1.json", "/tmp/s3kv-123"))
 }
 
-// --- toStringSlice ---
+// --- toAnySlice ---
 
-func TestToStringSlice(t *testing.T) {
-	got := toStringSlice([]any{"a", "b", "c"})
-	assert.Equal(t, []string{"a", "b", "c"}, got)
+func TestToAnySlice_Strings(t *testing.T) {
+	got := toAnySlice([]any{"a", "b", "c"})
+	assert.Equal(t, []any{"a", "b", "c"}, got)
 }
 
-func TestToStringSlice_Numbers(t *testing.T) {
-	got := toStringSlice([]any{1, 2, 3})
-	assert.Equal(t, []string{"1", "2", "3"}, got)
+func TestToAnySlice_PreservesTypes(t *testing.T) {
+	// Types must be preserved — not converted to strings.
+	got := toAnySlice([]any{1, 2.5, true})
+	assert.Equal(t, []any{1, 2.5, true}, got)
 }
 
-func TestToStringSlice_NotASlice(t *testing.T) {
-	got := toStringSlice("not a slice")
-	assert.Nil(t, got)
+func TestToAnySlice_NotASlice(t *testing.T) {
+	assert.Nil(t, toAnySlice("not a slice"))
 }
