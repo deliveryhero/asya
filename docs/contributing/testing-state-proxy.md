@@ -177,7 +177,7 @@ make -C testing/integration/gateway-actors test      # all profiles
 
 - The `x-sink` crew actor correctly persists the processed envelope to storage
   after routing through sidecar → runtime → x-sink sidecar → x-sink runtime
-- The connector image (built from `Dockerfile.gcs-buffered-lww`) loads and
+- The connector image (`asya-state-proxy-py` with `ASYA_CONNECTOR=gcs_buffered_lww`) loads and
   connects successfully inside a real container
 - Bucket existence is verified: tests assert the object appeared in the bucket
   using the emulator API
@@ -252,10 +252,10 @@ For E2E tests, connector images are built locally and loaded into Kind:
 
 ```bash
 # scripts/deploy.sh (pubsub-gcs profile)
-docker build -t asya-state-proxy-gcs-buffered-lww:dev \
-  -f src/asya-state-proxy/Dockerfile.gcs-buffered-lww \
+docker build -t asya-state-proxy-py:dev \
+  -f src/asya-state-proxy/Dockerfile \
   src/asya-state-proxy/
-kind load docker-image asya-state-proxy-gcs-buffered-lww:dev \
+kind load docker-image asya-state-proxy-py:dev \
   --name asya-e2e-pubsub-gcs
 ```
 

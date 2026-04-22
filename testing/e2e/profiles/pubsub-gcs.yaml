@@ -66,7 +66,7 @@ crew:
       project: test-project
       emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
     connector:
-      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:dev
+      image: ghcr.io/deliveryhero/asya-state-proxy-py:dev
   x-sink:
     env:
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
@@ -109,7 +109,7 @@ gateway:
   stateProxy:
     mesh:
       image:
-        repository: ghcr.io/deliveryhero/asya-state-proxy-pg-kv
+        repository: ghcr.io/deliveryhero/asya-state-proxy-go
         tag: dev
         pullPolicy: Never
   database:

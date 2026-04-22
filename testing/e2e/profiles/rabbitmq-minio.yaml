@@ -81,7 +81,7 @@ gateway:
   stateProxy:
     mesh:
       image:
-        repository: ghcr.io/deliveryhero/asya-state-proxy-pg-kv
+        repository: ghcr.io/deliveryhero/asya-state-proxy-go
         tag: dev
         pullPolicy: Never
   database:

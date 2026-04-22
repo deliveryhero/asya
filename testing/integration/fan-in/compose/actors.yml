@@ -18,12 +18,13 @@ services:
   state-proxy-connector:
     build:
       context: ../../../../src/asya-state-proxy
-      dockerfile: Dockerfile.s3-buffered-cas
+      dockerfile: Dockerfile
     logging: *default-logging
     depends_on:
       storage-setup:
         condition: service_completed_successfully
     environment:
+      ASYA_CONNECTOR: s3_buffered_cas
       CONNECTOR_SOCKET: /var/run/asya/state/fanin.sock
       STATE_BUCKET: asya-state-test
       STATE_PREFIX: fanin

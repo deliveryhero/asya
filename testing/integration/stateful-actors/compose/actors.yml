@@ -18,12 +18,13 @@ services:
   state-proxy-connector:
     build:
       context: ../../../../src/asya-state-proxy
-      dockerfile: Dockerfile.s3-buffered-lww
+      dockerfile: Dockerfile
     logging: *default-logging
     depends_on:
       storage-setup:
         condition: service_completed_successfully
     environment:
+      ASYA_CONNECTOR: s3_buffered_lww
       CONNECTOR_SOCKET: /var/run/asya/state/meta.sock
       STATE_BUCKET: asya-state-test
       STATE_PREFIX: integration

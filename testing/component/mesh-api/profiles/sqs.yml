@@ -68,7 +68,7 @@ services:
   pg-kv:
     build:
       context: ../../../../src/asya-state-proxy
-      dockerfile: Dockerfile.pg-kv
+      dockerfile: Dockerfile.go
       target: builder
     logging: *default-logging
     command: ["go", "run", "./cmd/pg-kv/"]
