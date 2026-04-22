@@ -1,10 +1,14 @@
 ---
 title: "PR5: S3 state-proxy with DuckDB query (high-latency alternative)"
-status: open
-priority: 2
-dependencies: [9bb3j]
-tags: [gateway-rearchitect]
+status: working
+priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - gateway-rearchitect
+dependencies:
+  - 9bb3j
 ---
+
 
 S3 state-proxy connector with DuckDB for /query support. Alternative to PG
 for deployments that don't want PostgreSQL. ~400-600 LOC Go.
