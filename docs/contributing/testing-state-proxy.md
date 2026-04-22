@@ -272,12 +272,14 @@ persistence. All three state proxy images are built and loaded into Kind by
 | Profile | `stateProxy.mesh.backend` | Image loaded |
 |---------|--------------------------|--------------|
 | `sqs-s3` | `s3kv` ✅ CI | `asya-state-proxy-s3kv:dev` (Go, DuckDB) |
-| `pubsub-gcs` | `gcs` | `asya-state-proxy-py:dev` (Python) |
+| `pubsub-gcs` | `pg-kv` (default) | `asya-state-proxy-go:dev` (Go) |
 | `rabbitmq-minio` (local) | `pg-kv` (default) | `asya-state-proxy-go:dev` (Go) |
 
 `s3kv` is the Go S3+DuckDB connector (`src/asya-state-proxy/go/cmd/s3-kv/`).
-Unlike `s3` (Python, no `/query`), it implements the full state-proxy interface
-including Mango-style `/query` — which is required by the mesh-api.
+Unlike `s3`/`gcs` (Python, no `/query`), it implements the full state-proxy interface
+including Mango-style `/query` — which is required by the mesh-api. `pubsub-gcs` stays
+on `pg-kv` because the Go pg-kv connector also implements `/query`, and no PostgreSQL-free
+alternative for GCS deployments exists yet.
 
 Relevant profile values (`sqs-s3`):
 ```yaml

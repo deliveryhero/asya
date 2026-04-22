@@ -1,4 +1,6 @@
-# go-duckdb requires CGO and glibc — use debian-based images, not alpine.
+# go-duckdb bundles a pre-built DuckDB static library that requires glibc >= 2.38.
+# Use golang:1.25 (bookworm) as builder and ubuntu:24.04 (glibc 2.39) as runtime;
+# debian:bookworm-slim (glibc 2.36) is not sufficient.
 FROM golang:1.25 AS builder
 ENV GOTOOLCHAIN=local
 ENV CGO_ENABLED=1
@@ -14,7 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     go build -o /s3-kv ./cmd/s3-kv/
 
-FROM debian:bookworm-slim
+FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
