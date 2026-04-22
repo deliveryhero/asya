@@ -100,15 +100,25 @@ spec:
         - name: state-proxy-mesh-socket
           mountPath: {{ .Values.stateProxy.mesh.socketDir }}
 
-      # --- state-proxy-pg-kv: PG connector sidecar ---
+      {{- $meshBackend := .Values.stateProxy.mesh.backend | default "pg-kv" }}
+      {{- $meshImage := .Values.stateProxy.mesh.image.repository }}
+      {{- if not $meshImage }}
+        {{- if eq $meshBackend "pg-kv" }}
+          {{- $meshImage = "ghcr.io/deliveryhero/asya-state-proxy-go" }}
+        {{- else }}
+          {{- $meshImage = "ghcr.io/deliveryhero/asya-state-proxy-py" }}
+        {{- end }}
+      {{- end }}
+      # --- state-proxy-mesh: {{ $meshBackend }} connector sidecar ---
       - name: state-proxy-mesh
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: "{{ .Values.stateProxy.mesh.image.repository }}:{{ .Values.stateProxy.mesh.image.tag | default .Chart.AppVersion }}"
+        image: "{{ $meshImage }}:{{ .Values.stateProxy.mesh.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.stateProxy.mesh.image.pullPolicy }}
         env:
         - name: CONNECTOR_SOCKET
           value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.mesh.socketDir | quote }}
+        {{- if eq $meshBackend "pg-kv" }}
         - name: STATE_PROXY_PG_INDEXES
           value: {{ .Values.stateProxy.mesh.indexes | quote }}
         {{- if .Values.database.existingSecret }}
@@ -126,6 +136,39 @@ spec:
         {{- end }}
         - name: STATE_PROXY_PG_URL
           value: "host={{ .Values.database.host }} port={{ .Values.database.port }} dbname={{ .Values.database.name }} user={{ .Values.database.username }} password=$(DB_PASSWORD) sslmode={{ .Values.database.sslMode }}"
+        {{- else if eq $meshBackend "s3" }}
+        - name: ASYA_CONNECTOR
+          value: s3_buffered_lww
+        - name: STATE_BUCKET
+          value: {{ .Values.stateProxy.mesh.config.bucket | quote }}
+        - name: AWS_REGION
+          value: {{ .Values.stateProxy.mesh.config.region | default "us-east-1" | quote }}
+        {{- with .Values.stateProxy.mesh.config.endpoint }}
+        - name: AWS_ENDPOINT_URL
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.stateProxy.mesh.config.accessKey }}
+        - name: AWS_ACCESS_KEY_ID
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.stateProxy.mesh.config.secretKey }}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: {{ . | quote }}
+        {{- end }}
+        {{- else if eq $meshBackend "gcs" }}
+        - name: ASYA_CONNECTOR
+          value: gcs_buffered_lww
+        - name: STATE_BUCKET
+          value: {{ .Values.stateProxy.mesh.config.bucket | quote }}
+        {{- with .Values.stateProxy.mesh.config.project }}
+        - name: GCS_PROJECT
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.stateProxy.mesh.config.emulatorHost }}
+        - name: STORAGE_EMULATOR_HOST
+          value: {{ . | quote }}
+        {{- end }}
+        {{- end }}
         livenessProbe:
           exec:
             command: ["/bin/sh", "-c", "test -S {{ .Values.stateProxy.mesh.socketDir }}/state-proxy.sock"]
