@@ -76,11 +76,13 @@ stateProxy:
       # s3:
       region: us-east-1
       endpoint: ""
+      # accessKey/secretKey: dev/LocalStack only — leave empty in production
+      # and use IRSA or extraEnvFrom with an AWS credentials Secret instead
       accessKey: ""
       secretKey: ""
       # gcs:
       project: ""
-      emulatorHost: ""
+      emulatorHost: "" # leave empty in production; set for GCS emulator only
   envelopes:
     enabled: false
     image:

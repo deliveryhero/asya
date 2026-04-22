@@ -1,24 +1,36 @@
 ---
-description: "Test strategy: state proxy backends across unit, component, integration, E2E test levels"
+description: "Test strategy: state proxy backends across unit, component, integration, E2E test levels; gateway mesh backend config"
 ---
 
 # Testing: State Proxy / Storage Backends
 
-How storage backends (S3/GCS/Redis) are exercised across all test levels.
+How storage backends (S3/GCS/Redis/PG) are exercised across all test levels.
 The state proxy appears in unit tests, component tests, integration tests,
 and E2E tests — each with different infrastructure and scope.
 
 ## Storage Support Matrix
 
+### Actor state proxy (crew persistence + actor `/state/` mounts)
+
 | Backend | Unit | Component | Integration | E2E |
 |---------|------|-----------|-------------|-----|
-| S3 LWW | ✅ (moto) | ✅ | ✅ (sqs-s3, rabbitmq-minio) | ✅ CI |
+| S3 LWW | ✅ (moto) | ✅ | ✅ (sqs-s3, rabbitmq-minio) | ✅ CI (sqs-s3) |
 | S3 CAS | ✅ (moto) | ✅ | — | — |
 | S3 passthrough | ✅ (moto) | ✅ | — | — |
-| GCS LWW | ✅ (mock) | ✅ | ✅ (pubsub-gcs) | ✅ CI |
+| GCS LWW | ✅ (mock) | ✅ | ✅ (pubsub-gcs) | ✅ CI (pubsub-gcs) |
 | GCS CAS | ✅ (mock) | ✅ | — | — |
 | Redis CAS | ✅ (mock) | ✅ | — | — |
-| PG (Go) | ✅ (no PG) | ✅ | — | — |
+
+### Gateway mesh state proxy (`stateProxy.mesh` in asya-gateway chart)
+
+| Backend | E2E profile | Chart value |
+|---------|-------------|-------------|
+| S3 LWW | sqs-s3 ✅ CI | `stateProxy.mesh.backend: s3` |
+| GCS LWW | pubsub-gcs ✅ CI | `stateProxy.mesh.backend: gcs` |
+| PG (Go) | rabbitmq-minio (local) | `stateProxy.mesh.backend: pg-kv` (default) |
+
+The gateway mesh proxy is configured separately from crew persistence — see
+`deploy/helm-charts/asya-gateway/values.yaml` (`stateProxy.mesh.*`).
 
 ## Unit Tests
 
@@ -221,11 +233,11 @@ crew:
     enabled: true
     backend: gcs
     connector:
-      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest
+      image: ghcr.io/deliveryhero/asya-state-proxy-py:dev
     config:
       bucket: asya-results
       project: test-project
-      emulatorHost: "http://fake-gcs.asya-system.svc.cluster.local:4443"
+      emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
 ```
 
 The chart translates `backend + config` into env vars on the state proxy container:
@@ -246,17 +258,50 @@ The storage emulator must be reachable from pytest (running on the host).
 
 `.env.<profile>` exposes these as `STORAGE_EMULATOR_HOST=http://127.0.0.1:<port>`.
 
+### Gateway mesh state proxy backend (per-profile)
+
+The `asya-gateway` chart sidecar (`stateProxy.mesh`) uses a different backend
+per E2E profile, reusing the same storage emulator already deployed for crew
+persistence. Both images are always built and loaded into Kind by `deploy.sh`:
+
+| Profile | `stateProxy.mesh.backend` | Image loaded |
+|---------|--------------------------|--------------|
+| `sqs-s3` | `s3` | `asya-state-proxy-py:dev` |
+| `pubsub-gcs` | `gcs` | `asya-state-proxy-py:dev` |
+| `rabbitmq-minio` (local) | `pg-kv` (default) | `asya-state-proxy-go:dev` |
+
+Relevant profile values (example: `sqs-s3`):
+```yaml
+gateway:
+  stateProxy:
+    mesh:
+      backend: s3
+      image:
+        repository: ghcr.io/deliveryhero/asya-state-proxy-py
+        tag: dev
+        pullPolicy: Never
+      config:
+        bucket: asya-mesh-state
+        region: us-east-1
+        endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
+        accessKey: test   # LocalStack only — use IRSA or extraEnvFrom in production
+        secretKey: test
+```
+
 ### Connector image build and loading
 
-For E2E tests, connector images are built locally and loaded into Kind:
+For E2E tests, both state proxy images are built in parallel and loaded into Kind:
 
 ```bash
-# scripts/deploy.sh (pubsub-gcs profile)
+# scripts/deploy.sh builds both images unconditionally
 docker build -t asya-state-proxy-py:dev \
   -f src/asya-state-proxy/Dockerfile \
   src/asya-state-proxy/
-kind load docker-image asya-state-proxy-py:dev \
-  --name asya-e2e-pubsub-gcs
+docker build -t asya-state-proxy-go:dev \
+  -f src/asya-state-proxy/Dockerfile.go \
+  src/asya-state-proxy/
+kind load docker-image asya-state-proxy-py:dev --name asya-e2e-<profile>
+kind load docker-image asya-state-proxy-go:dev --name asya-e2e-<profile>
 ```
 
 For component and integration tests, Docker Compose builds the image from the

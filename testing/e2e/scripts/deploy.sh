@@ -113,12 +113,18 @@ time {
   docker build -t "function-asya-flavors:latest" "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
-  # Build state-proxy-py (Python connectors for crew and mesh state proxy)
+  # Build both state-proxy images in parallel — py for s3/gcs backends, go for pg-kv
   echo "[.] Building asya-state-proxy-py image..."
   docker build -t "${IMAGE_PREFIX}asya-state-proxy-py:dev" \
     -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile" \
     "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-  STATE_PROXY_BUILD_PID=$!
+  STATE_PROXY_PY_PID=$!
+
+  echo "[.] Building asya-state-proxy-go image..."
+  docker build -t "${IMAGE_PREFIX}asya-state-proxy-go:dev" \
+    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.go" \
+    "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
+  STATE_PROXY_GO_PID=$!
 
   # Wait for image builds
   if ! wait "$BUILD_PID"; then
@@ -133,11 +139,17 @@ time {
   fi
   echo "[+] function-asya-flavors image built"
 
-  if ! wait "$STATE_PROXY_BUILD_PID"; then
+  if ! wait "$STATE_PROXY_PY_PID"; then
     echo "[-] asya-state-proxy-py build failed"
     exit 1
   fi
   echo "[+] asya-state-proxy-py image built"
+
+  if ! wait "$STATE_PROXY_GO_PID"; then
+    echo "[-] asya-state-proxy-go build failed"
+    exit 1
+  fi
+  echo "[+] asya-state-proxy-go image built"
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -201,6 +213,7 @@ time {
     "asya-crew:latest"
     "asya-testing:latest"
     "asya-state-proxy-py:dev"
+    "asya-state-proxy-go:dev"
   )
 
   LOAD_PIDS=()
