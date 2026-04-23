@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "61e11275327889b2ee71cfaa3b18b11175579b0c",
+  "commit": "e2ef6774ccc67823331d7140e9d04399e807027f",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -24052,6 +24052,6 @@
       }
     ]
   },
-  "test_execution_time": 315000000000,
-  "timestamp": "2026-04-23T11:03:16.379647938Z"
+  "test_execution_time": 339000000000,
+  "timestamp": "2026-04-23T12:00:19.850886244Z"
 }
