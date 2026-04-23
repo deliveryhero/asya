@@ -25,7 +25,11 @@ Core components (all in `src/`):
 - **asya-state-proxy** (Go): optional sidecar that gives actors virtual persistent state via filesystem
   emulation; actors read/write `/state/...` paths, runtime intercepts Python file I/O and forwards to the
   proxy over Unix socket; proxy translates to actual storage backend (S3, GCS, Redis, NATS KV) with
-  configurable LWW or CAS guarantees; actors remain stateless Deployments — no StatefulSets
+  configurable LWW or CAS guarantees; actors remain stateless Deployments — no StatefulSets.
+  **Two images only** — never create separate per-backend images:
+  - `asya-state-proxy-go` — all Go connectors: `/pg-kv` (default), `/s3-kv`, `/gcs-kv`;
+    binary chosen at runtime by `command:` override in the Helm chart (`backend: pg-kv|s3kv|gcskv`)
+  - `asya-state-proxy-py` — all Python connectors; backend chosen via `ASYA_CONNECTOR` env var
 
 **Project structure**:
 

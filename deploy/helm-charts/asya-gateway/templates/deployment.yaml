@@ -103,10 +103,8 @@ spec:
       {{- $meshBackend := .Values.stateProxy.mesh.backend | default "pg-kv" }}
       {{- $meshImage := .Values.stateProxy.mesh.image.repository }}
       {{- if not $meshImage }}
-        {{- if eq $meshBackend "pg-kv" }}
+        {{- if or (eq $meshBackend "pg-kv") (eq $meshBackend "s3kv") (eq $meshBackend "gcskv") }}
           {{- $meshImage = "ghcr.io/deliveryhero/asya-state-proxy-go" }}
-        {{- else if eq $meshBackend "s3kv" }}
-          {{- $meshImage = "ghcr.io/deliveryhero/asya-state-proxy-s3kv" }}
         {{- else }}
           {{- $meshImage = "ghcr.io/deliveryhero/asya-state-proxy-py" }}
         {{- end }}
@@ -117,6 +115,11 @@ spec:
           {{- toYaml .Values.securityContext | nindent 12 }}
         image: "{{ $meshImage }}:{{ .Values.stateProxy.mesh.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.stateProxy.mesh.image.pullPolicy }}
+        {{- if eq $meshBackend "s3kv" }}
+        command: ["/s3-kv"]
+        {{- else if eq $meshBackend "gcskv" }}
+        command: ["/gcs-kv"]
+        {{- end }}
         env:
         - name: CONNECTOR_SOCKET
           value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.mesh.socketDir | quote }}
@@ -180,6 +183,19 @@ spec:
         - name: AWS_SECRET_ACCESS_KEY
           value: {{ . | quote }}
         {{- end }}
+        {{- else if eq $meshBackend "gcskv" }}
+        - name: STATE_BUCKET
+          value: {{ .Values.stateProxy.mesh.config.bucket | quote }}
+        - name: STATE_PREFIX
+          value: {{ .Values.stateProxy.mesh.config.prefix | default "mesh/msg" | quote }}
+        {{- with .Values.stateProxy.mesh.config.project }}
+        - name: GCS_PROJECT
+          value: {{ . | quote }}
+        {{- end }}
+        {{- with .Values.stateProxy.mesh.config.emulatorHost }}
+        - name: STORAGE_EMULATOR_HOST
+          value: {{ . | quote }}
+        {{- end }}
         {{- else if eq $meshBackend "gcs" }}
         - name: ASYA_CONNECTOR
           value: gcs_buffered_lww
@@ -208,7 +224,7 @@ spec:
         volumeMounts:
         - name: state-proxy-mesh-socket
           mountPath: {{ .Values.stateProxy.mesh.socketDir }}
-        {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "s3kv" }}
+        {{- if or (eq (.Values.stateProxy.mesh.backend | default "pg-kv") "s3kv") (eq (.Values.stateProxy.mesh.backend | default "pg-kv") "gcskv") }}
         - name: state-proxy-mesh-tmp
           mountPath: /tmp
         {{- end }}
@@ -359,7 +375,7 @@ spec:
       volumes:
       - name: state-proxy-mesh-socket
         emptyDir: {}
-      {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "s3kv" }}
+      {{- if or (eq (.Values.stateProxy.mesh.backend | default "pg-kv") "s3kv") (eq (.Values.stateProxy.mesh.backend | default "pg-kv") "gcskv") }}
       - name: state-proxy-mesh-tmp
         emptyDir: {}
       {{- end }}

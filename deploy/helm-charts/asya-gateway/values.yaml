@@ -55,7 +55,7 @@ a2a:
 # --- State proxy sidecars ---
 stateProxy:
   mesh:
-    backend: pg-kv # pg-kv | s3kv | s3 | gcs
+    backend: pg-kv # pg-kv | s3kv | gcskv | s3 | gcs
     image:
       repository: "" # auto-selected from backend when empty
       tag: ""
@@ -70,7 +70,7 @@ stateProxy:
     socketDir: /var/run/asya-state-proxy-mesh
     # pg-kv config (backend: pg-kv)
     indexes: "status"
-    # s3kv/s3/gcs config (backend: s3kv, s3, or gcs)
+    # s3kv/gcskv/s3/gcs config (backend: s3kv, gcskv, s3, or gcs)
     config:
       bucket: ""
       prefix: "" # optional key prefix inside the bucket (e.g. "mesh")

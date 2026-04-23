@@ -101,7 +101,7 @@ gateway:
     mesh:
       backend: s3kv # Go connector with DuckDB — supports /query endpoint
       image:
-        repository: ghcr.io/deliveryhero/asya-state-proxy-s3kv
+        repository: ghcr.io/deliveryhero/asya-state-proxy-go
         tag: dev
         pullPolicy: Never
       config:

@@ -108,10 +108,16 @@ gateway:
         audience: "asya-gateway-e2e"
   stateProxy:
     mesh:
+      backend: gcskv
       image:
         repository: ghcr.io/deliveryhero/asya-state-proxy-go
         tag: dev
         pullPolicy: Never
+      config:
+        bucket: asya-results # pre-created by gcs storage setup job
+        prefix: mesh/msg
+        project: test-project
+        emulatorHost: http://gcs-emulator.asya-system.svc.cluster.local:4443
   database:
     host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
     port: 5432

@@ -114,7 +114,8 @@ time {
   FUNCTION_BUILD_PID=$!
 
   # Build all state-proxy images in parallel.
-  # py: Python s3/gcs connectors; go: pg-kv; s3kv: Go S3+DuckDB connector with /query support.
+  # py: Python s3/gcs connectors (for actor state mounts).
+  # go: all Go connectors (pg-kv default; s3-kv and gcs-kv selected via command override).
   echo "[.] Building asya-state-proxy-py image..."
   docker build -t "${IMAGE_PREFIX}asya-state-proxy-py:dev" \
     -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile" \
@@ -126,12 +127,6 @@ time {
     -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.go" \
     "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
   STATE_PROXY_GO_PID=$!
-
-  echo "[.] Building asya-state-proxy-s3kv image..."
-  docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3kv:dev" \
-    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-kv" \
-    "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-  STATE_PROXY_S3KV_PID=$!
 
   # Wait for image builds
   if ! wait "$BUILD_PID"; then
@@ -157,12 +152,6 @@ time {
     exit 1
   fi
   echo "[+] asya-state-proxy-go image built"
-
-  if ! wait "$STATE_PROXY_S3KV_PID"; then
-    echo "[-] asya-state-proxy-s3kv build failed"
-    exit 1
-  fi
-  echo "[+] asya-state-proxy-s3kv image built"
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -227,7 +216,6 @@ time {
     "asya-testing:latest"
     "asya-state-proxy-py:dev"
     "asya-state-proxy-go:dev"
-    "asya-state-proxy-s3kv:dev"
   )
 
   LOAD_PIDS=()

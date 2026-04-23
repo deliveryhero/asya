@@ -287,7 +287,7 @@ func TestBuildParseStoredRoundTrip(t *testing.T) {
 	ca := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	ua := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
 
-	stored, err := buildStored(json.RawMessage(`{"status":"running","progress":50}`), ca, ua)
+	stored, err := BuildStored(json.RawMessage(`{"status":"running","progress":50}`), ca, ua)
 	require.NoError(t, err)
 
 	var raw map[string]any
@@ -296,7 +296,7 @@ func TestBuildParseStoredRoundTrip(t *testing.T) {
 	assert.NotEmpty(t, raw["_ua"], "_ua present in S3 doc")
 	assert.Equal(t, "running", raw["status"])
 
-	row, err := parseStored("msg/k1", stored)
+	row, err := ParseStored("msg/k1", stored)
 	require.NoError(t, err)
 	assert.Equal(t, "msg/k1", row.Key)
 	assert.True(t, row.CreatedAt.Equal(ca))

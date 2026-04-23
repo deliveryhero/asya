@@ -45,12 +45,12 @@ var validField = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 type QueryEngine struct {
 	mu        sync.Mutex // DuckDB in-process: serialize concurrent queries
 	db        *sql.DB
-	connector *Connector
+	connector StorageBackend
 	logger    *slog.Logger
 }
 
-// NewQueryEngine creates an in-memory DuckDB engine backed by the S3 connector.
-func NewQueryEngine(c *Connector, logger *slog.Logger) (*QueryEngine, error) {
+// NewQueryEngine creates an in-memory DuckDB engine backed by any StorageBackend.
+func NewQueryEngine(c StorageBackend, logger *slog.Logger) (*QueryEngine, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -193,7 +193,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 			continue
 		}
 		logKey := logicalKeyFromFile(filename, tmpDir)
-		row, err := parseStored(logKey, docJSON)
+		row, err := ParseStored(logKey, docJSON)
 		if err != nil {
 			q.logger.Warn("skip unparseable row", "key", logKey, "err", err)
 			continue
@@ -237,7 +237,7 @@ func (q *QueryEngine) fetchToTempDir(ctx context.Context, keys []string) (string
 				return
 			}
 			// Re-build the stored document (including _ca/_ua) for DuckDB to parse.
-			storedDoc, err := buildStored(row.Value, row.CreatedAt, row.UpdatedAt)
+			storedDoc, err := BuildStored(row.Value, row.CreatedAt, row.UpdatedAt)
 			if err != nil {
 				results <- result{key: k, err: err}
 				return

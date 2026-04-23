@@ -101,7 +101,7 @@ func (c *Connector) Read(ctx context.Context, key string) (*KVRow, error) {
 		return nil, fmt.Errorf("s3 read body %s: %w", key, err)
 	}
 
-	return parseStored(key, raw)
+	return ParseStored(key, raw)
 }
 
 // Write stores a JSON document under key. On first write, _ca (created_at) is
@@ -114,7 +114,7 @@ func (c *Connector) Write(ctx context.Context, key string, value json.RawMessage
 		createdAt = existing.CreatedAt
 	}
 
-	doc, err := buildStored(value, createdAt, time.Now().UTC())
+	doc, err := BuildStored(value, createdAt, time.Now().UTC())
 	if err != nil {
 		return fmt.Errorf("build stored doc %s: %w", key, err)
 	}
@@ -141,7 +141,7 @@ func (c *Connector) WriteConditional(ctx context.Context, key string, value json
 		return ErrConditionFailed
 	}
 
-	doc, err := buildStored(value, existing.CreatedAt, time.Now().UTC())
+	doc, err := BuildStored(value, existing.CreatedAt, time.Now().UTC())
 	if err != nil {
 		return fmt.Errorf("build stored doc %s: %w", key, err)
 	}
@@ -223,9 +223,10 @@ func (c *Connector) putObject(ctx context.Context, key string, doc []byte) error
 	return nil
 }
 
-// buildStored merges _ca/_ua timestamps into the application value JSON.
-// The merged object is what gets stored in S3 and read by DuckDB.
-func buildStored(value json.RawMessage, createdAt, updatedAt time.Time) ([]byte, error) {
+// BuildStored merges _ca/_ua timestamps into the application value JSON.
+// The merged object is what gets stored in S3/GCS and read by DuckDB.
+// Exported so other storage backends (gcskv) can reuse the same wire format.
+func BuildStored(value json.RawMessage, createdAt, updatedAt time.Time) ([]byte, error) {
 	var fields map[string]any
 	if err := json.Unmarshal(value, &fields); err != nil {
 		return nil, fmt.Errorf("unmarshal value: %w", err)
@@ -235,9 +236,10 @@ func buildStored(value json.RawMessage, createdAt, updatedAt time.Time) ([]byte,
 	return json.Marshal(fields)
 }
 
-// parseStored extracts _ca/_ua from a raw stored document and returns a KVRow
+// ParseStored extracts _ca/_ua from a raw stored document and returns a KVRow
 // whose Value contains only the application fields (no _ca/_ua).
-func parseStored(key string, raw []byte) (*KVRow, error) {
+// Exported so other storage backends (gcskv) can reuse the same wire format.
+func ParseStored(key string, raw []byte) (*KVRow, error) {
 	var fields map[string]any
 	if err := json.Unmarshal(raw, &fields); err != nil {
 		return nil, fmt.Errorf("unmarshal stored doc for %s: %w", key, err)

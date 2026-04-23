@@ -23,15 +23,17 @@ and E2E tests — each with different infrastructure and scope.
 
 ### Gateway mesh state proxy (`stateProxy.mesh` in asya-gateway chart)
 
-| Backend | E2E profile | Chart value | Image |
-|---------|-------------|-------------|-------|
-| S3+DuckDB (Go) | sqs-s3 ✅ CI | `stateProxy.mesh.backend: s3kv` | `asya-state-proxy-s3kv` |
-| GCS LWW (Python) | pubsub-gcs ✅ CI | `stateProxy.mesh.backend: gcs` | `asya-state-proxy-py` |
-| PG (Go) | rabbitmq-minio (local) | `stateProxy.mesh.backend: pg-kv` (default) | `asya-state-proxy-go` |
+All Go-backed connectors ship in the **single `asya-state-proxy-go` image**.
+The binary is selected at container startup via a `command:` override in the chart.
 
-`s3kv` is the recommended backend for S3-based deployments — it implements the
-full interface including `/query` (DuckDB). The `s3` Python backend (no `/query`)
-is not suitable for the mesh-api and exists only for actor state proxies.
+| Backend | E2E profile | Chart value | Binary inside image |
+|---------|-------------|-------------|---------------------|
+| S3+DuckDB (Go) | sqs-s3 ✅ CI | `stateProxy.mesh.backend: s3kv` | `/s3-kv` |
+| GCS+DuckDB (Go) | pubsub-gcs ✅ CI | `stateProxy.mesh.backend: gcskv` | `/gcs-kv` |
+| PG (Go) | rabbitmq-minio (local) | `stateProxy.mesh.backend: pg-kv` (default) | `/pg-kv` |
+
+`s3kv` and `gcskv` implement the full `/query` interface (DuckDB). The `s3`/`gcs`
+Python backends (no `/query`) are only suitable for actor state proxies, not mesh-api.
 
 The gateway mesh proxy is configured separately from crew persistence — see
 `deploy/helm-charts/asya-gateway/values.yaml` (`stateProxy.mesh.*`).

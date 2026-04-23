@@ -25,13 +25,40 @@ type ServerConnector interface {
 
 var _ ServerConnector = (*connector)(nil)
 
-// connector is the combined Connector + QueryEngine that satisfies ServerConnector.
+// StorageBackend is the minimal interface any KV backend must implement so that
+// the HTTP server and DuckDB query engine can be shared across connectors
+// (e.g. s3kv and gcskv) without code duplication.
+type StorageBackend interface {
+	Store
+	WriteConditional(ctx context.Context, key string, value json.RawMessage, ifStatus string) error
+}
+
+// NewServerConnector wires any StorageBackend and QueryEngine together.
+func NewServerConnector(c StorageBackend, q *QueryEngine) ServerConnector {
+	return &connector{backend: c, QueryEngine: q}
+}
+
+// connector is the combined backend + QueryEngine that satisfies ServerConnector.
 type connector struct {
-	*Connector
+	backend StorageBackend
 	*QueryEngine
 }
 
-// NewServerConnector wires a Connector and QueryEngine together.
-func NewServerConnector(c *Connector, q *QueryEngine) ServerConnector {
-	return &connector{Connector: c, QueryEngine: q}
+func (c *connector) Read(ctx context.Context, key string) (*KVRow, error) {
+	return c.backend.Read(ctx, key)
+}
+func (c *connector) Write(ctx context.Context, key string, value json.RawMessage) error {
+	return c.backend.Write(ctx, key, value)
+}
+func (c *connector) WriteConditional(ctx context.Context, key string, value json.RawMessage, ifStatus string) error {
+	return c.backend.WriteConditional(ctx, key, value, ifStatus)
+}
+func (c *connector) Exists(ctx context.Context, key string) (bool, error) {
+	return c.backend.Exists(ctx, key)
+}
+func (c *connector) Delete(ctx context.Context, key string) error {
+	return c.backend.Delete(ctx, key)
+}
+func (c *connector) List(ctx context.Context, prefix string) ([]string, error) {
+	return c.backend.List(ctx, prefix)
 }
