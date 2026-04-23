@@ -88,16 +88,23 @@ class ConnectorClient:
 
     def post_query(self, body: dict) -> tuple[int, dict]:
         """POST /query to the connector socket. Returns (status_code, body_dict)."""
-        conn = _UnixHTTPConnection(self._socket_path)
         data = json.dumps(body).encode()
-        conn.request(
-            "POST",
-            "/query",
-            body=data,
-            headers={"Content-Type": "application/json", "Content-Length": str(len(data))},
-        )
-        resp = conn.getresponse()
-        return resp.status, json.loads(resp.read())
+        for attempt in range(2):
+            conn = _UnixHTTPConnection(self._socket_path)
+            try:
+                conn.request(
+                    "POST",
+                    "/query",
+                    body=data,
+                    headers={"Content-Type": "application/json", "Content-Length": str(len(data))},
+                )
+                resp = conn.getresponse()
+                return resp.status, json.loads(resp.read())
+            except BrokenPipeError:
+                if attempt == 1:
+                    raise
+            finally:
+                conn.close()
 
 
 @pytest.fixture
