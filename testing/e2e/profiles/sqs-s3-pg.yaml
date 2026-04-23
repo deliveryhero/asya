@@ -56,7 +56,9 @@ crew:
     enabled: true
     backend: s3
     connector:
-      image: ghcr.io/deliveryhero/asya-state-proxy-py:dev
+      image:
+        repository: ghcr.io/deliveryhero/asya-state-proxy-py
+        tag: dev
     config:
       bucket: asya-results
       errorsBucket: asya-errors
