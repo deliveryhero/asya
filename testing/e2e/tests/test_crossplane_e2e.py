@@ -2222,3 +2222,371 @@ spec:
         raise
     finally:
         _cleanup_actor(name, e2e_helper.namespace)
+
+
+def _get_pod_name(actor_name: str, namespace: str) -> str | None:
+    """Return the name of a Ready, Running, non-terminating pod for an actor.
+
+    Two races to guard against:
+    1. Phase lag: Crossplane XR Ready fires milliseconds before the pod's
+       status.phase=Running is visible in etcd. A 'kubectl wait' call
+       ensures the pod condition is settled before we query.
+    2. Rolling update: Crossplane reconciliation can trigger a Deployment
+       rollout mid-test, producing a terminating old pod (phase=Running but
+       deletionTimestamp set) alongside a new pod. jsonpath items[0] is
+       arbitrary ordering, so we parse the full list and skip terminating pods.
+    """
+    subprocess.run(
+        [
+            "kubectl",
+            "wait",
+            "pod",
+            "-l",
+            f"asya.sh/actor={actor_name}",
+            "-n",
+            namespace,
+            "--for=condition=Ready",
+            "--timeout=30s",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=35,
+    )
+    result = subprocess.run(
+        [
+            "kubectl",
+            "get",
+            "pods",
+            "-n",
+            namespace,
+            "-l",
+            f"asya.sh/actor={actor_name}",
+            "-o",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if not result.stdout.strip():
+        return None
+    pods = json.loads(result.stdout).get("items", [])
+    for pod in pods:
+        if pod.get("metadata", {}).get("deletionTimestamp"):
+            continue  # terminating — old pod from a rolling update
+        if pod.get("status", {}).get("phase") != "Running":
+            continue
+        conditions = {c["type"]: c["status"] for c in pod.get("status", {}).get("conditions", [])}
+        if conditions.get("Ready") == "True":
+            return pod["metadata"]["name"]
+    return None
+
+
+@pytest.mark.timeout(300)
+def test_init_container_code_delivery(e2e_helper):
+    """
+    E2E: Init container writes a Python module to a shared emptyDir; handler imports it.
+
+    This validates the full code delivery pipeline without an external git server:
+    - Crossplane composition wires the emptyDir between init and runtime containers
+    - PYTHONPATH env var is injected into asya-runtime via spec.env
+    - The Python module written by the init container is importable in asya-runtime
+
+    This mirrors the directory layout that git-sync:v4 produces when --link=repo is
+    used: /code/repo/<files>. Setting PYTHONPATH=/code/repo makes those files importable.
+
+    Scenario:
+    1. Create AsyncActor with a busybox init container that writes /code/repo/cdtest.py
+    2. spec.volumes: emptyDir 'code', spec.volumeMounts: /code, spec.env: PYTHONPATH=/code/repo
+    3. Wait for AsyncActor to be Ready (proves init container completed)
+    4. Verify 'code' volume and mount are present in the pod spec
+    5. Verify PYTHONPATH is set in asya-runtime
+    6. kubectl exec: python3 -c "import cdtest; assert cdtest.answer() == 42"
+
+    Expected: Import succeeds, correct value returned
+    """
+    name = "test-code-delivery"
+    manifest = f"""\
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {name}
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: {name}
+  scaling:
+    enabled: false
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+  volumes:
+  - name: code
+    emptyDir: {{}}
+  initContainers:
+  - name: write-code
+    image: busybox:1.36
+    imagePullPolicy: IfNotPresent
+    command:
+    - sh
+    - -c
+    - |
+      mkdir -p /code/repo
+      printf 'def answer():\\n    return 42\\n' > /code/repo/cdtest.py
+    volumeMounts:
+    - name: code
+      mountPath: /code
+  volumeMounts:
+  - name: code
+    mountPath: /code
+    readOnly: true
+  env:
+  - name: PYTHONPATH
+    value: /code/repo"""
+
+    try:
+        logger.info("Creating AsyncActor with code-delivery init container...")
+        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready...")
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=300), (
+            "AsyncActor should reach Ready"
+        )
+
+        logger.info("Checking pod volumes...")
+        volumes = _get_pod_volumes(name, e2e_helper.namespace)
+        volume_names = [v["name"] for v in volumes]
+        logger.info(f"Pod volumes: {volume_names}")
+        assert "code" in volume_names, f"'code' emptyDir volume should be present, got: {volume_names}"
+
+        logger.info("Checking runtime container volume mounts and env...")
+        containers = _get_pod_containers(name, e2e_helper.namespace)
+        runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
+        assert runtime is not None, "asya-runtime container should exist"
+
+        runtime_mounts = {m["name"] for m in runtime.get("volumeMounts", [])}
+        assert "code" in runtime_mounts, (
+            f"asya-runtime should mount 'code' volume, got: {runtime_mounts}"
+        )
+
+        runtime_env = {e["name"]: e.get("value", "") for e in runtime.get("env", [])}
+        assert runtime_env.get("PYTHONPATH") == "/code/repo", (
+            f"PYTHONPATH should be /code/repo, got: {runtime_env.get('PYTHONPATH')}"
+        )
+        logger.info(f"PYTHONPATH={runtime_env['PYTHONPATH']} verified")
+
+        logger.info("Verifying module is importable in asya-runtime...")
+        pod_name = _get_pod_name(name, e2e_helper.namespace)
+        assert pod_name, "Running pod should exist after actor is Ready"
+
+        exec_result = subprocess.run(
+            [
+                "kubectl",
+                "exec",
+                pod_name,
+                "-n",
+                e2e_helper.namespace,
+                "-c",
+                "asya-runtime",
+                "--",
+                "python3",
+                "-c",
+                "import cdtest; assert cdtest.answer() == 42, f'expected 42, got {cdtest.answer()}'",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert exec_result.returncode == 0, (
+            f"python3 import from /code/repo failed:\n"
+            f"stdout: {exec_result.stdout}\n"
+            f"stderr: {exec_result.stderr}"
+        )
+        logger.info("[+] Code delivery via init container: module importable in asya-runtime")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(name, e2e_helper.namespace)
+
+
+def _github_reachable() -> bool:
+    """Return True if github.com is reachable from this host."""
+    try:
+        import socket
+
+        socket.setdefaulttimeout(5)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("github.com", 443))
+        return True
+    except OSError:
+        return False
+
+
+@pytest.mark.timeout(360)
+@pytest.mark.skipif(not _github_reachable(), reason="github.com not reachable")
+def test_git_sync_code_delivery(e2e_helper):
+    """
+    E2E: git-sync init container clones the public asya repo at pod startup.
+
+    Validates the git-sync pattern from examples/asyas/training-actor-git-sync.yaml:
+    - git-sync:v4 runs as init container with --one-time (exits after clone)
+    - Cloned repo is accessible in asya-runtime via the shared emptyDir
+    - No credentials needed (public repo)
+
+    Scenario:
+    1. Create AsyncActor with git-sync init container (no auth, public repo)
+    2. Wait for AsyncActor to be Ready (proves git-sync completed successfully)
+    3. kubectl exec: ls /code/repo/README.md (verifies clone landed at expected path)
+    4. kubectl exec: ls /code/repo/src/asya-sidecar (verifies directory structure)
+
+    Expected: Clone succeeds, repo files accessible at /code/repo/
+    """
+    name = "test-git-sync"
+    manifest = f"""\
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {name}
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: {name}
+  scaling:
+    enabled: false
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+  volumes:
+  - name: code
+    emptyDir: {{}}
+  initContainers:
+  - name: git-sync
+    image: registry.k8s.io/git-sync/git-sync:v4.2.3
+    args:
+    - --repo=https://github.com/deliveryhero/asya.git
+    - --ref=main
+    - --root=/code
+    - --link=repo
+    - --one-time
+    - --depth=1
+    volumeMounts:
+    - name: code
+      mountPath: /code
+  volumeMounts:
+  - name: code
+    mountPath: /code
+    readOnly: true"""
+
+    try:
+        logger.info("Creating AsyncActor with git-sync init container (cloning public asya repo)...")
+        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready (includes git clone time)...")
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=360), (
+            "AsyncActor should reach Ready after git-sync clone completes"
+        )
+
+        logger.info("Verifying cloned repo is accessible in asya-runtime...")
+        pod_name = _get_pod_name(name, e2e_helper.namespace)
+        assert pod_name, "Running pod should exist after actor is Ready"
+
+        for path in ["/code/repo/README.md", "/code/repo/src"]:
+            check = subprocess.run(
+                [
+                    "kubectl",
+                    "exec",
+                    pod_name,
+                    "-n",
+                    e2e_helper.namespace,
+                    "-c",
+                    "asya-runtime",
+                    "--",
+                    "ls",
+                    path,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            assert check.returncode == 0, (
+                f"Path {path} not accessible in asya-runtime after git-sync clone:\n"
+                f"stdout: {check.stdout}\nstderr: {check.stderr}"
+            )
+            logger.info(f"[+] {path} accessible in asya-runtime")
+
+        logger.info("[+] git-sync code delivery: repo cloned and accessible in asya-runtime")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(name, e2e_helper.namespace)
+
+
+@pytest.mark.parametrize(
+    "field,container_name",
+    [
+        ("initContainers", "asya-my-init"),
+        ("initContainers", "asya-runtime"),
+        ("initContainers", "asya-sidecar"),
+        ("sidecars", "asya-my-sidecar"),
+        ("sidecars", "asya-runtime"),
+        ("sidecars", "asya-sidecar"),
+    ],
+)
+def test_asyncactor_reserved_container_name_rejected(e2e_helper, field, container_name):
+    """
+    E2E: Container names starting with 'asya-' are rejected by the XRD CEL validation rule.
+
+    The XRD enforces via x-kubernetes-validations:
+      rule: "!self.name.startsWith('asya-')"
+    on both initContainers and sidecars items.
+
+    This protects the asya-runtime and asya-sidecar namespace from accidental
+    collisions and reserves the 'asya-' prefix for future internal containers.
+
+    Scenario:
+    1. Attempt to create AsyncActor with a reserved container name in the given field
+    2. kubectl apply should fail at admission (non-zero exit code)
+    3. Error message references the offending field and the CEL rule message
+    """
+    actor_name = f"test-reserved-{field[:4]}-{container_name.replace('asya-', '')}"
+    container_block = f"""\
+  {field}:
+  - name: {container_name}
+    image: busybox:1.36
+    command: ["sh", "-c", "echo hi"]"""
+
+    invalid_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: {actor_name}
+  scaling:
+    enabled: false
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+{container_block}
+"""
+
+    try:
+        logger.info(f"Attempting AsyncActor with reserved {field} name '{container_name}'...")
+        result = kubectl_apply_raw(invalid_manifest, namespace=e2e_helper.namespace)
+
+        assert result.returncode != 0, (
+            f"kubectl apply should be rejected: {field}[0].name='{container_name}' starts with 'asya-'"
+        )
+
+        stderr = result.stderr.decode()
+        logger.info(f"Admission rejection stderr: {stderr}")
+        assert "asya-" in stderr or "reserved" in stderr or "Invalid value" in stderr, (
+            f"Error should reference the reserved name, got: {stderr}"
+        )
+
+        logger.info(f"[+] Reserved {field} name '{container_name}' correctly rejected at admission")
+
+    finally:
+        kubectl_delete("asyncactor", actor_name, namespace=e2e_helper.namespace)

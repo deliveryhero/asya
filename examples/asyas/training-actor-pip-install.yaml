@@ -1,0 +1,95 @@
+# Training actor with pip-install init container (Pattern 1 — fast, single package)
+#
+# Installs a pip-installable package from a git branch into a shared emptyDir.
+# Faster than cloning a full repo when you only need the package's public API.
+#
+# Prerequisites:
+#   - git-creds Secret in the namespace (see training-actor-git-creds-secret.yaml)
+#   - Repo must have a setup.py / pyproject.toml at the root
+#   - Replace GIT_BRANCH, org/repo, and handler with your values
+#
+# When to use:
+#   - Repo is pip-installable (has pyproject.toml / setup.py)
+#   - Handler only needs the package's public API, not the full source tree
+#
+# When to use git-sync instead (training-actor-git-sync.yaml):
+#   - Repo is not pip-installable
+#   - Handler imports scripts directly from the repo tree
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: train-vit-pip
+  namespace: my-project
+spec:
+  actor: train-vit-pip
+
+  image: pytorch/pytorch:2.6.0-cuda12.6-cudnn9-runtime
+  handler: my_experiments.train.handler
+
+  resources:
+    requests:
+      cpu: 4000m
+      memory: 16Gi
+      nvidia.com/gpu: "1"
+    limits:
+      cpu: 8000m
+      memory: 32Gi
+      nvidia.com/gpu: "1"
+
+  nodeSelector:
+    accelerator: nvidia-tesla-t4
+
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+    queueLength: 1
+
+  # Shared volume between init container (installs) and runtime container (imports)
+  volumes:
+  - name: code
+    emptyDir: {}
+
+  # pip installs the package from the git branch into /code.
+  # --target=/code puts wheels flat into the directory (no lib/pythonX.Y/ prefix),
+  # so PYTHONPATH=/code is sufficient for imports.
+  # --no-deps skips transitive deps — the runtime image should already have them.
+  # $(GIT_TOKEN) / $(GIT_BRANCH) use Kubernetes variable expansion (no shell),
+  # avoiding command injection risks from user-controlled env var values.
+  # python:3.13 (non-slim) includes git, required for pip install git+https:// URLs.
+  initContainers:
+  - name: install-code
+    image: python:3.13
+    command:
+    - pip
+    - install
+    - --target=/code
+    - --no-deps
+    - git+https://x-access-token:$(GIT_TOKEN)@github.com/my-org/my-repo.git@$(GIT_BRANCH)
+    env:
+    - name: GIT_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: git-creds
+          key: token
+    - name: GIT_BRANCH
+      value: experiment/vit-v1
+    volumeMounts:
+    - name: code
+      mountPath: /code
+
+  # Mount /code into the runtime container so installed packages are importable
+  volumeMounts:
+  - name: code
+    mountPath: /code
+    readOnly: true
+
+  env:
+  - name: PYTHONPATH
+    value: /code
