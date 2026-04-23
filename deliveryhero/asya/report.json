@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "e2ef6774ccc67823331d7140e9d04399e807027f",
+  "commit": "4d510c717a885db515b1fe045da5ca895508ede6",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -21854,7 +21854,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 30329,
+    "code": 33229,
     "test": 14997,
     "code_files": [
       {
@@ -21883,6 +21883,699 @@
         "comment": 46,
         "blank": 26,
         "path": "examples/actors/agentic/pause_for_human.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 6,
+        "comment": 10,
+        "blank": 6,
+        "path": "examples/end-to-end/monorepo/src/_asya_utils.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/agentic/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/agentic/actors/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 40,
+        "comment": 66,
+        "blank": 35,
+        "path": "examples/end-to-end/monorepo/src/agentic/actors/actor_dynamic_routing.py",
+        "language": "Python"
+      },
+      {
+        "code": 14,
+        "comment": 54,
+        "blank": 22,
+        "path": "examples/end-to-end/monorepo/src/agentic/actors/actor_live_streaming.py",
+        "language": "Python"
+      },
+      {
+        "code": 52,
+        "comment": 46,
+        "blank": 26,
+        "path": "examples/end-to-end/monorepo/src/agentic/actors/actor_pause_for_human.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 32,
+        "comment": 22,
+        "blank": 21,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_actor_override_routing.py",
+        "language": "Python"
+      },
+      {
+        "code": 57,
+        "comment": 64,
+        "blank": 36,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_evaluator_optimizer.py",
+        "language": "Python"
+      },
+      {
+        "code": 68,
+        "comment": 65,
+        "blank": 37,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_guardrails_sandwich.py",
+        "language": "Python"
+      },
+      {
+        "code": 167,
+        "comment": 87,
+        "blank": 59,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_hierarchical_delegation.py",
+        "language": "Python"
+      },
+      {
+        "code": 127,
+        "comment": 84,
+        "blank": 48,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_human_in_the_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 45,
+        "comment": 59,
+        "blank": 29,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_map_reduce.py",
+        "language": "Python"
+      },
+      {
+        "code": 52,
+        "comment": 86,
+        "blank": 50,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_multi_agent_debate.py",
+        "language": "Python"
+      },
+      {
+        "code": 35,
+        "comment": 73,
+        "blank": 39,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_orchestrator_workers.py",
+        "language": "Python"
+      },
+      {
+        "code": 73,
+        "comment": 49,
+        "blank": 34,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_parallel_sectioning.py",
+        "language": "Python"
+      },
+      {
+        "code": 26,
+        "comment": 62,
+        "blank": 34,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_plan_and_execute.py",
+        "language": "Python"
+      },
+      {
+        "code": 100,
+        "comment": 77,
+        "blank": 48,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_rag_pipeline.py",
+        "language": "Python"
+      },
+      {
+        "code": 23,
+        "comment": 10,
+        "blank": 12,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_react_multi_tool.py",
+        "language": "Python"
+      },
+      {
+        "code": 85,
+        "comment": 48,
+        "blank": 34,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_react_tool_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 28,
+        "comment": 63,
+        "blank": 32,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_research_and_refine.py",
+        "language": "Python"
+      },
+      {
+        "code": 99,
+        "comment": 60,
+        "blank": 40,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_routing_classifier.py",
+        "language": "Python"
+      },
+      {
+        "code": 136,
+        "comment": 53,
+        "blank": 26,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_sequential_pipeline.py",
+        "language": "Python"
+      },
+      {
+        "code": 36,
+        "comment": 62,
+        "blank": 34,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_tool_calling_agent.py",
+        "language": "Python"
+      },
+      {
+        "code": 46,
+        "comment": 50,
+        "blank": 28,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_voting_ensemble.py",
+        "language": "Python"
+      },
+      {
+        "code": 18,
+        "comment": 7,
+        "blank": 8,
+        "path": "examples/end-to-end/monorepo/src/agentic/flows/flow_while_react_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/actors/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 64,
+        "comment": 43,
+        "blank": 41,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_adk_llm_auditor.py",
+        "language": "Python"
+      },
+      {
+        "code": 22,
+        "comment": 11,
+        "blank": 14,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_async_conditional.py",
+        "language": "Python"
+      },
+      {
+        "code": 18,
+        "comment": 11,
+        "blank": 12,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_async_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 13,
+        "comment": 8,
+        "blank": 7,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_bare_script_flow.py",
+        "language": "Python"
+      },
+      {
+        "code": 18,
+        "comment": 13,
+        "blank": 11,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_bare_script_with_composition.py",
+        "language": "Python"
+      },
+      {
+        "code": 25,
+        "comment": 14,
+        "blank": 15,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_callsite.py",
+        "language": "Python"
+      },
+      {
+        "code": 27,
+        "comment": 10,
+        "blank": 13,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_inline_comments.py",
+        "language": "Python"
+      },
+      {
+        "code": 24,
+        "comment": 16,
+        "blank": 16,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_retry.py",
+        "language": "Python"
+      },
+      {
+        "code": 19,
+        "comment": 21,
+        "blank": 18,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_inline_comment_overrides.py",
+        "language": "Python"
+      },
+      {
+        "code": 22,
+        "comment": 8,
+        "blank": 14,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_sequential_with_class.py",
+        "language": "Python"
+      },
+      {
+        "code": 21,
+        "comment": 33,
+        "blank": 25,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_tool_adapter.py",
+        "language": "Python"
+      },
+      {
+        "code": 68,
+        "comment": 82,
+        "blank": 37,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_typed_dataclass_pipeline.py",
+        "language": "Python"
+      },
+      {
+        "code": 81,
+        "comment": 91,
+        "blank": 47,
+        "path": "examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_typed_pydantic_pipeline.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/control-flow/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/control-flow/actors/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 46,
+        "comment": 11,
+        "blank": 24,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_complex_combined.py",
+        "language": "Python"
+      },
+      {
+        "code": 60,
+        "comment": 12,
+        "blank": 26,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_complex_with_while.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 8,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_fanout_comprehension.py",
+        "language": "Python"
+      },
+      {
+        "code": 28,
+        "comment": 10,
+        "blank": 16,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_fanout_conditional.py",
+        "language": "Python"
+      },
+      {
+        "code": 14,
+        "comment": 8,
+        "blank": 11,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_fanout_gather.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 9,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_fanout_sequential.py",
+        "language": "Python"
+      },
+      {
+        "code": 32,
+        "comment": 4,
+        "blank": 18,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_flow_composition_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 19,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_if_all_empty_branches.py",
+        "language": "Python"
+      },
+      {
+        "code": 27,
+        "comment": 9,
+        "blank": 14,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_if_elif_else.py",
+        "language": "Python"
+      },
+      {
+        "code": 26,
+        "comment": 8,
+        "blank": 12,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_if_mutations_in_branches.py",
+        "language": "Python"
+      },
+      {
+        "code": 51,
+        "comment": 0,
+        "blank": 16,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_if_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_if_no_else.py",
+        "language": "Python"
+      },
+      {
+        "code": 19,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_if_one_empty_branch.py",
+        "language": "Python"
+      },
+      {
+        "code": 22,
+        "comment": 8,
+        "blank": 12,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_if_with_early_return.py",
+        "language": "Python"
+      },
+      {
+        "code": 15,
+        "comment": 6,
+        "blank": 8,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_mutations_before_after_handler.py",
+        "language": "Python"
+      },
+      {
+        "code": 9,
+        "comment": 5,
+        "blank": 4,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_mutations_only.py",
+        "language": "Python"
+      },
+      {
+        "code": 40,
+        "comment": 10,
+        "blank": 16,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_nested_if.py",
+        "language": "Python"
+      },
+      {
+        "code": 12,
+        "comment": 1,
+        "blank": 3,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_sample.py",
+        "language": "Python"
+      },
+      {
+        "code": 8,
+        "comment": 11,
+        "blank": 8,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_single_actor.py",
+        "language": "Python"
+      },
+      {
+        "code": 34,
+        "comment": 6,
+        "blank": 17,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_text_analysis.py",
+        "language": "Python"
+      },
+      {
+        "code": 27,
+        "comment": 8,
+        "blank": 12,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_break_continue.py",
+        "language": "Python"
+      },
+      {
+        "code": 38,
+        "comment": 8,
+        "blank": 18,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_loop_processing.py",
+        "language": "Python"
+      },
+      {
+        "code": 23,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_mutations_in_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 30,
+        "comment": 9,
+        "blank": 14,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 25,
+        "comment": 6,
+        "blank": 11,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_nested_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 19,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_true_simple.py",
+        "language": "Python"
+      },
+      {
+        "code": 21,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_with_break.py",
+        "language": "Python"
+      },
+      {
+        "code": 21,
+        "comment": 7,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_with_continue.py",
+        "language": "Python"
+      },
+      {
+        "code": 25,
+        "comment": 8,
+        "blank": 12,
+        "path": "examples/end-to-end/monorepo/src/control-flow/flows/flow_while_with_if.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/resiliency/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/resiliency/actors/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 40,
+        "comment": 21,
+        "blank": 20,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_resiliency_combined.py",
+        "language": "Python"
+      },
+      {
+        "code": 41,
+        "comment": 20,
+        "blank": 20,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_resiliency_error_routing.py",
+        "language": "Python"
+      },
+      {
+        "code": 30,
+        "comment": 23,
+        "blank": 20,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_resiliency_tenacity_real.py",
+        "language": "Python"
+      },
+      {
+        "code": 21,
+        "comment": 0,
+        "blank": 8,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_catch_all.py",
+        "language": "Python"
+      },
+      {
+        "code": 14,
+        "comment": 0,
+        "blank": 2,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_finally.py",
+        "language": "Python"
+      },
+      {
+        "code": 13,
+        "comment": 5,
+        "blank": 4,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_fqn_types.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 0,
+        "blank": 2,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_multiple_handlers.py",
+        "language": "Python"
+      },
+      {
+        "code": 19,
+        "comment": 15,
+        "blank": 5,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 30,
+        "comment": 11,
+        "blank": 14,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_retry_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 13,
+        "comment": 5,
+        "blank": 4,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_tuple_types.py",
+        "language": "Python"
+      },
+      {
+        "code": 17,
+        "comment": 7,
+        "blank": 4,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_try_except_with_conditional.py",
+        "language": "Python"
+      },
+      {
+        "code": 12,
+        "comment": 8,
+        "blank": 8,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_with_asyncio_timeout.py",
+        "language": "Python"
+      },
+      {
+        "code": 10,
+        "comment": 10,
+        "blank": 8,
+        "path": "examples/end-to-end/monorepo/src/resiliency/flows/flow_with_nested_timeout_scopes.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/text-improver/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/text-improver/actors/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 31,
+        "comment": 1,
+        "blank": 6,
+        "path": "examples/end-to-end/monorepo/src/text-improver/actors/evaluate.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 1,
+        "blank": 3,
+        "path": "examples/end-to-end/monorepo/src/text-improver/actors/generate.py",
+        "language": "Python"
+      },
+      {
+        "code": 23,
+        "comment": 1,
+        "blank": 3,
+        "path": "examples/end-to-end/monorepo/src/text-improver/actors/polish.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 1,
+        "blank": 3,
+        "path": "examples/end-to-end/monorepo/src/text-improver/actors/research.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/end-to-end/monorepo/src/text-improver/flows/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 12,
+        "comment": 9,
+        "blank": 10,
+        "path": "examples/end-to-end/monorepo/src/text-improver/flows/flow_text_improver.py",
         "language": "Python"
       },
       {
@@ -24053,5 +24746,5 @@
     ]
   },
   "test_execution_time": 339000000000,
-  "timestamp": "2026-04-23T12:00:19.850886244Z"
+  "timestamp": "2026-04-23T14:34:24.072691692Z"
 }
