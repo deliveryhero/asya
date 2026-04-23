@@ -142,13 +142,29 @@ spec:
                   items:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
+                    required:
+                      - name
+                    properties:
+                      name:
+                        type: string
+                    x-kubernetes-validations:
+                      - rule: "!self.name.startsWith('asya-')"
+                        message: "init container names starting with 'asya-' are reserved for internal use"
 
                 sidecars:
                   type: array
-                  description: "Additional sidecar containers for the actor pod (names 'asya-runtime' and 'asya-sidecar' are reserved)"
+                  description: "Additional sidecar containers for the actor pod (names starting with 'asya-' are reserved)"
                   items:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
+                    required:
+                      - name
+                    properties:
+                      name:
+                        type: string
+                    x-kubernetes-validations:
+                      - rule: "!self.name.startsWith('asya-')"
+                        message: "sidecar names starting with 'asya-' are reserved for internal use"
 
                 scaling:
                   type: object

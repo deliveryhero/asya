@@ -2485,3 +2485,73 @@ spec:
         raise
     finally:
         _cleanup_actor(name, e2e_helper.namespace)
+
+
+@pytest.mark.parametrize(
+    "field,container_name",
+    [
+        ("initContainers", "asya-my-init"),
+        ("initContainers", "asya-runtime"),
+        ("initContainers", "asya-sidecar"),
+        ("sidecars", "asya-my-sidecar"),
+        ("sidecars", "asya-runtime"),
+        ("sidecars", "asya-sidecar"),
+    ],
+)
+def test_asyncactor_reserved_container_name_rejected(e2e_helper, field, container_name):
+    """
+    E2E: Container names starting with 'asya-' are rejected by the XRD CEL validation rule.
+
+    The XRD enforces via x-kubernetes-validations:
+      rule: "!self.name.startsWith('asya-')"
+    on both initContainers and sidecars items.
+
+    This protects the asya-runtime and asya-sidecar namespace from accidental
+    collisions and reserves the 'asya-' prefix for future internal containers.
+
+    Scenario:
+    1. Attempt to create AsyncActor with a reserved container name in the given field
+    2. kubectl apply should fail at admission (non-zero exit code)
+    3. Error message references the offending field and the CEL rule message
+    """
+    actor_name = f"test-reserved-{field[:4]}-{container_name.replace('asya-', '')}"
+    container_block = f"""\
+  {field}:
+  - name: {container_name}
+    image: busybox:1.36
+    command: ["sh", "-c", "echo hi"]"""
+
+    invalid_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: {actor_name}
+  scaling:
+    enabled: false
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+{container_block}
+"""
+
+    try:
+        logger.info(f"Attempting AsyncActor with reserved {field} name '{container_name}'...")
+        result = kubectl_apply_raw(invalid_manifest, namespace=e2e_helper.namespace)
+
+        assert result.returncode != 0, (
+            f"kubectl apply should be rejected: {field}[0].name='{container_name}' starts with 'asya-'"
+        )
+
+        stderr = result.stderr.decode()
+        logger.info(f"Admission rejection stderr: {stderr}")
+        assert "asya-" in stderr or "reserved" in stderr or "Invalid value" in stderr, (
+            f"Error should reference the reserved name, got: {stderr}"
+        )
+
+        logger.info(f"[+] Reserved {field} name '{container_name}' correctly rejected at admission")
+
+    finally:
+        kubectl_delete("asyncactor", actor_name, namespace=e2e_helper.namespace)
