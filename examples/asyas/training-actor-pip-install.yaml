@@ -60,15 +60,18 @@ spec:
   # --target=/code puts wheels flat into the directory (no lib/pythonX.Y/ prefix),
   # so PYTHONPATH=/code is sufficient for imports.
   # --no-deps skips transitive deps — the runtime image should already have them.
+  # $(GIT_TOKEN) / $(GIT_BRANCH) use Kubernetes variable expansion (no shell),
+  # avoiding command injection risks from user-controlled env var values.
+  # python:3.13 (non-slim) includes git, required for pip install git+https:// URLs.
   initContainers:
   - name: install-code
-    image: python:3.13-slim
+    image: python:3.13
     command:
-    - sh
-    - -c
-    - >-
-      pip install --target=/code --no-deps
-      git+https://x-access-token:${GIT_TOKEN}@github.com/my-org/my-repo.git@${GIT_BRANCH}
+    - pip
+    - install
+    - --target=/code
+    - --no-deps
+    - git+https://x-access-token:$(GIT_TOKEN)@github.com/my-org/my-repo.git@$(GIT_BRANCH)
     env:
     - name: GIT_TOKEN
       valueFrom:
