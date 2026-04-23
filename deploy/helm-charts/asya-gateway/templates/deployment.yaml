@@ -208,6 +208,10 @@ spec:
         volumeMounts:
         - name: state-proxy-mesh-socket
           mountPath: {{ .Values.stateProxy.mesh.socketDir }}
+        {{- if eq $meshBackend "s3kv" }}
+        - name: state-proxy-mesh-tmp
+          mountPath: /tmp
+        {{- end }}
 
       {{- if .Values.mcp.enabled }}
       # --- mcp-adapter: MCP Streamable HTTP ---
@@ -355,6 +359,10 @@ spec:
       volumes:
       - name: state-proxy-mesh-socket
         emptyDir: {}
+      {{- if eq $meshBackend "s3kv" }}
+      - name: state-proxy-mesh-tmp
+        emptyDir: {}
+      {{- end }}
       {{- if .Values.mcp.enabled }}
       - name: mcp-tools
         configMap:
