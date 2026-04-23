@@ -28,9 +28,11 @@ The binary is selected at container startup via a `command:` override in the cha
 
 | Backend | E2E profile | Chart value | Binary inside image |
 |---------|-------------|-------------|---------------------|
-| S3+DuckDB (Go) | sqs-s3 ✅ CI | `stateProxy.mesh.backend: s3kv` | `/s3-kv` |
-| GCS+DuckDB (Go) | pubsub-gcs ✅ CI | `stateProxy.mesh.backend: gcskv` | `/gcs-kv` |
-| PG (Go) | rabbitmq-minio (local) | `stateProxy.mesh.backend: pg-kv` (default) | `/pg-kv` |
+| S3+DuckDB (Go) | sqs-s3 ✅ CI (AWS) | `stateProxy.mesh.backend: s3kv` | `/s3-kv` |
+| PG (Go) | pubsub-gcs ✅ CI (GCP), rabbitmq-minio (local) | `stateProxy.mesh.backend: pg-kv` (default) | `/pg-kv` |
+
+`gcskv` is available as a backend option but not used in any CI profile currently.
+Each cloud's E2E profile pairs with its natural storage: AWS → S3-backed state, GCP → PostgreSQL (cloud-managed PG available on both platforms).
 
 `s3kv` and `gcskv` implement the full `/query` interface (DuckDB). The `s3`/`gcs`
 Python backends (no `/query`) are only suitable for actor state proxies, not mesh-api.

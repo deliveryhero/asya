@@ -97,7 +97,10 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 
 	// Step 2+3: fetch docs and write to temp dir.
-	tmpDir, cleanup, err := q.fetchToTempDir(ctx, keys)
+	// Use context.WithoutCancel so the S3 parallel fetch is not canceled by a
+	// short caller deadline (e.g. the mesh-api's FindExpired call). DuckDB
+	// operations below still run under the original ctx.
+	tmpDir, cleanup, err := q.fetchToTempDir(context.WithoutCancel(ctx), keys)
 	if err != nil {
 		return nil, err
 	}
