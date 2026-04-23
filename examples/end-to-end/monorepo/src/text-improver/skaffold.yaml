@@ -1,0 +1,10 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: src
+build:
+  artifacts:
+  - image: demo-kubecon2026-actors
+    context: .
+    docker:
+      dockerfile: Dockerfile

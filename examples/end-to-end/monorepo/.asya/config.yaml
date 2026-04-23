@@ -1,0 +1,25 @@
+templates:
+  router_image: "python:3.13-slim"
+  max_replicas: 10
+
+compiler:
+  templates: ".asya/templates"
+  routers: ".asya/flows/${arg:flow_name}"
+  manifests: ".asya/flows/${arg:flow_name}/manifests"
+
+build:
+- module: "control-flow/*"
+  image: "asya-samples-control-flow"
+  context: "src/control-flow"
+- module: "compiler-sugar/*"
+  image: "asya-samples-compiler-sugar"
+  context: "src/compiler-sugar"
+- module: "agentic/*"
+  image: "asya-samples-agentic"
+  context: "src/agentic"
+- module: "resiliency/*"
+  image: "asya-samples-resiliency"
+  context: "src/resiliency"
+- module: "text-improver/*"
+  image: "asya-samples-text-improver"
+  context: "src/text-improver"

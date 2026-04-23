@@ -1,0 +1,8 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+build:
+  artifacts:
+  - image: asya-samples-resiliency
+    context: .
+    docker:
+      dockerfile: Dockerfile

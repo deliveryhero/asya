@@ -101,7 +101,7 @@ and sending your first message.
 | **[Architecture](docs/architecture.md)** | Components, protocols, data flow |
 | **[Reference](docs/reference/README.md)** | Specs, config tables, API surfaces |
 | **[Examples](examples/)** | Actor specs and Flow DSL teaser examples |
-| **[Samples](https://github.com/asyacore/asya-samples)** | Full working examples by pattern category |
+| **[Examples](examples/end-to-end/monorepo/)** | Full working examples by pattern category |
 
 ---
 

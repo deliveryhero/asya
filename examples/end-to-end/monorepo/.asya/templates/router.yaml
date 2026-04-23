@@ -1,0 +1,19 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: "{{ actor_name }}"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+
+spec:
+  actor: "{{ actor_name }}"
+  image: "{{ router_image }}"
+  flavors: [otel-tracing]
+  handler: "{{ handler }}"
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: PYTHONUNBUFFERED
+    value: "1"

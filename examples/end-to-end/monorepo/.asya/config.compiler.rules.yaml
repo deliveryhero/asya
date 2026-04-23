@@ -1,0 +1,73 @@
+# Compiler rules: map Python constructs to AsyncActor manifest fields.
+#
+# The parser auto-detects scope from Python syntax:
+#   with foo():        -> context manager (applies to all actors in scope)
+#   @foo(...)          -> decorator (applies to the decorated function)
+#   p = foo(p)         -> call-site
+#
+# treat-as values:
+#   actor  - separate K8s deployment (queue boundary)
+#   flow   - sub-flow, compile recursively (creates visual group)
+#   unfold - expand function body into current flow
+#   inline - paste code into router body
+#   config - extract values into manifest, strip at runtime
+#
+# where: navigates call arguments and nested calls.
+# assign-to: terminal -- extract value and write to this spec path.
+
+# -- Context managers --
+
+# asyncio.timeout(30) -> spec.resiliency.timeout.actor: 30
+- match: "asyncio.timeout"
+  treat-as: config
+  where:
+  - param: delay
+    assign-to: spec.resiliency.timeout.actor
+
+# -- Decorators --
+
+# tenacity.retry -- nested extraction via where: trees.
+# @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=60))
+# @retry(stop=stop_after_attempt(5) | stop_after_delay(30))
+- match: "tenacity.retry"
+  treat-as: config
+  where:
+  - param: stop
+    flatten-on: "|"
+    where:
+    - match: "stop_after_attempt"
+      where:
+      - param: max_attempt_number
+        assign-to: spec.resiliency.policies.default.maxAttempts
+    - match: "stop_after_delay"
+      where:
+      - param: max_delay
+        assign-to: spec.resiliency.policies.default.maxDuration
+  - param: wait
+    where:
+    - match: "wait_exponential"
+      where:
+      - param: min
+        assign-to: spec.resiliency.policies.default.initialDelay
+      - param: max
+        assign-to: spec.resiliency.policies.default.maxInterval
+    - match: "wait_fixed"
+      where:
+      - param: wait
+        assign-to: spec.resiliency.policies.default.initialDelay
+
+# timeout_decorator.timeout -- @timeout(30)
+- match: "timeout_decorator.timeout"
+  treat-as: config
+  where:
+  - param: seconds
+    assign-to: spec.resiliency.timeout.actor
+
+# stamina.retry -- @stamina.retry(attempts=3, timeout=60)
+- match: "stamina.retry"
+  treat-as: config
+  where:
+  - param: attempts
+    assign-to: spec.resiliency.policies.default.maxAttempts
+  - param: timeout
+    assign-to: spec.resiliency.policies.default.maxDuration

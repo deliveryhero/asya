@@ -56,7 +56,8 @@ See [docs/reference/components/](docs/reference/components/) for component deep-
 
 **Examples** (`examples/`):
 - `asyas/` — real-world AsyncActor CRD manifests; use as reference when writing or reviewing actor specs
-- `flows/` — teaser flow DSL files; comprehensive examples (including agentic flows) are in [asya-samples](https://github.com/asyacore/asya-samples)
+- `flows/` — teaser flow DSL files; comprehensive examples (including agentic flows) are in [examples/end-to-end/monorepo/](examples/end-to-end/monorepo/)
+- `end-to-end/monorepo/` — full working examples organized by category (control-flow, agentic, resiliency, compiler-sugar, text-improver)
 
 **Crossplane chart** (`deploy/helm-charts/asya-crossplane/`): Deploys XRDs, Compositions, and provider configurations for AsyncActor resource management. The `render-deployment` composition step renders the complete pod spec (runtime container + asya-sidecar + state proxies + volumes) using values from the chart's `sidecar:` block.
 
@@ -154,7 +155,7 @@ See [docs/reference/specs/envelope.md](docs/reference/specs/envelope.md).
 
 Asya's strategic goal is to provide the full agentic tool surface that frameworks like Google ADK,
 Mastra, and LangGraph provide — but on a stateless, queue-based, K8s-native mesh. Agentic flow
-patterns have moved to the [asya-samples](https://github.com/asyacore/asya-samples) repository.
+patterns live in [examples/end-to-end/monorepo/src/agentic/](examples/end-to-end/monorepo/src/agentic/).
 See the framework survey in `.aint/aints/agentic-umbrella/survey-agentic-frameworks.md`.
 
 ### Actor vs Flow

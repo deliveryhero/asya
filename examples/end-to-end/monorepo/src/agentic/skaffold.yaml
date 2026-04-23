@@ -1,0 +1,8 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+build:
+  artifacts:
+  - image: asya-samples-agentic
+    context: .
+    docker:
+      dockerfile: Dockerfile
