@@ -240,8 +240,10 @@ crossplane:
   sqs:
     receiveWaitTimeSeconds: 2
   sidecar:
-    image: ghcr.io/deliveryhero/asya-sidecar:latest
-    imagePullPolicy: Never
+    image:
+      repository: ghcr.io/deliveryhero/asya-sidecar
+      tag: latest
+      pullPolicy: Never
     sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
     sqsWaitTimeSeconds: "2"
     awsCredsSecret: aws-creds

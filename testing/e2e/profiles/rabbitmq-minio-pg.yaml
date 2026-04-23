@@ -127,8 +127,10 @@ crossplane:
     aws:
       enabled: false
   sidecar:
-    image: ghcr.io/deliveryhero/asya-sidecar:latest
-    imagePullPolicy: Never
+    image:
+      repository: ghcr.io/deliveryhero/asya-sidecar
+      tag: latest
+      pullPolicy: Never
     rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/
   providerConfigs:
     install: false
