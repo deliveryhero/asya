@@ -40,6 +40,8 @@ crew:
   persistence:
     enabled: true
     backend: s3
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-py:dev
     config:
       bucket: asya-results
       errorsBucket: asya-errors

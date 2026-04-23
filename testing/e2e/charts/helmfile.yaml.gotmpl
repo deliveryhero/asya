@@ -390,26 +390,31 @@ releases:
     namespace: asya-system
     chart: ../../../deploy/helm-charts/asya-crossplane
     needs:
+      {{- $ns := .Values.namespace | default "asya-e2e" }}
       {{- if .Values.transport.sqs.enabled }}
-      - sqs
+      - asya-system/sqs
       {{- end }}
       {{- if .Values.storage.s3.enabled }}
-      - s3
+      - asya-system/s3
       {{- end }}
       {{- if .Values.transport.rabbitmq.enabled }}
-      - rabbitmq
+      - {{ $ns }}/rabbitmq
       {{- end }}
       {{- if .Values.storage.minio.enabled }}
-      - minio
+      - {{ $ns }}/minio
       {{- end }}
       {{- if .Values.transport.pubsub.enabled }}
-      - pubsub
+      - asya-system/pubsub
       {{- end }}
       {{- if .Values.storage.gcs.enabled }}
-      - gcs
+      - asya-system/gcs
       {{- end }}
     values:
       - {{- .Values.crossplane | toYaml | nindent 8 }}
+      {{- if .Values.tracing.enabled }}
+      - sidecar:
+          tracingEndpoint: {{ printf "tempo.%s.svc.cluster.local:4317" (.Values.namespace | default "asya-e2e") | quote }}
+      {{- end }}
     labels:
       layer: infra
     hooks:
@@ -431,7 +436,7 @@ releases:
       - {{- .Values.gateway | toYaml | nindent 8 }}
       {{- if .Values.tracing.enabled }}
       - tracing:
-          endpoint: {{ .Values.tracing.endpoint | quote }}
+          endpoint: {{ printf "tempo.%s.svc.cluster.local:4317" (.Values.namespace | default "asya-e2e") | quote }}
       {{- end }}
     labels:
       layer: infra
@@ -444,7 +449,7 @@ releases:
       - {{- .Values.crew | toYaml | nindent 8 }}
       {{- if .Values.tracing.enabled }}
       - tracing:
-          endpoint: {{ .Values.tracing.endpoint | quote }}
+          endpoint: {{ printf "tempo.%s.svc.cluster.local:4317" (.Values.namespace | default "asya-e2e") | quote }}
       {{- end }}
     labels:
       layer: app
