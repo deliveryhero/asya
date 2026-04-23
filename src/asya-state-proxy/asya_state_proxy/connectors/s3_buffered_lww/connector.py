@@ -15,6 +15,7 @@ from typing import BinaryIO
 import boto3
 from botocore.exceptions import ClientError
 
+from asya_state_proxy.connectors._query import ObjectStoreQueryMixin
 from asya_state_proxy.connectors._s3_xattr import S3XattrMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
@@ -22,7 +23,7 @@ from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 logger = logging.getLogger("asya.state-proxy")
 
 
-class S3BufferedLWW(S3XattrMixin, StateProxyConnector):
+class S3BufferedLWW(ObjectStoreQueryMixin, S3XattrMixin, StateProxyConnector):
     """Last-write-wins S3 connector. Full body is buffered in memory."""
 
     def __init__(self) -> None:
@@ -32,20 +33,20 @@ class S3BufferedLWW(S3XattrMixin, StateProxyConnector):
 
         self._bucket = bucket
         self._prefix = os.environ.get("STATE_PREFIX", "")
-        region = os.environ.get("AWS_REGION", "us-east-1")
-        endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
+        self._region = os.environ.get("AWS_REGION", "us-east-1")
+        self._endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
 
-        kwargs: dict = {"region_name": region}
-        if endpoint_url:
-            kwargs["endpoint_url"] = endpoint_url
+        kwargs: dict = {"region_name": self._region}
+        if self._endpoint_url:
+            kwargs["endpoint_url"] = self._endpoint_url
 
         self._s3 = boto3.client("s3", **kwargs)
         logger.info(
             "S3BufferedLWW connector initialised: bucket=%s prefix=%r region=%s endpoint=%s",
             bucket,
             self._prefix,
-            region,
-            endpoint_url or "(aws)",
+            self._region,
+            self._endpoint_url or "(aws)",
         )
 
     def _full_key(self, key: str) -> str:

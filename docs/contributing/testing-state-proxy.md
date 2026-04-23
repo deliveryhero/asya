@@ -104,6 +104,22 @@ make -C testing/component/state-proxy test-one CONNECTOR_PROFILE=gcs-lww
 make -C testing/component/state-proxy test      # all six profiles
 ```
 
+### `/query` endpoint tests
+
+`test_query.py` runs alongside the CRUD tests. It calls `POST /query` directly
+on the connector socket (`/var/run/asya/state/meta.sock`) and verifies filter,
+sort, limit, prefix scoping, and input validation. The tester container mounts
+`state-sockets:/var/run/asya/state` so it can reach the connector socket.
+
+Profiles that support `/query`: `s3-lww`, `gcs-lww` (both inherit `ObjectStoreQueryMixin`).
+Profiles that return 501 (`s3-cas`, `gcs-cas`, `redis-cas`, `s3-passthrough`) are
+auto-skipped via the `require_query_support` autouse fixture.
+
+**Per-call limits in tests**: the connector uses the default limits unless overridden
+by `QUERY_MAX_FETCH_BYTES`, `QUERY_MAX_FETCH_KEYS`, `QUERY_MAX_KEYS`, or
+`QUERY_MAX_RESULT_ROWS` environment variables. Unit-level tests for the budget
+use `monkeypatch` to set `MAX_TOTAL_FETCH_BYTES` to a small value.
+
 ### Profile assembly
 
 Each profile `include`s the relevant shared emulator from `testing/shared/compose/`:

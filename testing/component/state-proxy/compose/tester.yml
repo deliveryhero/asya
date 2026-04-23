@@ -10,6 +10,7 @@ services:
     - ${COVERAGE_DIR}:/app/.coverage:rw
     - ${COVERAGERC}:/app/.coveragerc:ro
     - runtime-sockets:/var/run/asya
+    - state-sockets:/var/run/asya/state
     - ../tests:/app/tests
     working_dir: /app
     entrypoint: /bin/bash

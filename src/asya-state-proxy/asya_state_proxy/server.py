@@ -8,7 +8,11 @@ import socket
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from asya_state_proxy.connectors._query import MAX_RESULT_ROWS, ObjectStoreQueryMixin, QueryRequest
 from asya_state_proxy.interface import StateProxyConnector
+
+
+_MAX_QUERY_BODY = 1_048_576  # 1 MiB
 
 
 logger = logging.getLogger("asya.state-proxy")
@@ -218,6 +222,80 @@ def _make_handler(connector: StateProxyConnector) -> type:
                 connector.delete(key)
                 self.send_response(204)
                 self.end_headers()
+            except Exception as exc:
+                _handle_connector_error(self, exc)
+
+        def do_POST(self) -> None:  # noqa: N802
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed.path
+
+            if path != "/query":
+                _json_error(self, 404, "not_found")
+                return
+
+            if not isinstance(connector, ObjectStoreQueryMixin):
+                _json_error(self, 501, "not_implemented", "connector does not support /query")
+                return
+
+            content_length_hdr = self.headers.get("Content-Length")
+            if content_length_hdr is not None:
+                try:
+                    content_length = int(content_length_hdr)
+                except ValueError:
+                    _json_error(self, 400, "bad_request", "invalid Content-Length")
+                    return
+                if content_length < 0 or content_length > _MAX_QUERY_BODY:
+                    _json_error(self, 413, "payload_too_large", f"body must be <= {_MAX_QUERY_BODY} bytes")
+                    return
+                body = self.rfile.read(content_length)
+            else:
+                body = b""
+
+            try:
+                raw = json.loads(body) if body else {}
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                _json_error(self, 400, "bad_request", "invalid JSON body")
+                return
+
+            if not isinstance(raw, dict):
+                _json_error(self, 400, "bad_request", "request body must be a JSON object")
+                return
+
+            raw_filter = raw.get("filter", {})
+            raw_sort = raw.get("sort", [])
+            if not isinstance(raw_filter, dict):
+                _json_error(self, 400, "bad_request", "filter must be an object")
+                return
+            if not isinstance(raw_sort, list):
+                _json_error(self, 400, "bad_request", "sort must be an array")
+                return
+
+            try:
+                raw_limit = int(raw.get("limit", 0))
+                raw_offset = int(raw.get("offset", 0))
+            except (TypeError, ValueError):
+                _json_error(self, 400, "bad_request", "limit and offset must be integers")
+                return
+
+            if raw_limit < 0 or raw_offset < 0:
+                _json_error(self, 400, "bad_request", "limit and offset must be non-negative")
+                return
+
+            if raw_limit > MAX_RESULT_ROWS:
+                _json_error(self, 400, "bad_request", f"limit must be <= {MAX_RESULT_ROWS}")
+                return
+
+            req = QueryRequest(
+                prefix=str(raw.get("prefix", "")),
+                filter=raw_filter,
+                sort=raw_sort,
+                limit=raw_limit,
+                offset=raw_offset,
+            )
+
+            try:
+                result = connector.query(req)
+                _json_ok(self, {"rows": result.rows, "total": result.total})
             except Exception as exc:
                 _handle_connector_error(self, exc)
 
