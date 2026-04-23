@@ -78,10 +78,10 @@ Three tiers with concrete kubectl commands:
 ## Steps
 
 - [x] Convert aint to dir with aint.md + plan.md
-- [ ] Create worktree `autoresearch/jf7uo.init-container-code-delivery`
-- [ ] Create `examples/asyas/training-actor-git-creds-secret.yaml`
-- [ ] Create `examples/asyas/training-actor-git-sync.yaml`
-- [ ] Create `examples/asyas/training-actor-pip-install.yaml`
-- [ ] Update ONBOARDING.md with "Code Delivery Options" section
-- [ ] Commit, push, PR
-- [ ] Set aint status to pushed
+- [x] Create worktree `autoresearch/jf7uo.init-container-code-delivery`
+- [x] Create `examples/asyas/training-actor-git-creds-secret.yaml`
+- [x] Create `examples/asyas/training-actor-git-sync.yaml`
+- [x] Create `examples/asyas/training-actor-pip-install.yaml`
+- [x] Update ONBOARDING.md with "Code Delivery Options" section
+- [x] Commit, push, PR (#460)
+- [x] Set aint status to pushed
