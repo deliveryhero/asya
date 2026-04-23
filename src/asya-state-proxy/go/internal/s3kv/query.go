@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -81,11 +82,24 @@ func (q *QueryEngine) Close() error {
 //  5. COUNT(*) for Total (before limit); SELECT rows with WHERE/ORDER BY/LIMIT
 //  6. Parse results, strip _ca/_ua, build []KVRow
 func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryResponse, error) {
+	// Bail immediately if the caller is already done.
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	// Use an independent context for the S3 fetch + DuckDB pipeline so that a
+	// short caller deadline (e.g. the mesh-api's FindExpired) does not cancel
+	// mid-flight S3 GETs or DuckDB operations. The pipeline is bounded at 30s.
+	opCtx, opCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer opCancel()
+
 	// Step 1: collect matching keys (bounded).
-	keys, err := q.connector.List(ctx, req.Prefix)
+	keys, err := q.connector.List(opCtx, req.Prefix)
 	if err != nil {
 		return nil, fmt.Errorf("list for query: %w", err)
 	}
@@ -97,10 +111,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 
 	// Step 2+3: fetch docs and write to temp dir.
-	// Use context.WithoutCancel so the S3 parallel fetch is not canceled by a
-	// short caller deadline (e.g. the mesh-api's FindExpired call). DuckDB
-	// operations below still run under the original ctx.
-	tmpDir, cleanup, err := q.fetchToTempDir(context.WithoutCancel(ctx), keys)
+	tmpDir, cleanup, err := q.fetchToTempDir(opCtx, keys)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +136,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 		 WHERE content IS NOT NULL`,
 		glob,
 	)
-	if _, err := q.db.ExecContext(ctx, loadSQL); err != nil { // nosemgrep
+	if _, err := q.db.ExecContext(opCtx, loadSQL); err != nil { // nosemgrep
 		return nil, fmt.Errorf("duckdb load: %w", err)
 	}
 
@@ -139,7 +150,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	// against validField regexp; values are positional args, not interpolated.
 	if req.Count {
 		var total int
-		if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil { // nosemgrep
+		if err := q.db.QueryRowContext(opCtx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil { // nosemgrep
 			return nil, fmt.Errorf("duckdb count: %w", err)
 		}
 		return &QueryResponse{Total: total}, nil
@@ -147,7 +158,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 
 	// Step 5a: count total matching rows before applying LIMIT (for pagination metadata).
 	var total int
-	if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil { // nosemgrep
+	if err := q.db.QueryRowContext(opCtx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil { // nosemgrep
 		return nil, fmt.Errorf("duckdb count: %w", err)
 	}
 
@@ -161,7 +172,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	// content column already contains the raw stored JSON — pass straight to ParseStored.
 	selectSQL := "SELECT filename, content FROM _tmp" + where + orderBy + limitOffset // nosemgrep
 
-	rows, err := q.db.QueryContext(ctx, selectSQL, args...) // nosemgrep
+	rows, err := q.db.QueryContext(opCtx, selectSQL, args...) // nosemgrep
 	if err != nil {
 		return nil, fmt.Errorf("duckdb select: %w", err)
 	}
