@@ -13,8 +13,8 @@ spec:
   restartPolicy: Never
   containers:
   - name: test
-    image: {{ .Values.tests.image }}
-    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
+    image: {{ .Values.tests.image.repository }}:{{ .Values.tests.image.tag }}
+    imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
     command:
       - /bin/sh
       - -c

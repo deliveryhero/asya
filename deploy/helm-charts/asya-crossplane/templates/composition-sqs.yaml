@@ -361,8 +361,8 @@ spec:
             {{`{{- $socketDir := "`}}{{ .Values.sidecar.socketDir | default "/var/run/asya" }}{{`" -}}`}}
             {{`{{- $runtimeMountPath := "`}}{{ .Values.sidecar.runtimeMountPath | default "/opt/asya/asya_runtime.py" }}{{`" -}}`}}
             {{`{{- $runtimeConfigMap := "`}}{{ .Values.sidecar.runtimeConfigMap | default "asya-runtime" }}{{`" -}}`}}
-            {{`{{- $sidecarImage := "`}}{{ .Values.sidecar.image | default "ghcr.io/deliveryhero/asya-sidecar:latest" }}{{`" -}}`}}
-            {{`{{- $sidecarImagePullPolicy := "`}}{{ .Values.sidecar.imagePullPolicy | default "IfNotPresent" }}{{`" -}}`}}
+            {{`{{- $sidecarImage := "`}}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag | default .Chart.AppVersion }}{{`" -}}`}}
+            {{`{{- $sidecarImagePullPolicy := "`}}{{ .Values.sidecar.image.pullPolicy | default "IfNotPresent" }}{{`" -}}`}}
             {{`{{- $tracingEndpoint := "`}}{{ .Values.sidecar.tracingEndpoint }}{{`" -}}`}}
             {{`{{- $socketPath := printf "%s/asya-runtime.sock" $socketDir -}}`}}
             {{`{{- $isSystemActor := or (eq $actorName "x-sink") (eq $actorName "x-sump") (eq $actorName "happy-end") (eq $actorName "error-end") -}}`}}

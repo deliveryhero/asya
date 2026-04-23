@@ -27,7 +27,7 @@ spec:
       {{- end }}
       containers:
       - name: scaler-pubsub
-        image: "{{ .Values.pubsub.keda.scaler.image.repository }}:{{ .Values.pubsub.keda.scaler.image.tag | default "latest" }}"
+        image: "{{ .Values.pubsub.keda.scaler.image.repository }}:{{ .Values.pubsub.keda.scaler.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.pubsub.keda.scaler.image.pullPolicy | default "IfNotPresent" }}
         command: ["/scaler-pubsub"]
         ports:

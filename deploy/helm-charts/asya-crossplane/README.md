@@ -64,6 +64,24 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane \
 | `kubernetesProviderConfig.name` | ProviderConfig name | `in-cluster` |
 | `kubernetesProviderConfig.credentialsSource` | Credentials source | `InjectedIdentity` |
 
+### Sidecar Configuration
+
+The sidecar image is injected into every actor pod by the Crossplane composition. These values are
+baked into the composition at `helm install/upgrade` time and apply to all actors in the cluster.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `sidecar.image.repository` | Sidecar container image repository | `ghcr.io/deliveryhero/asya-sidecar` |
+| `sidecar.image.tag` | Sidecar image tag (empty = Chart.AppVersion) | `""` |
+| `sidecar.image.pullPolicy` | Image pull policy | `IfNotPresent` |
+
+To pin the sidecar to a specific release:
+
+```bash
+helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane \
+  --set sidecar.image.tag=v0.5.12
+```
+
 ## AsyncActor Spec
 
 The AsyncActor XRD uses a flat spec — all fields live directly under `spec` with no nesting.
@@ -125,7 +143,8 @@ The XRD validates fields at Kubernetes admission time using OpenAPI constraints:
 |-------|-------|-----|
 | `transport in body should be one of [sqs rabbitmq pubsub]` | Invalid transport | Use one of the listed values |
 | `handler in body should be at least 1 chars long` | Empty handler | Set a non-empty handler dotted path |
-| `imagePullPolicy in body should be one of [Always IfNotPresent Never]` | Invalid pull policy | Use one of the listed values |
+| `imagePullPolicy in body should be one of [Always IfNotPresent Never]` | Invalid pull policy on actor runtime container | Use one of the listed values |
+| `sidecar.image.pullPolicy in body should be one of [Always IfNotPresent Never]` | Invalid pull policy on sidecar container | Use one of the listed values |
 
 ## Example AsyncActor Claim
 

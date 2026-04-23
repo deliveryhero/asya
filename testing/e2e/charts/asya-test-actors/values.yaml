@@ -14,5 +14,7 @@ workload:
 
 # Test image configuration (for Helm test pods)
 tests:
-  image: ghcr.io/deliveryhero/asya-testing:latest
-  imagePullPolicy: Never
+  image:
+    repository: ghcr.io/deliveryhero/asya-testing
+    tag: latest
+    pullPolicy: Never
