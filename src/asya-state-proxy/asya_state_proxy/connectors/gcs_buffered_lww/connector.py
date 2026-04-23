@@ -16,13 +16,14 @@ from google.api_core.exceptions import NotFound, PreconditionFailed
 from google.cloud import storage
 
 from asya_state_proxy.connectors._gcs_xattr import GCSXattrMixin
+from asya_state_proxy.connectors._query import ObjectStoreQueryMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
 
 logger = logging.getLogger("asya.state-proxy")
 
 
-class GCSBufferedLWW(GCSXattrMixin, StateProxyConnector):
+class GCSBufferedLWW(ObjectStoreQueryMixin, GCSXattrMixin, StateProxyConnector):
     """Last-write-wins GCS connector. Full body is buffered in memory."""
 
     def __init__(self) -> None:

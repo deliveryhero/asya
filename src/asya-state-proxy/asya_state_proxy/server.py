@@ -8,6 +8,7 @@ import socket
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from asya_state_proxy.connectors._query import ObjectStoreQueryMixin, QueryRequest
 from asya_state_proxy.interface import StateProxyConnector
 
 
@@ -218,6 +219,41 @@ def _make_handler(connector: StateProxyConnector) -> type:
                 connector.delete(key)
                 self.send_response(204)
                 self.end_headers()
+            except Exception as exc:
+                _handle_connector_error(self, exc)
+
+        def do_POST(self) -> None:  # noqa: N802
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed.path
+
+            if path != "/query":
+                _json_error(self, 404, "not_found")
+                return
+
+            if not isinstance(connector, ObjectStoreQueryMixin):
+                _json_error(self, 501, "not_implemented", "connector does not support /query")
+                return
+
+            content_length = self.headers.get("Content-Length")
+            body = self.rfile.read(int(content_length)) if content_length else b""
+
+            try:
+                raw = json.loads(body) if body else {}
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                _json_error(self, 400, "bad_request", "invalid JSON body")
+                return
+
+            req = QueryRequest(
+                prefix=raw.get("prefix", ""),
+                filter=raw.get("filter", {}),
+                sort=raw.get("sort", []),
+                limit=int(raw.get("limit", 0)),
+                offset=int(raw.get("offset", 0)),
+            )
+
+            try:
+                result = connector.query(req)
+                _json_ok(self, {"rows": result.rows, "total": result.total})
             except Exception as exc:
                 _handle_connector_error(self, exc)
 

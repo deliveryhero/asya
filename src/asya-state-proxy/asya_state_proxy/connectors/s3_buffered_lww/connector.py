@@ -10,11 +10,12 @@ Reads configuration from environment variables:
 import io
 import logging
 import os
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 import boto3
 from botocore.exceptions import ClientError
 
+from asya_state_proxy.connectors._query import ObjectStoreQueryMixin, _safe_sql_str, configure_s3_httpfs
 from asya_state_proxy.connectors._s3_xattr import S3XattrMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
@@ -22,7 +23,7 @@ from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 logger = logging.getLogger("asya.state-proxy")
 
 
-class S3BufferedLWW(S3XattrMixin, StateProxyConnector):
+class S3BufferedLWW(ObjectStoreQueryMixin, S3XattrMixin, StateProxyConnector):
     """Last-write-wins S3 connector. Full body is buffered in memory."""
 
     def __init__(self) -> None:
@@ -32,20 +33,20 @@ class S3BufferedLWW(S3XattrMixin, StateProxyConnector):
 
         self._bucket = bucket
         self._prefix = os.environ.get("STATE_PREFIX", "")
-        region = os.environ.get("AWS_REGION", "us-east-1")
-        endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
+        self._region = os.environ.get("AWS_REGION", "us-east-1")
+        self._endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
 
-        kwargs: dict = {"region_name": region}
-        if endpoint_url:
-            kwargs["endpoint_url"] = endpoint_url
+        kwargs: dict = {"region_name": self._region}
+        if self._endpoint_url:
+            kwargs["endpoint_url"] = self._endpoint_url
 
         self._s3 = boto3.client("s3", **kwargs)
         logger.info(
             "S3BufferedLWW connector initialised: bucket=%s prefix=%r region=%s endpoint=%s",
             bucket,
             self._prefix,
-            region,
-            endpoint_url or "(aws)",
+            self._region,
+            self._endpoint_url or "(aws)",
         )
 
     def _full_key(self, key: str) -> str:
@@ -147,3 +148,22 @@ class S3BufferedLWW(S3XattrMixin, StateProxyConnector):
             raise FileNotFoundError(f"Key not found: {key}")
         self._s3.delete_object(Bucket=self._bucket, Key=full_key)
         logger.debug("delete key=%s", key)
+
+    def _setup_duckdb_source(self, conn: Any, prefix: str, tmpdir: str) -> bool:
+        """Override: use DuckDB httpfs to read S3 objects directly (no temp files).
+
+        DuckDB streams from S3 without loading all objects into memory; the caller's
+        LIMIT clause is pushed down so only the needed chunks are fetched.
+        """
+        configure_s3_httpfs(conn, self._region, self._endpoint_url)
+
+        _safe_sql_str(prefix, "prefix")
+
+        full_prefix = f"{self._prefix}/{prefix}" if self._prefix else prefix
+        glob = f"s3://{self._bucket}/{full_prefix}**"
+
+        sql = f"CREATE VIEW _tmp AS SELECT filename, content FROM read_text('{glob}') WHERE content IS NOT NULL"  # nosec B608  # nosemgrep
+        conn.execute(sql)
+        count = conn.execute("SELECT COUNT(*) FROM _tmp").fetchone()[0]
+        logger.debug("query/httpfs: prefix=%r glob=%r count=%d", prefix, glob, count)
+        return count == 0
