@@ -2225,7 +2225,30 @@ spec:
 
 
 def _get_pod_name(actor_name: str, namespace: str) -> str | None:
-    """Return the name of the first Running pod for an actor, or None."""
+    """Return the name of the first Ready pod for an actor, or None.
+
+    Runs 'kubectl wait pod --for=condition=Ready' before querying to close
+    the race between the Crossplane XR Ready condition (Deployment Available)
+    and the pod's Running phase being visible to 'kubectl get pods
+    --field-selector=status.phase=Running'. In CI the two events can be
+    milliseconds apart and the phase update may not have propagated yet.
+    """
+    subprocess.run(
+        [
+            "kubectl",
+            "wait",
+            "pod",
+            "-l",
+            f"asya.sh/actor={actor_name}",
+            "-n",
+            namespace,
+            "--for=condition=Ready",
+            "--timeout=30s",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=35,
+    )
     result = subprocess.run(
         [
             "kubectl",
