@@ -177,3 +177,6 @@ storage:
     enabled: false
   gcs:
     enabled: false
+
+postgres:
+  enabled: true

@@ -1,0 +1,605 @@
+package pvckv
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"golang.org/x/sys/unix"
+
+	"github.com/deliveryhero/asya/asya-state-proxy-go/internal/pg"
+)
+
+// validFieldName matches safe JSON field names used in filter/sort expressions.
+// Mirrors pg.validFieldName to prevent SQL injection via crafted field names.
+var validFieldName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// validateFieldName returns an error if field contains characters outside the
+// allowed identifier pattern, preventing SQL injection in DuckDB expressions.
+func validateFieldName(field string) error {
+	if !validFieldName.MatchString(field) {
+		return fmt.Errorf("%w: %q", pg.ErrInvalidFieldName, field)
+	}
+	return nil
+}
+
+// validateKey rejects keys containing path traversal sequences that could
+// escape the storage base directory.
+func validateKey(key string) error {
+	for _, part := range strings.Split(key, "/") {
+		if part == ".." || part == "." {
+			return fmt.Errorf("invalid key %q: path traversal not allowed", key)
+		}
+	}
+	return nil
+}
+
+// ─── Config ─────────────────────────────────────────────────────────────────
+
+// Config controls which backend and options are used.
+type Config struct {
+	Mode            string   // "inmem" | "pvc"
+	BaseDir         string   // PVC_KV_BASE_DIR, required for pvc mode
+	Partition       bool     // PVC_KV_PARTITION — enables active/ + archive/ subdirs
+	ArchiveStatuses []string // statuses moved to archive/ on delete
+}
+
+// NewConnector creates a pg.ServerConnector backed by local storage.
+// The returned value can be passed directly to pg.NewHTTPHandler.
+func NewConnector(cfg Config) (pg.ServerConnector, error) {
+	switch cfg.Mode {
+	case "inmem":
+		return newInMemConnector(), nil
+	case "pvc":
+		return newPVCConnector(cfg)
+	default:
+		return nil, fmt.Errorf("unknown PVC_KV_MODE %q: expected inmem or pvc", cfg.Mode)
+	}
+}
+
+// ─── In-memory backend ──────────────────────────────────────────────────────
+
+type memEntry struct {
+	value     json.RawMessage
+	createdAt time.Time
+	updatedAt time.Time
+}
+
+type inMemConnector struct {
+	mu   sync.RWMutex
+	data map[string]*memEntry
+}
+
+var _ pg.ServerConnector = (*inMemConnector)(nil)
+
+func newInMemConnector() *inMemConnector {
+	return &inMemConnector{data: make(map[string]*memEntry)}
+}
+
+func (c *inMemConnector) Read(_ context.Context, key string) (*pg.KVRow, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	e, ok := c.data[key]
+	if !ok {
+		return nil, fmt.Errorf("read %q: %w", key, pg.ErrNotFound)
+	}
+	return &pg.KVRow{Key: key, Value: e.value, CreatedAt: e.createdAt, UpdatedAt: e.updatedAt}, nil
+}
+
+func (c *inMemConnector) Write(_ context.Context, key string, value json.RawMessage) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	now := time.Now().UTC()
+	if e, ok := c.data[key]; ok {
+		e.value = value
+		e.updatedAt = now
+	} else {
+		c.data[key] = &memEntry{value: value, createdAt: now, updatedAt: now}
+	}
+	return nil
+}
+
+func (c *inMemConnector) WriteConditional(_ context.Context, key string, value json.RawMessage, ifStatus string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e, ok := c.data[key]
+	if !ok {
+		return fmt.Errorf("conditional write %q: %w", key, pg.ErrNotFound)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(e.value, &doc); err != nil {
+		return fmt.Errorf("conditional write %q unmarshal: %w", key, err)
+	}
+	if status, _ := doc["status"].(string); status != ifStatus {
+		return fmt.Errorf("conditional write %q: %w", key, pg.ErrConditionFailed)
+	}
+	e.value = value
+	e.updatedAt = time.Now().UTC()
+	return nil
+}
+
+func (c *inMemConnector) Exists(_ context.Context, key string) (bool, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	_, ok := c.data[key]
+	return ok, nil
+}
+
+func (c *inMemConnector) Delete(_ context.Context, key string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, ok := c.data[key]; !ok {
+		return fmt.Errorf("delete %q: %w", key, pg.ErrNotFound)
+	}
+	delete(c.data, key)
+	return nil
+}
+
+func (c *inMemConnector) List(_ context.Context, prefix string) ([]string, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	var keys []string
+	for k := range c.data {
+		if strings.HasPrefix(k, prefix) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	return keys, nil
+}
+
+func (c *inMemConnector) Query(_ context.Context, req pg.QueryRequest) (*pg.QueryResponse, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	var rows []pg.KVRow
+	for k, e := range c.data {
+		if req.Prefix != "" && !strings.HasPrefix(k, req.Prefix) {
+			continue
+		}
+		var doc map[string]any
+		if err := json.Unmarshal(e.value, &doc); err != nil {
+			continue
+		}
+		if !matchesFilter(doc, req.Filter) {
+			continue
+		}
+		rows = append(rows, pg.KVRow{Key: k, Value: e.value, CreatedAt: e.createdAt, UpdatedAt: e.updatedAt})
+	}
+
+	if len(req.Sort) > 0 {
+		rows = sortRows(rows, req.Sort)
+	}
+
+	total := len(rows)
+	if req.Count {
+		return &pg.QueryResponse{Total: total}, nil
+	}
+
+	if req.Offset > 0 {
+		if req.Offset >= len(rows) {
+			rows = nil
+		} else {
+			rows = rows[req.Offset:]
+		}
+	}
+	if req.Limit > 0 && len(rows) > req.Limit {
+		rows = rows[:req.Limit]
+	}
+
+	return &pg.QueryResponse{Rows: rows, Total: total}, nil
+}
+
+// matchesFilter checks if a document satisfies a Mango-style filter map.
+func matchesFilter(doc map[string]any, filter map[string]any) bool {
+	for field, condition := range filter {
+		val := doc[field]
+		switch cond := condition.(type) {
+		case map[string]any:
+			for op, operand := range cond {
+				if !applyOp(val, op, operand) {
+					return false
+				}
+			}
+		default:
+			if !valuesEqual(val, cond) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func applyOp(val any, op string, operand any) bool {
+	switch op {
+	case "$eq":
+		return valuesEqual(val, operand)
+	case "$ne":
+		return !valuesEqual(val, operand)
+	case "$exists":
+		want, _ := operand.(bool)
+		return (val != nil) == want
+	case "$gt":
+		return toFloat(val) > toFloat(operand)
+	case "$gte":
+		return toFloat(val) >= toFloat(operand)
+	case "$lt":
+		return toFloat(val) < toFloat(operand)
+	case "$lte":
+		return toFloat(val) <= toFloat(operand)
+	case "$in":
+		arr, _ := operand.([]any)
+		for _, item := range arr {
+			if valuesEqual(val, item) {
+				return true
+			}
+		}
+		return false
+	case "$nin":
+		arr, _ := operand.([]any)
+		for _, item := range arr {
+			if valuesEqual(val, item) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// valuesEqual compares two JSON-deserialized values with type safety.
+// Falls back to string comparison for types not explicitly handled.
+func valuesEqual(a, b any) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	switch va := a.(type) {
+	case string:
+		vb, ok := b.(string)
+		return ok && va == vb
+	case float64:
+		vb, ok := b.(float64)
+		return ok && va == vb
+	case bool:
+		vb, ok := b.(bool)
+		return ok && va == vb
+	}
+	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
+}
+
+func toFloat(v any) float64 {
+	switch n := v.(type) {
+	case float64:
+		return n
+	case float32:
+		return float64(n)
+	case int:
+		return float64(n)
+	case int64:
+		return float64(n)
+	}
+	return 0
+}
+
+// sortRows returns a new sorted slice without mutating the input.
+// Pre-unmarshals documents once to avoid repeated json.Unmarshal in the comparator.
+func sortRows(rows []pg.KVRow, sortSpec []string) []pg.KVRow {
+	type decorated struct {
+		row pg.KVRow
+		doc map[string]any
+	}
+	items := make([]decorated, len(rows))
+	for i, r := range rows {
+		var doc map[string]any
+		_ = json.Unmarshal(r.Value, &doc)
+		items[i] = decorated{row: r, doc: doc}
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		for _, s := range sortSpec {
+			desc := strings.HasPrefix(s, "-")
+			field := strings.TrimPrefix(s, "-")
+			si := fmt.Sprintf("%v", items[i].doc[field])
+			sj := fmt.Sprintf("%v", items[j].doc[field])
+			if si == sj {
+				continue
+			}
+			if desc {
+				return si > sj
+			}
+			return si < sj
+		}
+		return false
+	})
+	result := make([]pg.KVRow, len(items))
+	for i, d := range items {
+		result[i] = d.row
+	}
+	return result
+}
+
+// ─── PVC backend ────────────────────────────────────────────────────────────
+
+type pvcConnector struct {
+	cfg Config
+	qe  *queryEngine
+}
+
+var _ pg.ServerConnector = (*pvcConnector)(nil)
+
+func newPVCConnector(cfg Config) (*pvcConnector, error) {
+	if cfg.BaseDir == "" {
+		return nil, fmt.Errorf("PVC_KV_BASE_DIR required for pvc mode")
+	}
+	if cfg.Partition {
+		for _, sub := range []string{"active", "archive"} {
+			if err := os.MkdirAll(filepath.Join(cfg.BaseDir, sub), 0750); err != nil {
+				return nil, fmt.Errorf("mkdir %s: %w", sub, err)
+			}
+		}
+	} else {
+		if err := os.MkdirAll(cfg.BaseDir, 0750); err != nil {
+			return nil, fmt.Errorf("mkdir base: %w", err)
+		}
+	}
+	qe := newQueryEngine(cfg.BaseDir, cfg.Partition)
+	return &pvcConnector{cfg: cfg, qe: qe}, nil
+}
+
+func (c *pvcConnector) activePath(key string) string {
+	if c.cfg.Partition {
+		return filepath.Join(c.cfg.BaseDir, "active", key+".json")
+	}
+	return filepath.Join(c.cfg.BaseDir, key+".json")
+}
+
+func (c *pvcConnector) Read(_ context.Context, key string) (*pg.KVRow, error) {
+	if err := validateKey(key); err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(c.activePath(key))
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("read %q: %w", key, pg.ErrNotFound)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read %q: %w", key, err)
+	}
+	return parseKVRow(key, data)
+}
+
+func (c *pvcConnector) Write(_ context.Context, key string, value json.RawMessage) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
+	path := c.activePath(key)
+	data, err := wrapWithTimestamps(value, path)
+	if err != nil {
+		return fmt.Errorf("write %q: %w", key, err)
+	}
+	return atomicWrite(path, data)
+}
+
+func (c *pvcConnector) WriteConditional(_ context.Context, key string, value json.RawMessage, ifStatus string) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
+	path := c.activePath(key)
+
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+		return fmt.Errorf("conditional write %q mkdir: %w", key, err)
+	}
+
+	// Open existing file only — O_RDWR without O_CREATE so we get ErrNotFound
+	// when the key does not exist rather than silently creating it.
+	f, err := os.OpenFile(path, os.O_RDWR, 0640)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("conditional write %q: %w", key, pg.ErrNotFound)
+	}
+	if err != nil {
+		return fmt.Errorf("conditional write %q open: %w", key, err)
+	}
+	defer f.Close()
+
+	if err := unix.Flock(int(f.Fd()), unix.LOCK_EX); err != nil {
+		return fmt.Errorf("conditional write %q flock: %w", key, err)
+	}
+	defer unix.Flock(int(f.Fd()), unix.LOCK_UN) //nolint:errcheck
+
+	info, _ := f.Stat()
+	existing := make([]byte, info.Size())
+	if info.Size() > 0 {
+		if _, err := f.Read(existing); err != nil {
+			return fmt.Errorf("conditional write %q read: %w", key, err)
+		}
+		var doc map[string]any
+		if err := json.Unmarshal(existing, &doc); err != nil {
+			return fmt.Errorf("conditional write %q unmarshal: %w", key, err)
+		}
+		if status, _ := doc["status"].(string); status != ifStatus {
+			return fmt.Errorf("conditional write %q: %w", key, pg.ErrConditionFailed)
+		}
+	}
+
+	data, err := wrapWithTimestamps(value, path)
+	if err != nil {
+		return fmt.Errorf("conditional write %q wrap: %w", key, err)
+	}
+	if err := f.Truncate(0); err != nil {
+		return fmt.Errorf("conditional write %q truncate: %w", key, err)
+	}
+	if _, err := f.WriteAt(data, 0); err != nil {
+		return fmt.Errorf("conditional write %q write: %w", key, err)
+	}
+	return nil
+}
+
+func (c *pvcConnector) Exists(_ context.Context, key string) (bool, error) {
+	if err := validateKey(key); err != nil {
+		return false, err
+	}
+	_, err := os.Stat(c.activePath(key))
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+func (c *pvcConnector) Delete(_ context.Context, key string) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
+	path := c.activePath(key)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("delete %q: %w", key, pg.ErrNotFound)
+	}
+	if c.cfg.Partition && c.shouldArchive(path) {
+		activeDir := filepath.Join(c.cfg.BaseDir, "active")
+		rel, _ := filepath.Rel(activeDir, path)
+		dst := filepath.Join(c.cfg.BaseDir, "archive", rel)
+		if err := os.MkdirAll(filepath.Dir(dst), 0750); err != nil {
+			return fmt.Errorf("archive mkdir %q: %w", key, err)
+		}
+		if err := os.Rename(path, dst); err != nil {
+			return fmt.Errorf("archive %q: %w", path, err)
+		}
+		return nil
+	}
+	if err := os.Remove(path); err != nil {
+		return fmt.Errorf("delete %q: %w", path, err)
+	}
+	return nil
+}
+
+func (c *pvcConnector) shouldArchive(path string) bool {
+	if len(c.cfg.ArchiveStatuses) == 0 {
+		return false
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return false
+	}
+	status, _ := doc["status"].(string)
+	return slices.Contains(c.cfg.ArchiveStatuses, status)
+}
+
+func (c *pvcConnector) List(_ context.Context, prefix string) ([]string, error) {
+	dir := c.cfg.BaseDir
+	if c.cfg.Partition {
+		dir = filepath.Join(dir, "active")
+	}
+	var keys []string
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".json") {
+			return nil
+		}
+		rel, err := filepath.Rel(dir, path)
+		if err != nil {
+			return nil
+		}
+		key := strings.TrimSuffix(rel, ".json")
+		if strings.HasPrefix(key, prefix) {
+			keys = append(keys, key)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list: %w", err)
+	}
+	sort.Strings(keys)
+	return keys, nil
+}
+
+func (c *pvcConnector) Query(ctx context.Context, req pg.QueryRequest) (*pg.QueryResponse, error) {
+	return c.qe.query(ctx, req)
+}
+
+// ─── file helpers ────────────────────────────────────────────────────────────
+
+// wrapWithTimestamps merges _ca/_ua timestamp fields into the JSON document.
+// Preserves _ca from existing file if present.
+func wrapWithTimestamps(value json.RawMessage, existingPath string) ([]byte, error) {
+	now := time.Now().UTC()
+	createdAt := now
+
+	if existing, err := os.ReadFile(existingPath); err == nil {
+		var doc map[string]json.RawMessage
+		if json.Unmarshal(existing, &doc) == nil {
+			if raw, ok := doc["_ca"]; ok {
+				var t time.Time
+				if json.Unmarshal(raw, &t) == nil && !t.IsZero() {
+					createdAt = t
+				}
+			}
+		}
+	}
+
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(value, &doc); err != nil {
+		return nil, err
+	}
+	caBytes, _ := json.Marshal(createdAt)
+	uaBytes, _ := json.Marshal(now)
+	doc["_ca"] = caBytes
+	doc["_ua"] = uaBytes
+	return json.Marshal(doc)
+}
+
+// parseKVRow deserializes a stored JSON file into a pg.KVRow.
+// Strips internal _ca/_ua fields from the returned Value.
+func parseKVRow(key string, data []byte) (*pg.KVRow, error) {
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return nil, fmt.Errorf("parse %q: %w", key, err)
+	}
+
+	var createdAt, updatedAt time.Time
+	if raw, ok := doc["_ca"]; ok {
+		_ = json.Unmarshal(raw, &createdAt)
+	}
+	if raw, ok := doc["_ua"]; ok {
+		_ = json.Unmarshal(raw, &updatedAt)
+	}
+	delete(doc, "_ca")
+	delete(doc, "_ua")
+
+	value, err := json.Marshal(doc)
+	if err != nil {
+		return nil, err
+	}
+	return &pg.KVRow{Key: key, Value: value, CreatedAt: createdAt, UpdatedAt: updatedAt}, nil
+}
+
+// atomicWrite writes data to path via temp file + rename on the same filesystem.
+// Creates parent directories if they don't exist (keys may contain slashes).
+func atomicWrite(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(dir, ".pvckv-*")
+	if err != nil {
+		return err
+	}
+	name := tmp.Name()
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		os.Remove(name)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(name)
+		return err
+	}
+	return os.Rename(name, path)
+}

@@ -62,6 +62,10 @@ def test_task_persisted_to_database(e2e_helper, gateway_url):
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
+@pytest.mark.skipif(
+    os.getenv("ASYA_STATE_PROXY_BACKEND") == "pvc-kv",
+    reason="pvc-kv uses emptyDir — task state is lost on pod restart by design; requires pg-kv for durable state",
+)
 def test_gateway_restart_preserves_task_history(e2e_helper):
     """
     E2E: Test gateway restart doesn't lose task history.
@@ -352,6 +356,10 @@ def test_concurrent_storage_writes_no_conflicts(e2e_helper, results_bucket):
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
 @pytest.mark.timeout(300)
+@pytest.mark.skipif(
+    os.getenv("ASYA_STATE_PROXY_BACKEND") == "pvc-kv",
+    reason="pvc-kv backend has no PostgreSQL; this test simulates DB failure via kubectl scale postgres",
+)
 def test_database_connection_recovery(e2e_helper):
     """
     E2E: Test gateway recovers from database connection issues.

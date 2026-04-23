@@ -1,9 +1,11 @@
-# Test profile (values.yaml file): RabbitMQ + MinIO
+# Test profile: RabbitMQ + MinIO actor state + pg-kv gateway state
 #
-# This is the default configuration for E2E tests using
-# RabbitMQ for message transport and MinIO for object storage.
+# RabbitMQ transport, MinIO object storage, pg-kv gateway state proxy (PostgreSQL).
 
 namespace: asya-e2e
+
+postgres:
+  enabled: true
 
 localstack:
   enabled: false

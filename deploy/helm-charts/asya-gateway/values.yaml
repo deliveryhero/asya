@@ -55,10 +55,16 @@ a2a:
 # --- State proxy sidecars ---
 stateProxy:
   mesh:
+    # backend selects the state-proxy binary:
+    #   pg-kv  (default) — PostgreSQL; supports multiple replicas
+    #   pvc-kv           — local files or in-memory; requires replicaCount: 1
+    backend: pg-kv
     image:
       repository: ghcr.io/deliveryhero/asya-state-proxy-go
       tag: ""
       pullPolicy: IfNotPresent
+    # For pvc-kv backend, increase memory to ≥512Mi: DuckDB scans JSON files
+    # in-process and materializes results in RAM. 128Mi causes OOMKill under load.
     resources:
       requests:
         cpu: 50m
@@ -68,6 +74,11 @@ stateProxy:
         memory: 128Mi
     socketDir: /var/run/asya-state-proxy-mesh
     indexes: "status"
+    pvcKv:
+      mode: pvc # inmem | pvc
+      storageDir: /data/mesh
+      partition: true
+      archiveStatuses: "completed,failed,canceled,succeeded"
   envelopes:
     enabled: false
     image:

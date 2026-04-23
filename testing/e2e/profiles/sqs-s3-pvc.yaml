@@ -1,9 +1,12 @@
-# Test profile (values.yaml file): SQS + S3
+# Test profile: SQS + S3 actor state + pvc-kv gateway state
 #
-# Tests SQS message transport with S3 object storage
-# (using LocalStack for both SQS and S3 emulation in E2E environment)
+# SQS message transport (LocalStack), S3 actor/crew persistence (LocalStack),
+# pvc-kv gateway state proxy (no PostgreSQL required).
 
 namespace: asya-e2e
+
+postgres:
+  enabled: false
 
 tracing:
   enabled: true
@@ -99,16 +102,25 @@ gateway:
         audience: "asya-gateway-e2e"
   stateProxy:
     mesh:
+      backend: pvc-kv
       image:
         repository: ghcr.io/deliveryhero/asya-state-proxy-go
         tag: dev
         pullPolicy: Never
-  database:
-    host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
-    port: 5432
-    name: asya_gateway
-    username: asya
-    password: asya-db-password
+      # DuckDB requires significantly more memory than pg-kv for in-process
+      # JSON file scans. 512Mi prevents OOMKill under concurrent test load.
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      pvcKv:
+        mode: pvc
+        storageDir: /data/mesh
+        partition: true
+        archiveStatuses: "completed,failed,canceled,succeeded"
   tracing:
     endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
   extraEnvFrom:

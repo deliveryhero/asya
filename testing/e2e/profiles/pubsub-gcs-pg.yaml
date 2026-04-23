@@ -1,9 +1,13 @@
-# Test profile (values.yaml file): Pub/Sub + GCS
+# Test profile: Pub/Sub + GCS actor state + pg-kv gateway state
 #
 # Tests Google Cloud Pub/Sub message transport with GCS object storage
-# (using gcloud Pub/Sub emulator and fake-gcs-server in E2E environment)
+# (using gcloud Pub/Sub emulator and fake-gcs-server in E2E environment).
+# Gateway uses pg-kv (PostgreSQL) for mesh state.
 
 namespace: asya-e2e
+
+postgres:
+  enabled: true
 
 tracing:
   enabled: true

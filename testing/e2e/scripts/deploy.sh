@@ -31,12 +31,13 @@ fi
 
 # Validate profile
 case "$PROFILE" in
-  sqs-s3) ;;
-  rabbitmq-minio) ;;
-  pubsub-gcs) ;;
+  sqs-s3-pg) ;;
+  sqs-s3-pvc) ;;
+  rabbitmq-minio-pg) ;;
+  pubsub-gcs-pg) ;;
   *)
     echo "[!] Unknown profile: $PROFILE"
-    echo "    Valid profiles: sqs-s3, rabbitmq-minio, pubsub-gcs"
+    echo "    Valid profiles: sqs-s3-pg sqs-s3-pvc rabbitmq-minio-pg pubsub-gcs-pg"
     exit 1
     ;;
 esac
@@ -113,21 +114,18 @@ time {
   docker build -t "function-asya-flavors:latest" "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
-  # Build state-proxy-go (pg-kv, always needed for mesh-api)
+  # Build both state-proxy images in parallel (py for actor state, go for gateway state)
+  echo "[.] Building asya-state-proxy-py image..."
+  docker build -t "${IMAGE_PREFIX}asya-state-proxy-py:dev" \
+    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile" \
+    "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
+  STATE_PROXY_PY_PID=$!
+
   echo "[.] Building asya-state-proxy-go image..."
   docker build -t "${IMAGE_PREFIX}asya-state-proxy-go:dev" \
     -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.go" \
     "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-  PG_KV_BUILD_PID=$!
-
-  # Build state-proxy-py (Python connectors, for active profile)
-  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "pubsub-gcs" ]]; then
-    echo "[.] Building asya-state-proxy-py image..."
-    docker build -t "${IMAGE_PREFIX}asya-state-proxy-py:dev" \
-      -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile" \
-      "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-    STATE_PROXY_BUILD_PID=$!
-  fi
+  STATE_PROXY_GO_PID=$!
 
   # Wait for image builds
   if ! wait "$BUILD_PID"; then
@@ -142,19 +140,17 @@ time {
   fi
   echo "[+] function-asya-flavors image built"
 
-  if ! wait "$PG_KV_BUILD_PID"; then
+  if ! wait "$STATE_PROXY_PY_PID"; then
+    echo "[-] asya-state-proxy-py build failed"
+    exit 1
+  fi
+  echo "[+] asya-state-proxy-py image built"
+
+  if ! wait "$STATE_PROXY_GO_PID"; then
     echo "[-] asya-state-proxy-go build failed"
     exit 1
   fi
   echo "[+] asya-state-proxy-go image built"
-
-  if [[ -n "${STATE_PROXY_BUILD_PID:-}" ]]; then
-    if ! wait "$STATE_PROXY_BUILD_PID"; then
-      echo "[-] State-proxy connector image build failed"
-      exit 1
-    fi
-    echo "[+] State-proxy connector image built"
-  fi
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -217,12 +213,9 @@ time {
     "asya-sidecar:latest"
     "asya-crew:latest"
     "asya-testing:latest"
+    "asya-state-proxy-py:dev"
     "asya-state-proxy-go:dev"
   )
-
-  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "pubsub-gcs" ]]; then
-    IMAGES_TO_LOAD+=("asya-state-proxy-py:dev")
-  fi
 
   LOAD_PIDS=()
   for img in "${IMAGES_TO_LOAD[@]}"; do
@@ -382,7 +375,7 @@ time {
     --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
   echo "[+] JWKS key pair generated and jwks-keys Secret applied"
 
-  if [[ "$PROFILE" == "sqs-s3" ]]; then
+  if [[ "$PROFILE" == "sqs-s3-pg" ]] || [[ "$PROFILE" == "sqs-s3-pvc" ]]; then
     # AWS credentials for Crossplane provider (credentials file format)
     kubectl create secret generic aws-creds \
       -n crossplane-system \
@@ -403,7 +396,7 @@ aws_secret_access_key = test
 
     # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
     # Do NOT create it here — Helm requires ownership metadata on managed resources
-  elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
+  elif [[ "$PROFILE" == "pubsub-gcs-pg" ]]; then
     # Generate a real RSA private key so the GCP auth library can sign the JWT assertion.
     # A placeholder key fails to parse, so the provider can never reach the mock OAuth server.
     # The mock OAuth server (mock-oauth.asya-system) accepts any POST and returns a dummy
