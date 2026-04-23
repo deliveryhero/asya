@@ -8,8 +8,11 @@ import socket
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from asya_state_proxy.connectors._query import ObjectStoreQueryMixin, QueryRequest
+from asya_state_proxy.connectors._query import MAX_RESULT_ROWS, ObjectStoreQueryMixin, QueryRequest
 from asya_state_proxy.interface import StateProxyConnector
+
+
+_MAX_QUERY_BODY = 1_048_576  # 1 MiB
 
 
 logger = logging.getLogger("asya.state-proxy")
@@ -234,8 +237,19 @@ def _make_handler(connector: StateProxyConnector) -> type:
                 _json_error(self, 501, "not_implemented", "connector does not support /query")
                 return
 
-            content_length = self.headers.get("Content-Length")
-            body = self.rfile.read(int(content_length)) if content_length else b""
+            content_length_hdr = self.headers.get("Content-Length")
+            if content_length_hdr is not None:
+                try:
+                    content_length = int(content_length_hdr)
+                except ValueError:
+                    _json_error(self, 400, "bad_request", "invalid Content-Length")
+                    return
+                if content_length < 0 or content_length > _MAX_QUERY_BODY:
+                    _json_error(self, 413, "payload_too_large", f"body must be <= {_MAX_QUERY_BODY} bytes")
+                    return
+                body = self.rfile.read(content_length)
+            else:
+                body = b""
 
             try:
                 raw = json.loads(body) if body else {}
@@ -243,12 +257,40 @@ def _make_handler(connector: StateProxyConnector) -> type:
                 _json_error(self, 400, "bad_request", "invalid JSON body")
                 return
 
+            if not isinstance(raw, dict):
+                _json_error(self, 400, "bad_request", "request body must be a JSON object")
+                return
+
+            raw_filter = raw.get("filter", {})
+            raw_sort = raw.get("sort", [])
+            if not isinstance(raw_filter, dict):
+                _json_error(self, 400, "bad_request", "filter must be an object")
+                return
+            if not isinstance(raw_sort, list):
+                _json_error(self, 400, "bad_request", "sort must be an array")
+                return
+
+            try:
+                raw_limit = int(raw.get("limit", 0))
+                raw_offset = int(raw.get("offset", 0))
+            except (TypeError, ValueError):
+                _json_error(self, 400, "bad_request", "limit and offset must be integers")
+                return
+
+            if raw_limit < 0 or raw_offset < 0:
+                _json_error(self, 400, "bad_request", "limit and offset must be non-negative")
+                return
+
+            if raw_limit > MAX_RESULT_ROWS:
+                _json_error(self, 400, "bad_request", f"limit must be <= {MAX_RESULT_ROWS}")
+                return
+
             req = QueryRequest(
-                prefix=raw.get("prefix", ""),
-                filter=raw.get("filter", {}),
-                sort=raw.get("sort", []),
-                limit=int(raw.get("limit", 0)),
-                offset=int(raw.get("offset", 0)),
+                prefix=str(raw.get("prefix", "")),
+                filter=raw_filter,
+                sort=raw_sort,
+                limit=raw_limit,
+                offset=raw_offset,
             )
 
             try:

@@ -7,6 +7,8 @@ import socket
 
 import pytest
 
+_CONNECTOR_SOCKET = "/var/run/asya/state/meta.sock"
+
 
 class _UnixHTTPConnection(http.client.HTTPConnection):
     """HTTP connection over Unix socket."""
@@ -73,3 +75,32 @@ def runtime():
 def connector_profile():
     """Current connector profile name from CONNECTOR_PROFILE env var."""
     return os.environ.get("CONNECTOR_PROFILE", "s3-lww")
+
+
+class ConnectorClient:
+    """Direct HTTP client for the state proxy connector Unix socket.
+
+    Used to call /query and other connector endpoints that bypass the runtime.
+    """
+
+    def __init__(self, socket_path: str = _CONNECTOR_SOCKET) -> None:
+        self._socket_path = socket_path
+
+    def post_query(self, body: dict) -> tuple[int, dict]:
+        """POST /query to the connector socket. Returns (status_code, body_dict)."""
+        conn = _UnixHTTPConnection(self._socket_path)
+        data = json.dumps(body).encode()
+        conn.request(
+            "POST",
+            "/query",
+            body=data,
+            headers={"Content-Type": "application/json", "Content-Length": str(len(data))},
+        )
+        resp = conn.getresponse()
+        return resp.status, json.loads(resp.read())
+
+
+@pytest.fixture
+def connector_client():
+    """Client that calls the connector socket directly (not via the runtime)."""
+    return ConnectorClient()

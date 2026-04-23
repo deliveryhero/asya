@@ -154,7 +154,10 @@ class S3BufferedLWW(ObjectStoreQueryMixin, S3XattrMixin, StateProxyConnector):
 
         DuckDB streams from S3 without loading all objects into memory; the caller's
         LIMIT clause is pushed down so only the needed chunks are fetched.
+        Returns True when no objects match (caller returns empty QueryResult).
         """
+        import duckdb
+
         configure_s3_httpfs(conn, self._region, self._endpoint_url)
 
         _safe_sql_str(prefix, "prefix")
@@ -163,7 +166,12 @@ class S3BufferedLWW(ObjectStoreQueryMixin, S3XattrMixin, StateProxyConnector):
         glob = f"s3://{self._bucket}/{full_prefix}**"
 
         sql = f"CREATE VIEW _tmp AS SELECT filename, content FROM read_text('{glob}') WHERE content IS NOT NULL"  # nosec B608  # nosemgrep
-        conn.execute(sql)
-        count = conn.execute("SELECT COUNT(*) FROM _tmp").fetchone()[0]
-        logger.debug("query/httpfs: prefix=%r glob=%r count=%d", prefix, glob, count)
-        return count == 0
+        try:
+            conn.execute(sql)  # nosemgrep
+        except duckdb.IOException:
+            # DuckDB raises IOException when the glob matches no S3 objects.
+            logger.debug("query/httpfs: no objects match prefix=%r glob=%r", prefix, glob)
+            return True
+
+        logger.debug("query/httpfs: glob=%r view created", glob)
+        return False

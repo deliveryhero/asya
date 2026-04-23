@@ -29,6 +29,8 @@ _VALID_FIELD = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_.]*$")
 MAX_QUERY_KEYS = 10_000
 # Cap fetch per call for the temp-file path only; httpfs path has no cap.
 MAX_FETCH_KEYS = 1_000
+# Hard cap on result rows returned per call — protects against OOM.
+MAX_RESULT_ROWS = 10_000
 
 
 @dataclass
@@ -52,6 +54,12 @@ def _validate_field(name: str) -> None:
 
 
 def _build_where(filter_map: dict[str, Any]) -> tuple[str, list[Any]]:
+    """Build a parameterized DuckDB WHERE clause from a Mango filter.
+
+    Field names are validated against _VALID_FIELD (alphanumeric/underscore/dot
+    only) before inclusion in the SQL string. Filter values are always passed as
+    `?` parameters — never embedded in the SQL string — so this is not injectable.
+    """
     if not filter_map:
         return "", []
     parts = []
@@ -64,6 +72,10 @@ def _build_where(filter_map: dict[str, Any]) -> tuple[str, list[Any]]:
 
 
 def _build_order(sort_fields: list[str]) -> str:
+    """Build a DuckDB ORDER BY clause from sort field names.
+
+    Each field name is validated against _VALID_FIELD before inclusion.
+    """
     if not sort_fields:
         return ""
     parts = []
@@ -78,7 +90,11 @@ def _build_order(sort_fields: list[str]) -> str:
 
 
 def _safe_sql_str(value: str, name: str) -> str:
-    """Verify a string is safe to embed inside a SQL single-quoted literal."""
+    """Verify a string is safe to embed inside a SQL single-quoted literal.
+
+    Rejects values that contain single quotes (would close the literal),
+    newlines, or carriage returns (could be used for injection via line splitting).
+    """
     if "'" in value or "\n" in value or "\r" in value:
         raise ValueError(f"Unsafe {name} value — cannot embed in SQL string literal")
     return value
@@ -103,7 +119,10 @@ class ObjectStoreQueryMixin:
 
         where, params = _build_where(req.filter)
         order = _build_order(req.sort)
-        limit_clause = f" LIMIT {req.limit}" if req.limit else ""
+
+        # Always apply an upper bound: use the caller-supplied limit or MAX_RESULT_ROWS.
+        effective_limit = req.limit if 0 < req.limit <= MAX_RESULT_ROWS else MAX_RESULT_ROWS
+        limit_clause = f" LIMIT {effective_limit}"
         offset_clause = f" OFFSET {req.offset}" if req.offset else ""
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -113,14 +132,13 @@ class ObjectStoreQueryMixin:
                 if empty:
                     return QueryResult(rows=[], total=0)
 
-                # `where` and `order` are built from validated field names only; values
-                # are passed as `params` (parameterized) — not subject to SQL injection.
+                # Safety: field names are regex-validated; values are in `params` (parameterized).
                 count_sql = f"SELECT COUNT(*) FROM _tmp{where}"  # nosec B608  # nosemgrep
-                total_row = conn.execute(count_sql, params).fetchone()
+                total_row = conn.execute(count_sql, params).fetchone()  # nosemgrep
                 total = total_row[0] if total_row else 0
 
                 data_sql = f"SELECT content FROM _tmp{where}{order}{limit_clause}{offset_clause}"  # nosec B608  # nosemgrep
-                rows_raw = conn.execute(data_sql, params).fetchall()
+                rows_raw = conn.execute(data_sql, params).fetchall()  # nosemgrep
             finally:
                 conn.close()
 
@@ -154,9 +172,9 @@ class ObjectStoreQueryMixin:
 
         _fetch_to_dir(self, fetch_keys, tmpdir)
         glob = os.path.join(tmpdir, "*.json")
-        # glob is a local temp-dir path, not user input.
+        # glob is a system temp-dir path, not user input.
         load_sql = f"CREATE TABLE _tmp AS SELECT filename, content FROM read_text('{glob}') WHERE content IS NOT NULL"  # nosec B608  # nosemgrep
-        conn.execute(load_sql)
+        conn.execute(load_sql)  # nosemgrep
         return False
 
 
@@ -181,8 +199,9 @@ def configure_s3_httpfs(conn: Any, region: str, endpoint_url: str | None) -> Non
 
     Uses credential_chain for real AWS (reads env vars, IRSA, instance profile).
     Explicit credentials are used when a custom endpoint is set (LocalStack, MinIO).
+    All string values embedded in the SQL literal are validated by _safe_sql_str.
     """
-    conn.execute("LOAD httpfs")
+    conn.execute("LOAD httpfs")  # nosemgrep
 
     if endpoint_url:
         # Custom endpoint: strip protocol, use path-style URLs.
@@ -192,7 +211,8 @@ def configure_s3_httpfs(conn: Any, region: str, endpoint_url: str | None) -> Non
         secret = _safe_sql_str(os.environ.get("AWS_SECRET_ACCESS_KEY", ""), "AWS_SECRET_ACCESS_KEY")
         ep_safe = _safe_sql_str(ep, "AWS_ENDPOINT_URL")
         region_safe = _safe_sql_str(region, "AWS_REGION")
-        conn.execute(
+        # Values are operator-supplied env vars, validated by _safe_sql_str (no single quotes).
+        secret_sql = (  # nosec B608  # nosemgrep
             f"CREATE SECRET _s3 ("
             f"  TYPE S3,"
             f"  KEY_ID '{key_id}',"
@@ -203,7 +223,9 @@ def configure_s3_httpfs(conn: Any, region: str, endpoint_url: str | None) -> Non
             f"  USE_SSL {str(use_ssl).lower()}"
             f")"
         )
+        conn.execute(secret_sql)  # nosemgrep
     else:
         # Real AWS: let credential_chain handle env vars, IRSA, instance profile.
         region_safe = _safe_sql_str(region, "AWS_REGION")
-        conn.execute(f"CREATE SECRET _s3 (  TYPE S3,  PROVIDER credential_chain,  REGION '{region_safe}')")
+        secret_sql = f"CREATE SECRET _s3 (TYPE S3, PROVIDER credential_chain, REGION '{region_safe}')"  # nosec B608  # nosemgrep
+        conn.execute(secret_sql)  # nosemgrep
