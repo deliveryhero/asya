@@ -1,6 +1,11 @@
+FROM grafana/k6:latest AS k6
+
 FROM python:3.13-slim
 
 WORKDIR /opt/asya
+
+# k6 binary for asya-loadtest chart Jobs
+COPY --from=k6 /usr/bin/k6 /usr/bin/k6
 
 # Install CLI tools used by Helm tests (curl, wget, jq)
 # and kubectl for Kubernetes resource inspection

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: asya-loadtest
+description: k6-based load testing for Asya installations — direct transport injection or via gateway protocols (mesh-api,
+  A2A, MCP)
+type: application
+# versions are replaced automatically by .github/workflows/release.yml
+version: 0.0.0
+appVersion: "0.0.0"
+keywords:
+- asya
+- loadtest
+- k6
+- performance
+maintainers:
+- name: Asya Team

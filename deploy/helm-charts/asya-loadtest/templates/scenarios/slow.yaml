@@ -1,0 +1,56 @@
+{{- if .Values.scenarios.slow.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loadtest-slow-handler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+data:
+  handler.py: |
+    import asyncio
+    import os
+
+    async def handler(payload: dict) -> dict:
+        delay_ms = int(os.getenv("LOADTEST_DELAY_MS", "500"))
+        await asyncio.sleep(delay_ms / 1000)
+        return payload
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: loadtest-slow
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+    asya.sh/loadtest: "true"
+spec:
+  actor: loadtest-slow
+
+  image: {{ include "asya-loadtest.image" . }}
+  imagePullPolicy: {{ .Values.workload.image.pullPolicy }}
+  handler: handler.handler
+
+  env:
+  - name: PYTHONPATH
+    value: /app
+  - name: LOADTEST_DELAY_MS
+    value: {{ .Values.scenarios.slow.delayMs | quote }}
+
+  volumeMounts:
+  - name: handler
+    mountPath: /app
+
+  volumes:
+  - name: handler
+    configMap:
+      name: loadtest-slow-handler
+
+  scaling:
+    enabled: true
+    minReplicaCount: {{ .Values.scenarios.slow.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.scenarios.slow.scaling.maxReplicaCount }}
+    pollingInterval: {{ .Values.scenarios.slow.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scenarios.slow.scaling.cooldownPeriod }}
+    queueLength: {{ .Values.scenarios.slow.scaling.queueLength }}
+{{- end }}

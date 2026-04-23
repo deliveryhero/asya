@@ -1,0 +1,49 @@
+{{- if .Values.scenarios.echo.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loadtest-echo-handler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+data:
+  handler.py: |
+    async def handler(payload: dict) -> dict:
+        return payload
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: loadtest-echo
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+    asya.sh/loadtest: "true"
+spec:
+  actor: loadtest-echo
+
+  image: {{ include "asya-loadtest.image" . }}
+  imagePullPolicy: {{ .Values.workload.image.pullPolicy }}
+  handler: handler.handler
+
+  env:
+  - name: PYTHONPATH
+    value: /app
+
+  volumeMounts:
+  - name: handler
+    mountPath: /app
+
+  volumes:
+  - name: handler
+    configMap:
+      name: loadtest-echo-handler
+
+  scaling:
+    enabled: true
+    minReplicaCount: {{ .Values.scenarios.echo.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.scenarios.echo.scaling.maxReplicaCount }}
+    pollingInterval: {{ .Values.scenarios.echo.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scenarios.echo.scaling.cooldownPeriod }}
+    queueLength: {{ .Values.scenarios.echo.scaling.queueLength }}
+{{- end }}
