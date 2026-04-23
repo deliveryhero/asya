@@ -56,7 +56,7 @@ See [docs/reference/components/](docs/reference/components/) for component deep-
 
 **Examples** (`examples/`):
 - `asyas/` — real-world AsyncActor CRD manifests; use as reference when writing or reviewing actor specs
-- `flows/` — teaser flow DSL files; comprehensive examples (including agentic flows) are in [examples/end-to-end/monorepo/](examples/end-to-end/monorepo/)
+- `flows/` — teaser flow DSL (Domain-Specific Language) files; comprehensive examples (including agentic flows) are in [examples/end-to-end/monorepo/](examples/end-to-end/monorepo/)
 - `end-to-end/monorepo/` — full working examples organized by category (control-flow, agentic, resiliency, compiler-sugar, text-improver)
 
 **Crossplane chart** (`deploy/helm-charts/asya-crossplane/`): Deploys XRDs, Compositions, and provider configurations for AsyncActor resource management. The `render-deployment` composition step renders the complete pod spec (runtime container + asya-sidecar + state proxies + volumes) using values from the chart's `sidecar:` block.
