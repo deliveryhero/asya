@@ -1,6 +1,15 @@
-git-aint state | 2026-04-21T14:11:21Z
+git-aint state | 2026-04-23T11:40:58Z
 
-Working(7) Open(142) Closed(374)
+Working(10) Open(144) Closed(374)
+
+[7lh94] "merge asya-samples into examples/end-to-end/monorepo"  P2 working
+  .aint/active/aint.merge-asya-samples-into-examples-end-to-end.7lh94.md
+
+[c7mnc] "Gateway chart: s3/gcs backend for mesh state proxy, update e2e profiles"  P2 working
+  .aint/active/aint.mesh-state-proxy-backends.c7mnc.md
+
+[okw15] "Consolidate state proxy images: asya-state-proxy-py and asya-state-proxy-go"  P2 working
+  .aint/active/aint.state-proxy-images.okw15.md
 
 [n6g6h] "asya-lab"  P2 working  [2/14 done]
   .aint/active/aint.asya-lab.n6g6h/ adr.click-over-argparse.md, adr.compiler-template-not-helm.md, adr.ds-config-management-research.md, adr.k-d-command-split.md, adr.kustomize-not-extra-dependency.md, adr.no-cog.md, conversation-tilt.txt, refactor-config-with-templates.md, research-build-system.md, research-compiler-knowledge-base.md, research-compiler-resolution.md, research-config-setup.md, research-no-dockerfile.md, research-seamless-build.md, rfc-ui-components.md, rfc.md
@@ -47,19 +56,21 @@ Working(7) Open(142) Closed(374)
   ├── [1j0yi] "Gateway: remove queue-name fallback once status.phase is stable"  open
   └── [w5tgs] "Shorten default kubectl get asya view"  merged
 
-[8v7o0] "autoresearch"  P2 open  (recently modified)
-  .aint/active/aint.autoresearch.8v7o0/ adr.compiled-flow-not-free-routing-actor.md, adr.dual-mount-same-backend.md, adr.git-state-proxy-over-git-sync.md, adr.rl-framing-for-experiment-loop.md, design.dataset-state-proxy.md, rfc.md
+[2dich] "Go GCS-backed state proxy (gcs-kv) with DuckDB /query — mirrors s3kv"  P2 open  (recently modified)
+  .aint/active/aint.gcs-kv.2dich.md
 
 [ezpsa] "Observability init"  P2 working  [0/2]
   .aint/active/aint.observability-init.ezpsa/ rfc.md
   ├── [n84dj] "Retry delay observability: per-retry-event metrics and logging"  open
   └── [1f4gd] "Configure OTEL env vars for user metrics in runtime container"  open
 
-[63keu] "RFC: Replace asya-gateway with asya-mesh-api + protocol adapters"  P1 open  (recently modified)
-  .aint/active/aint.gateway-rearchitect.63keu/ adr.agentgateway-mcp-only.md, adr.db-metadata-only.md, adr.envelope-gateway-url.md, adr.mcp-a2a-siblings.md, adr.mesh-universal-api.md, adr.protocol-adapters-as-sidecars.md, adr.two-step-dispatch.md, adr.uri-based-consistent-hash.md, rfc-addendum.md, rfc.md
+[8v7o0] "autoresearch"  P2 open  (recently modified)
+  .aint/active/aint.autoresearch.8v7o0/ adr.compiled-flow-not-free-routing-actor.md, adr.dual-mount-same-backend.md, adr.git-state-proxy-over-git-sync.md, adr.rl-framing-for-experiment-loop.md, design.dataset-state-proxy.md, rfc.md
 
 [kzy6w] "Gateway rearchitect debt"  P3 open  (recently modified)
   .aint/active/aint.gateway-rearchitect-debt.kzy6w/
+
+[63keu] "RFC: Replace asya-gateway with asya-mesh-api + protocol adapters"  P1 open
 
 [emmc5] "Implement A2A protocol"  P2 open
 
@@ -81,15 +92,7 @@ Working(7) Open(142) Closed(374)
 
 [l899s] "New transports"  P2 open
 
-[hb1v1] "Local testing workflow in docker-compose"  P2 open
-
-[enren] "Design workflow for asya flows"  P2 open
-
-[mxzgo] "Flow DSL Free Variables and Iteration"  P2 open
-
-[2w664] "A/B/N Traffic Routing for Actor Pipelines"  P2 open
-
-10 open aints not shown (git aint get)
+14 open aints not shown (git aint get)
 
 Closed(5):
 [mtlj2] "Fix flaky SLA integration test (sidecar-runtime rabbitmq)"  merged

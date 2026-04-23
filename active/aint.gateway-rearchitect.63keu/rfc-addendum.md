@@ -86,16 +86,42 @@ asya-gateway (deployment unit = K8s Deployment)
 ├── mesh-api              (:8080 ext, :8081 int)
 ├── mcp-adapter           (:8082)
 ├── a2a-adapter           (:8083)
-├── state-proxy-mesh      (PG connector, for envelope metadata)
+├── state-proxy-mesh      (pg-kv default; or local-kv for low-infra — see §11)
 └── state-proxy-envelopes (S3 connector, OPTIONAL, for full envelopes/history)
 ```
 
 - `asya-gateway` = the deployment (Go module at `src/asya-gateway/`)
 - `mesh-api`, `mcp-adapter`, `a2a-adapter` = binaries within the deployment
-- `state-proxy-mesh` = PG state-proxy sidecar (mesh-api talks to this)
-- `state-proxy-envelopes` = S3 state-proxy sidecar (a2a-adapter talks to this for history)
+- `state-proxy-mesh` = state-proxy sidecar for mesh-api; backend is configurable
+- `state-proxy-envelopes` = S3/GCS state-proxy sidecar (a2a-adapter talks to this for history)
 - Header remains `x-asya-gateway-url` (the deployment name)
 - No backward compatibility needed (zero production use cases)
+
+## 11. State-Proxy Backends for Gateway Mesh State
+
+Three supported backends for `stateProxy.mesh` (see ADR: state-proxy-backends):
+
+| Backend | Use case | Replicas | Notes |
+|---|---|---|---|
+| `pg-kv` (default) | Production, any scale | any | 1 SQL query for FindExpired |
+| `local-kv` | Low-infra, single replica | **1 only** | in-memory or PVC; no external deps |
+| `s3kv` / `gcskv` | Actor state analytics | any | NOT recommended for gateway mesh state (see below) |
+
+**S3/GCS is NOT a good gateway mesh state backend.** FindExpired requires
+O(n) S3 GETs per cycle — at 1000 active tasks + 5s interval ≈ 12,000 API
+requests/minute. Instead, s3kv/gcskv are positioned as **actor state query
+tools**: actors persist results to S3/GCS; downstream analytics queries them
+via Mango filter. See ADR: state-proxy-backends.
+
+**local-kv single-replica constraint:** in-memory mode is inconsistent across
+replicas (no shared state); PVC mode uses ReadWriteOnce block storage (only one
+pod can mount). The Helm chart emits a validation error if `backend: local-kv`
+and `replicaCount > 1`.
+
+**E2E profile naming convention** reflects the gateway state backend:
+- `pubsub-gcs-pg` — Pub/Sub + GCS actor state + pg-kv gateway
+- `sqs-s3-pg`     — SQS + S3 actor state + pg-kv gateway
+- `sqs-s3-pvc`    — SQS + S3 actor state + local-kv (pvc mode) gateway; no Postgres
 
 ## 8. SSE Event Schema (Asya-Native)
 
