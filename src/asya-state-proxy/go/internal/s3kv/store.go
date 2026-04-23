@@ -48,16 +48,28 @@ func (c *connector) Read(ctx context.Context, key string) (*KVRow, error) {
 	return c.backend.Read(ctx, key)
 }
 func (c *connector) Write(ctx context.Context, key string, value json.RawMessage) error {
-	return c.backend.Write(ctx, key, value)
+	err := c.backend.Write(ctx, key, value)
+	if err == nil {
+		c.QueryEngine.InvalidateCache()
+	}
+	return err
 }
 func (c *connector) WriteConditional(ctx context.Context, key string, value json.RawMessage, ifStatus string) error {
-	return c.backend.WriteConditional(ctx, key, value, ifStatus)
+	err := c.backend.WriteConditional(ctx, key, value, ifStatus)
+	if err == nil {
+		c.QueryEngine.InvalidateCache()
+	}
+	return err
 }
 func (c *connector) Exists(ctx context.Context, key string) (bool, error) {
 	return c.backend.Exists(ctx, key)
 }
 func (c *connector) Delete(ctx context.Context, key string) error {
-	return c.backend.Delete(ctx, key)
+	err := c.backend.Delete(ctx, key)
+	if err == nil {
+		c.QueryEngine.InvalidateCache()
+	}
+	return err
 }
 func (c *connector) List(ctx context.Context, prefix string) ([]string, error) {
 	return c.backend.List(ctx, prefix)

@@ -50,10 +50,15 @@ var validField = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 // QueryEngine executes Mango-style queries against S3 JSON objects using DuckDB.
 // S3 access is handled by aws-sdk-go-v2; DuckDB reads from a temporary directory
 // (no httpfs extension required).
+// queryCacheTTL is just under the mesh-api backstop interval (~5s) so that the
+// first FindExpired call per window hits S3 and subsequent ones serve from cache.
+const queryCacheTTL = 4 * time.Second
+
 type QueryEngine struct {
 	mu        sync.Mutex // DuckDB in-process: serialize concurrent queries
 	db        *sql.DB
 	connector StorageBackend
+	cache     *queryCache
 	logger    *slog.Logger
 }
 
@@ -71,12 +76,19 @@ func NewQueryEngine(c StorageBackend, logger *slog.Logger) (*QueryEngine, error)
 		db.Close()
 		return nil, fmt.Errorf("duckdb ping: %w", err)
 	}
-	return &QueryEngine{db: db, connector: c, logger: logger}, nil
+	return &QueryEngine{db: db, connector: c, cache: newQueryCache(queryCacheTTL), logger: logger}, nil
 }
 
 // Close shuts down the DuckDB engine.
 func (q *QueryEngine) Close() error {
 	return q.db.Close()
+}
+
+// InvalidateCache clears all cached query results. Must be called after any
+// state mutation (Write, WriteConditional, Delete) so the next Query returns
+// fresh data rather than a stale cached response.
+func (q *QueryEngine) InvalidateCache() {
+	q.cache.Invalidate()
 }
 
 // Query fetches matching S3 documents, loads them into DuckDB in-memory, and
@@ -95,6 +107,12 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
+	}
+
+	// Cache check (outside the DuckDB mutex — no S3 or DuckDB work needed).
+	if cached, ok := q.cache.Get(req); ok {
+		q.logger.Debug("query cache hit")
+		return cached, nil
 	}
 
 	q.mu.Lock()
@@ -212,8 +230,10 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 		return nil, fmt.Errorf("duckdb rows: %w", err)
 	}
 
+	resp := &QueryResponse{Rows: result, Total: total}
+	q.cache.Set(req, resp)
 	q.logger.Debug("query done", "returned", len(result), "total", total)
-	return &QueryResponse{Rows: result, Total: total}, nil
+	return resp, nil
 }
 
 // fetchToTempDir downloads S3 documents for the given logical keys and writes
