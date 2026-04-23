@@ -1,8 +1,15 @@
 package s3kv
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -193,4 +200,115 @@ func TestToAnySlice_PreservesTypes(t *testing.T) {
 
 func TestToAnySlice_NotASlice(t *testing.T) {
 	assert.Nil(t, toAnySlice("not a slice"))
+}
+
+// --- QueryEngine integration (real DuckDB, mock S3) ---
+
+// makeS3Doc serialises a flat+nested document into a mock S3 GetObjectOutput.
+func makeS3Doc(t *testing.T, fields map[string]any) *s3.GetObjectOutput {
+	t.Helper()
+	fields["_ca"] = "2026-04-22T10:00:00.000000000Z"
+	fields["_ua"] = "2026-04-22T10:05:00.000000000Z"
+	b, err := json.Marshal(fields)
+	require.NoError(t, err)
+	return &s3.GetObjectOutput{Body: io.NopCloser(bytes.NewReader(b))}
+}
+
+// TestQueryEngine_RoundtripWithNestedPayload verifies that the DuckDB query
+// pipeline correctly round-trips documents that contain nested JSON objects.
+// This is a regression test for the struct_pack(* EXCLUDE (filename)) bug
+// (DuckDB does not allow STAR inside a function argument) and for the
+// json.Marshal column-scan approach that replaced it.
+func TestQueryEngine_RoundtripWithNestedPayload(t *testing.T) {
+	docs := map[string]map[string]any{
+		"task-1": {
+			"status": "pending",
+			"actor":  "test-echo",
+			"payload": map[string]any{
+				"question": "hello",
+				"meta":     map[string]any{"trace": "abc123"},
+			},
+		},
+		"task-2": {
+			"status": "running",
+			"actor":  "test-doubler",
+			"payload": map[string]any{
+				"value": 42.0,
+			},
+		},
+	}
+
+	mock := &mockS3Client{
+		listObjectsV2Fn: func(_ context.Context, _ *s3.ListObjectsV2Input, _ ...func(*s3.Options)) (*s3.ListObjectsV2Output, error) {
+			return &s3.ListObjectsV2Output{
+				Contents: []s3types.Object{
+					{Key: aws.String("mesh/msg/task-1.json")},
+					{Key: aws.String("mesh/msg/task-2.json")},
+				},
+			}, nil
+		},
+		getObjectFn: func(_ context.Context, params *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+			key := aws.ToString(params.Key)
+			switch key {
+			case "mesh/msg/task-1.json":
+				return makeS3Doc(t, copyMap(docs["task-1"])), nil
+			case "mesh/msg/task-2.json":
+				return makeS3Doc(t, copyMap(docs["task-2"])), nil
+			}
+			return nil, &s3types.NoSuchKey{}
+		},
+	}
+
+	conn := NewConnector(mock, "bucket", "mesh/msg", nil)
+	qe, err := NewQueryEngine(conn, nil)
+	require.NoError(t, err)
+	defer qe.Close()
+
+	// Query for all rows (no filter).
+	resp, err := qe.Query(context.Background(), QueryRequest{Prefix: ""})
+	require.NoError(t, err)
+	assert.Equal(t, 2, resp.Total)
+	assert.Len(t, resp.Rows, 2)
+
+	// Index by key for order-independent assertions.
+	byKey := make(map[string]KVRow, 2)
+	for _, r := range resp.Rows {
+		byKey[r.Key] = r
+	}
+
+	// Verify task-1: nested payload round-trips correctly.
+	r1, ok := byKey["task-1"]
+	require.True(t, ok, "task-1 missing from results")
+	assert.False(t, r1.CreatedAt.IsZero(), "created_at must be set")
+	var v1 map[string]any
+	require.NoError(t, json.Unmarshal(r1.Value, &v1))
+	assert.Equal(t, "pending", v1["status"])
+	payload1, ok := v1["payload"].(map[string]any)
+	require.True(t, ok, "payload must be a map")
+	assert.Equal(t, "hello", payload1["question"])
+
+	// Verify task-2: numeric payload field.
+	r2, ok := byKey["task-2"]
+	require.True(t, ok, "task-2 missing from results")
+	var v2 map[string]any
+	require.NoError(t, json.Unmarshal(r2.Value, &v2))
+	assert.Equal(t, "running", v2["status"])
+
+	// Query with a status filter.
+	resp2, err := qe.Query(context.Background(), QueryRequest{
+		Prefix: "",
+		Filter: map[string]any{"status": "pending"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, resp2.Total)
+	assert.Len(t, resp2.Rows, 1)
+	assert.Equal(t, "task-1", resp2.Rows[0].Key)
+}
+
+func copyMap(m map[string]any) map[string]any {
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
 }
