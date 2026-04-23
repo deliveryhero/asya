@@ -10,17 +10,6 @@ postgres:
 localstack:
   enabled: false
 
-tracing:
-  enabled: true
-
-observability:
-  prometheus:
-    enabled: true
-  loki:
-    enabled: true
-  promtail:
-    enabled: true
-
 transport:
   rabbitmq:
     enabled: true
