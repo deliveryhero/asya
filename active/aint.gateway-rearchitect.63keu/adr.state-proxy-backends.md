@@ -86,15 +86,20 @@ Profile names encode the gateway state backend to make the test matrix explicit:
 
 ## Consequences
 
-- s3kv/gcskv are kept in the codebase as actor state tools; the DuckDB /query
-  bugs fixed during this work (read_text, context timeout, maxFetchKeys, doc
-  cache) remain valuable for that use case.
+- s3kv/gcskv Go connectors are kept in the codebase as actor state tools; the
+  DuckDB bugs fixed during that work (read_text vs read_json_auto, context
+  isolation, maxFetchKeys, doc cache) remain in the old branch for reference.
 - local-kv is a new binary in `asya-state-proxy-go` (no new Docker image;
-  selected via `command: ["/local-kv"]` override in the Helm chart).
+  selected via `command: ["/local-kv"]` override in the Helm chart). Tracked
+  under aint m4d5u.
 - The `sqs-s3-pvc` E2E profile validates a zero-database gateway deployment.
-- Python state proxy connectors (s3_buffered_lww, gcs_buffered_lww, etc.) will
-  gain a `/query` endpoint via python-duckdb (tracked separately), enabling
-  analytics queries from Python actor pipelines.
+- **Python /query shipped (PR #463).** `s3-buffered-lww` and `gcs-buffered-lww`
+  connectors now expose `POST /query` via DuckDB in-process. Implementation uses
+  the connector's existing boto3/GCS SDK credential chain (not DuckDB httpfs —
+  httpfs has S3-compat gaps with MinIO/LocalStack). Per-call limits are
+  configurable via `QUERY_MAX_*` env vars and wired into the `asya-crew`
+  Helm chart. Disk usage bounded by `QUERY_MAX_FETCH_BYTES` (default 256 MiB)
+  with a stop-after-write policy so single large objects are always retrievable.
 
 ## Alternatives Considered
 

@@ -11,54 +11,55 @@ dependencies:
   - 9bb3j
 ---
 
-## Scope (two PRs, owned together)
+## What shipped (PR #463)
 
-**PR #457** — asya-gateway Helm chart: configurable `stateProxy.mesh.backend`
-(pg-kv | s3kv | gcskv | s3 | gcs). All Go binaries ship in one
-`asya-state-proxy-go` image; binary selected by `command:` override.
+`POST /query` on `s3-buffered-lww` and `gcs-buffered-lww` Python connectors.
+Mango-style filter/sort/limit/offset over stored objects via DuckDB in-process.
 
-**PR #458** — s3kv + gcskv Go connectors (S3+DuckDB, GCS+DuckDB).
-Also includes gcskv (GCS+DuckDB, PR #461 merged in).
+### Implementation decisions
 
-## Repositioning: s3kv/gcskv are actor-state query tools, NOT gateway backends
+**boto3 fetch path, not httpfs.**
+DuckDB's S3 httpfs reimplements SigV4 signing and has known compatibility gaps
+with MinIO and LocalStack (all component tests returned 500). Using the connector's
+own `list()` + `read()` (boto3 / GCS SDK) and writing to a temp dir is portable
+across every S3-compatible store, relies on the existing credential chain, and
+requires no extra configuration.
 
-**Why not gateway mesh state:**
-FindExpired needs O(n) S3 GETs per cycle (one per active task).
-At 1000 active tasks + 5s interval ≈ 12,000 GETs/min — expensive and slow.
-pg-kv answers the same query with one SQL WHERE clause.
+**Disk budget (`MAX_TOTAL_FETCH_BYTES = 256 MiB`).**
+`_fetch_to_dir` stops after the file that pushes total bytes over the budget,
+so a single large object is always returned but a flood cannot fill container
+ephemeral storage. Configurable via `QUERY_MAX_FETCH_BYTES`.
 
-**Correct use case — actor state analytics:**
-Actors persist results/outputs to S3/GCS at pipeline end. Users query
-historical messages for analytics and debugging via Mango filter on DuckDB.
-The connector is **schema-agnostic** (no active/archive schema baked in;
-partitioning is the actor's concern, not the connector's).
+**All limits are env-var configurable.**
+`QUERY_MAX_KEYS`, `QUERY_MAX_FETCH_KEYS`, `QUERY_MAX_FETCH_BYTES`,
+`QUERY_MAX_RESULT_ROWS` are read at startup via `_env_int()`. Defaults are
+conservative (256 MiB, 1 000 fetched keys, 10 000 listed keys, 10 000 result rows).
+Wired into the `asya-crew` Helm chart via `persistence.config.query.*`.
 
-Example: image generation pipeline writes `{bucket}/run-123/result.json`.
-Downstream analytics actor calls `POST /query {"filter": {"model": "sdxl",
-"status": "done"}}` to find all completed jobs across runs.
+**HTTP server hardening.**
+Body size limited to 1 MiB; `filter` and `sort` types validated before reaching
+connector code; negative limit/offset rejected; `limit > MAX_RESULT_ROWS` rejected.
 
-## DuckDB bugs fixed in PR #458
+### Test coverage
 
-1. `duckdb.Map` type: `read_json_auto` maps nested JSON → `duckdb.Map`,
-   not serializable. Fixed: `read_text` + `json_extract_string(content, '$.field')`.
-2. Context cancellation: mesh-api's short FindExpired deadline canceled S3 GETs
-   mid-flight. Fixed: independent `context.WithTimeout(Background, 30s)`.
-3. `maxFetchKeys=1000` + rotating cursor: bounded per-call latency; all keys
-   seen over time (50s full sweep at 10k active tasks).
-4. Document-level TTL cache (4s): avoids redundant S3 GETs for stable tasks.
+- 203 Python unit tests (helpers, stub connector, S3 via moto, HTTP server)
+- 2 precise budget tests via monkeypatch (stop-after-second, single-large-object)
+- 11 component tests in `testing/component/state-proxy/tests/test_query.py`
+  covering filter, prefix scope, limit, sort, validation; auto-skip on 501 connectors
 
-## E2E profiles (naming reflects gateway state backend)
+### Docs and charts
 
-- `pubsub-gcs-pg` — Pub/Sub + GCS actor state + **pg-kv** gateway mesh state
-- `sqs-s3-pg`    — SQS + S3 actor state + **pg-kv** gateway mesh state (current)
+- `docs/reference/state-proxy-connectors/s3.md` — `/query` section with request
+  format, limit table (env vars, defaults, exceeded behaviour), Helm example
+- `docs/reference/state-proxy-connectors/gcs.md` — same
+- `docs/contributing/testing-state-proxy.md` — component test notes for /query
+- `deploy/helm-charts/asya-crew/` — `persistence.config.query.*` values wired
+  to `QUERY_MAX_*` env vars on the connector container
 
-The `sqs-s3-pvc` profile (SQS + S3 + local-kv gateway) is tracked under the
-new aint for local-kv.
+## History (closed PRs)
 
-## Follow-up: Python /query (Aint A)
-
-Add `/query` to Python actor state proxies (s3_buffered_lww, gcs_buffered_lww,
-etc.) via `python-duckdb`. DuckDB httpfs reads S3/GCS directly — no temp
-copies. New optional extra: `"query" = ["duckdb>=0.10"]`.
-
-See plan.md for full execution plan.
+**PR #457** (closed) — asya-gateway Helm chart: configurable `stateProxy.mesh.backend`.
+**PR #458** (closed) — s3kv + gcskv Go connectors (S3/GCS+DuckDB). Included multiple
+DuckDB stability fixes (read_text vs read_json_auto, context isolation, maxFetchKeys).
+Both closed in favour of a clean rebase; the Go connector work is preserved in the
+old branch `gateway-rearchitect/i0ewl.s3-kv-duckdb`.

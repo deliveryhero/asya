@@ -113,6 +113,14 @@ requests/minute. Instead, s3kv/gcskv are positioned as **actor state query
 tools**: actors persist results to S3/GCS; downstream analytics queries them
 via Mango filter. See ADR: state-proxy-backends.
 
+**Actor state analytics (shipped, PR #463):** the primary delivery of the s3kv/gcskv
+positioning is `POST /query` on the Python connectors (`s3-buffered-lww`,
+`gcs-buffered-lww`). Objects are fetched via the connector's own credential chain
+(boto3 / GCS SDK — not DuckDB httpfs, which has MinIO/LocalStack compat gaps) and
+queried locally with DuckDB. Per-call limits (`QUERY_MAX_FETCH_BYTES` default 256 MiB,
+`QUERY_MAX_FETCH_KEYS` default 1 000) protect container disk. Configurable via
+`persistence.config.query.*` in the `asya-crew` Helm chart.
+
 **local-kv single-replica constraint:** in-memory mode is inconsistent across
 replicas (no shared state); PVC mode uses ReadWriteOnce block storage (only one
 pod can mount). The Helm chart emits a validation error if `backend: local-kv`
