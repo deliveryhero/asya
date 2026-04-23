@@ -3,6 +3,7 @@ package s3kv
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -147,8 +148,10 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 	limitOffset := buildLimitOffset(req.Limit, req.Offset)
 
-	selectSQL := "SELECT filename, to_json(struct_pack(* EXCLUDE (filename))) AS doc FROM _tmp" +
-		where + orderBy + limitOffset
+	// DuckDB does not allow STAR inside a function call (struct_pack(*) fails with
+	// "STAR expression is only allowed as the root element of an expression").
+	// Use SELECT * and exclude the filename column in Go instead.
+	selectSQL := "SELECT * FROM _tmp" + where + orderBy + limitOffset // nosemgrep
 
 	rows, err := q.db.QueryContext(ctx, selectSQL, args...) // nosemgrep
 	if err != nil {
@@ -156,15 +159,41 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 	defer rows.Close()
 
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("duckdb columns: %w", err)
+	}
+
 	// Step 6: build KVRow slice.
 	var result []KVRow
 	for rows.Next() {
-		var filename, docStr string
-		if err := rows.Scan(&filename, &docStr); err != nil {
+		vals := make([]any, len(cols))
+		ptrs := make([]any, len(cols))
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
 			return nil, fmt.Errorf("duckdb scan: %w", err)
 		}
+		// Build doc JSON from all columns except filename.
+		var filename string
+		docMap := make(map[string]any, len(cols)-1)
+		for i, col := range cols {
+			if col == "filename" {
+				if s, ok := vals[i].(string); ok {
+					filename = s
+				}
+			} else {
+				docMap[col] = vals[i]
+			}
+		}
+		docJSON, err := json.Marshal(docMap)
+		if err != nil {
+			q.logger.Warn("skip un-marshallable row", "key", filename, "err", err)
+			continue
+		}
 		logKey := logicalKeyFromFile(filename, tmpDir)
-		row, err := parseStored(logKey, []byte(docStr))
+		row, err := parseStored(logKey, docJSON)
 		if err != nil {
 			q.logger.Warn("skip unparseable row", "key", logKey, "err", err)
 			continue
