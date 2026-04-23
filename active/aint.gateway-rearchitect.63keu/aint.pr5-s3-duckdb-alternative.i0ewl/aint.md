@@ -1,13 +1,12 @@
 ---
-title: "PR5+PR7: S3/GCS actor-state query connector (DuckDB /query) + gateway chart backends"
-status: pushed
+title: "PR5: DuckDB /query for S3/GCS Python state proxy connectors"
+status: merged
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
   - gateway-rearchitect
-  - pr:457
-  - pr:458
-  - branch:gateway-rearchitect/i0ewl.s3-kv-duckdb
+  - pr:463
+  - branch:gateway-rearchitect/i0ewl.py-duckdb-query
 dependencies:
   - 9bb3j
 ---
