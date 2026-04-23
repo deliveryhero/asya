@@ -55,7 +55,10 @@ func (q *queryEngine) query(ctx context.Context, req pg.QueryRequest) (*pg.Query
 	// glob all JSON files recursively; prefix filtering happens in WHERE clause
 	glob := filepath.Join(scanDir, "**/*.json")
 
-	// read_text avoids the duckdb.Map type issue that read_json_auto produces
+	// read_text avoids the duckdb.Map type issue that read_json_auto produces.
+	// CREATE TABLE (not VIEW) materializes results once per query, which is
+	// efficient for local files since subsequent WHERE/ORDER/LIMIT passes avoid
+	// re-scanning the directory.
 	loadSQL := fmt.Sprintf(
 		"CREATE OR REPLACE TABLE _pvckv AS SELECT filename, content FROM read_text('%s')",
 		strings.ReplaceAll(glob, "'", "''"),
@@ -73,7 +76,10 @@ func (q *queryEngine) query(ctx context.Context, req pg.QueryRequest) (*pg.Query
 		return nil, err
 	}
 
-	orderBy := buildDuckDBOrderBy(req.Sort)
+	orderBy, err := buildDuckDBOrderBy(req.Sort)
+	if err != nil {
+		return nil, err
+	}
 
 	if req.Count {
 		var total int
@@ -124,19 +130,26 @@ func filenameToKey(filename, scanDir string) string {
 	return key
 }
 
+// escapeLike escapes LIKE special characters (%, _, \) in a literal string.
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return s
+}
+
 // buildDuckDBWhere translates a Mango filter map into a DuckDB WHERE clause.
-// Also adds a prefix filter on the filename if prefix is non-empty.
-// Uses json_extract_string(content, '$.field') for all field access.
+// Field names are validated against a strict identifier pattern to prevent SQL
+// injection. Prefix filter uses LIKE with escaped special characters.
 func buildDuckDBWhere(filter map[string]any, prefix, scanDir string) (string, []any, error) {
 	var conditions []string
 	var args []any
 	idx := 1
 
-	// Prefix filter: filename must start with {scanDir}/{prefix}
+	// Prefix filter on the absolute filename path, with LIKE special chars escaped.
 	if prefix != "" {
-		// DuckDB filename is an absolute path; key = filename minus scanDir prefix and .json suffix
-		conditions = append(conditions, fmt.Sprintf("filename LIKE $%d", idx))
-		args = append(args, filepath.Join(scanDir, prefix)+"%")
+		conditions = append(conditions, fmt.Sprintf("filename LIKE $%d ESCAPE '\\'", idx))
+		args = append(args, escapeLike(filepath.Join(scanDir, prefix))+"%")
 		idx++
 	}
 
@@ -155,6 +168,9 @@ func buildDuckDBWhere(filter map[string]any, prefix, scanDir string) (string, []
 	sort.Strings(keys)
 
 	for _, field := range keys {
+		if err := validateFieldName(field); err != nil {
+			return "", nil, err
+		}
 		condition := filter[field]
 		expr := fmt.Sprintf("json_extract_string(content, '$.%s')", field)
 
@@ -221,14 +237,20 @@ func numericOp(op string) (string, error) {
 	return "", fmt.Errorf("unsupported operator: %s", op)
 }
 
-func buildDuckDBOrderBy(sortSpec []string) string {
+// buildDuckDBOrderBy translates sort specs into a DuckDB ORDER BY clause.
+// Field names are validated against a strict identifier pattern to prevent SQL
+// injection. Prefix "-" means descending order.
+func buildDuckDBOrderBy(sortSpec []string) (string, error) {
 	if len(sortSpec) == 0 {
-		return ""
+		return "", nil
 	}
 	var parts []string
 	for _, s := range sortSpec {
 		desc := strings.HasPrefix(s, "-")
 		field := strings.TrimPrefix(s, "-")
+		if err := validateFieldName(field); err != nil {
+			return "", err
+		}
 		expr := fmt.Sprintf("json_extract_string(content, '$.%s')", field)
 		if desc {
 			parts = append(parts, expr+" DESC")
@@ -236,5 +258,5 @@ func buildDuckDBOrderBy(sortSpec []string) string {
 			parts = append(parts, expr+" ASC")
 		}
 	}
-	return " ORDER BY " + strings.Join(parts, ", ")
+	return " ORDER BY " + strings.Join(parts, ", "), nil
 }

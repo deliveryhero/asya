@@ -133,9 +133,28 @@ func TestBuildDuckDBWhere_UnsupportedOp(t *testing.T) {
 }
 
 func TestBuildDuckDBOrderBy(t *testing.T) {
-	assert.Equal(t, "", buildDuckDBOrderBy(nil))
-	assert.Contains(t, buildDuckDBOrderBy([]string{"-status"}), "DESC")
-	assert.Contains(t, buildDuckDBOrderBy([]string{"status"}), "ASC")
+	s, err := buildDuckDBOrderBy(nil)
+	require.NoError(t, err)
+	assert.Equal(t, "", s)
+
+	s, err = buildDuckDBOrderBy([]string{"-status"})
+	require.NoError(t, err)
+	assert.Contains(t, s, "DESC")
+
+	s, err = buildDuckDBOrderBy([]string{"status"})
+	require.NoError(t, err)
+	assert.Contains(t, s, "ASC")
+
+	_, err = buildDuckDBOrderBy([]string{"status; DROP TABLE"})
+	assert.Error(t, err)
+}
+
+func TestBuildDuckDBWhere_FieldValidation(t *testing.T) {
+	_, _, err := buildDuckDBWhere(map[string]any{"ok_field": "val"}, "", "/d")
+	require.NoError(t, err)
+
+	_, _, err = buildDuckDBWhere(map[string]any{"bad'; DROP TABLE--": "val"}, "", "/d")
+	assert.Error(t, err)
 }
 
 func TestPVC_Query_DuckDB(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -16,6 +17,53 @@ import (
 
 	"github.com/deliveryhero/asya/asya-state-proxy-go/internal/pg"
 )
+
+// validFieldName matches safe JSON field names used in filter/sort expressions.
+// Mirrors pg.validFieldName to prevent SQL injection via crafted field names.
+var validFieldName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// validateFieldName returns an error if field contains characters outside the
+// allowed identifier pattern, preventing SQL injection in DuckDB expressions.
+func validateFieldName(field string) error {
+	if !validFieldName.MatchString(field) {
+		return fmt.Errorf("%w: %q", pg.ErrInvalidFieldName, field)
+	}
+	return nil
+}
+
+// validateKey rejects keys containing path traversal sequences that could
+// escape the storage base directory.
+func validateKey(key string) error {
+	for _, part := range strings.Split(key, "/") {
+		if part == ".." || part == "." {
+			return fmt.Errorf("invalid key %q: path traversal not allowed", key)
+		}
+	}
+	return nil
+}
+
+// ─── Config ─────────────────────────────────────────────────────────────────
+
+// Config controls which backend and options are used.
+type Config struct {
+	Mode            string   // "inmem" | "pvc"
+	BaseDir         string   // PVC_KV_BASE_DIR, required for pvc mode
+	Partition       bool     // PVC_KV_PARTITION — enables active/ + archive/ subdirs
+	ArchiveStatuses []string // statuses moved to archive/ on delete
+}
+
+// NewConnector creates a pg.ServerConnector backed by local storage.
+// The returned value can be passed directly to pg.NewHTTPHandler.
+func NewConnector(cfg Config) (pg.ServerConnector, error) {
+	switch cfg.Mode {
+	case "inmem":
+		return newInMemConnector(), nil
+	case "pvc":
+		return newPVCConnector(cfg)
+	default:
+		return nil, fmt.Errorf("unknown PVC_KV_MODE %q: expected inmem or pvc", cfg.Mode)
+	}
+}
 
 // ─── In-memory backend ──────────────────────────────────────────────────────
 
@@ -128,7 +176,7 @@ func (c *inMemConnector) Query(_ context.Context, req pg.QueryRequest) (*pg.Quer
 	}
 
 	if len(req.Sort) > 0 {
-		sortRows(rows, req.Sort)
+		rows = sortRows(rows, req.Sort)
 	}
 
 	total := len(rows)
@@ -207,7 +255,23 @@ func applyOp(val any, op string, operand any) bool {
 	return false
 }
 
+// valuesEqual compares two JSON-deserialized values with type safety.
+// Falls back to string comparison for types not explicitly handled.
 func valuesEqual(a, b any) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	switch va := a.(type) {
+	case string:
+		vb, ok := b.(string)
+		return ok && va == vb
+	case float64:
+		vb, ok := b.(float64)
+		return ok && va == vb
+	case bool:
+		vb, ok := b.(bool)
+		return ok && va == vb
+	}
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
@@ -225,16 +289,25 @@ func toFloat(v any) float64 {
 	return 0
 }
 
-func sortRows(rows []pg.KVRow, sortSpec []string) {
-	sort.SliceStable(rows, func(i, j int) bool {
+// sortRows returns a new sorted slice without mutating the input.
+// Pre-unmarshals documents once to avoid repeated json.Unmarshal in the comparator.
+func sortRows(rows []pg.KVRow, sortSpec []string) []pg.KVRow {
+	type decorated struct {
+		row pg.KVRow
+		doc map[string]any
+	}
+	items := make([]decorated, len(rows))
+	for i, r := range rows {
+		var doc map[string]any
+		_ = json.Unmarshal(r.Value, &doc)
+		items[i] = decorated{row: r, doc: doc}
+	}
+	sort.SliceStable(items, func(i, j int) bool {
 		for _, s := range sortSpec {
 			desc := strings.HasPrefix(s, "-")
 			field := strings.TrimPrefix(s, "-")
-			var di, dj map[string]any
-			_ = json.Unmarshal(rows[i].Value, &di)
-			_ = json.Unmarshal(rows[j].Value, &dj)
-			si := fmt.Sprintf("%v", di[field])
-			sj := fmt.Sprintf("%v", dj[field])
+			si := fmt.Sprintf("%v", items[i].doc[field])
+			sj := fmt.Sprintf("%v", items[j].doc[field])
 			if si == sj {
 				continue
 			}
@@ -245,6 +318,11 @@ func sortRows(rows []pg.KVRow, sortSpec []string) {
 		}
 		return false
 	})
+	result := make([]pg.KVRow, len(items))
+	for i, d := range items {
+		result[i] = d.row
+	}
+	return result
 }
 
 // ─── PVC backend ────────────────────────────────────────────────────────────
@@ -283,6 +361,9 @@ func (c *pvcConnector) activePath(key string) string {
 }
 
 func (c *pvcConnector) Read(_ context.Context, key string) (*pg.KVRow, error) {
+	if err := validateKey(key); err != nil {
+		return nil, err
+	}
 	data, err := os.ReadFile(c.activePath(key))
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("read %q: %w", key, pg.ErrNotFound)
@@ -294,6 +375,9 @@ func (c *pvcConnector) Read(_ context.Context, key string) (*pg.KVRow, error) {
 }
 
 func (c *pvcConnector) Write(_ context.Context, key string, value json.RawMessage) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
 	path := c.activePath(key)
 	data, err := wrapWithTimestamps(value, path)
 	if err != nil {
@@ -303,13 +387,21 @@ func (c *pvcConnector) Write(_ context.Context, key string, value json.RawMessag
 }
 
 func (c *pvcConnector) WriteConditional(_ context.Context, key string, value json.RawMessage, ifStatus string) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
 	path := c.activePath(key)
 
 	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		return fmt.Errorf("conditional write %q mkdir: %w", key, err)
 	}
 
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
+	// Open existing file only — O_RDWR without O_CREATE so we get ErrNotFound
+	// when the key does not exist rather than silently creating it.
+	f, err := os.OpenFile(path, os.O_RDWR, 0640)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("conditional write %q: %w", key, pg.ErrNotFound)
+	}
 	if err != nil {
 		return fmt.Errorf("conditional write %q open: %w", key, err)
 	}
@@ -349,6 +441,9 @@ func (c *pvcConnector) WriteConditional(_ context.Context, key string, value jso
 }
 
 func (c *pvcConnector) Exists(_ context.Context, key string) (bool, error) {
+	if err := validateKey(key); err != nil {
+		return false, err
+	}
 	_, err := os.Stat(c.activePath(key))
 	if os.IsNotExist(err) {
 		return false, nil
@@ -357,6 +452,9 @@ func (c *pvcConnector) Exists(_ context.Context, key string) (bool, error) {
 }
 
 func (c *pvcConnector) Delete(_ context.Context, key string) error {
+	if err := validateKey(key); err != nil {
+		return err
+	}
 	path := c.activePath(key)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return fmt.Errorf("delete %q: %w", key, pg.ErrNotFound)
@@ -405,7 +503,6 @@ func (c *pvcConnector) List(_ context.Context, prefix string) ([]string, error) 
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".json") {
 			return nil
 		}
-		// Derive logical key: strip base dir + separator, strip .json suffix
 		rel, err := filepath.Rel(dir, path)
 		if err != nil {
 			return nil
