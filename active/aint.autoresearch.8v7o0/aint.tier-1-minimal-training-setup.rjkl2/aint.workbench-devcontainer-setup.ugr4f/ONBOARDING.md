@@ -121,6 +121,121 @@ tensorboard --logdir /tracking/ --bind_all --port 6006
 # Then port-forward from local: kubectl port-forward deploy/workbench 6006:6006
 ```
 
+## Code Delivery Options
+
+Choose based on how much code the actor needs:
+
+| Method | Use when | Limit |
+|---|---|---|
+| ConfigMap | Small handler script, no external deps | ~1 MB |
+| git-sync init container | Full repo needed, or non-installable scripts | Shallow clone, fast |
+| pip-install init container | Repo has `pyproject.toml`, only need public API | Any pip-installable repo |
+
+### Option A: ConfigMap (small scripts)
+
+```bash
+kubectl create configmap train-vit-handler -n atem \
+  --from-file=handler.py=experiments/train.py
+```
+
+Reference in AsyncActor via `spec.configMaps` (see simple-actor example).
+
+### Option B: git-sync init container (full repo)
+
+First, create the git credentials Secret (one-time per namespace):
+
+```bash
+kubectl create secret generic git-creds -n atem \
+  --from-literal=token=<your-github-pat>
+```
+
+Then deploy using the git-sync pattern. The init container clones the branch
+at pod startup; the runtime container sees the repo at `/code/repo`:
+
+```yaml
+spec:
+  volumes:
+    - name: code
+      emptyDir: {}
+  initContainers:
+    - name: git-sync
+      image: registry.k8s.io/git-sync/git-sync:v4.2.3
+      args:
+        - --repo=https://github.com/my-org/my-repo.git
+        - --ref=experiment/vit-v1
+        - --root=/code
+        - --link=repo
+        - --one-time
+        - --depth=1
+      env:
+        - name: GITSYNC_USERNAME
+          value: x-access-token
+        - name: GITSYNC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: git-creds
+              key: token
+      volumeMounts:
+        - name: code
+          mountPath: /code
+  volumeMounts:
+    - name: code
+      mountPath: /code
+      readOnly: true
+  env:
+    - name: PYTHONPATH
+      value: /code/repo
+```
+
+Full example: `examples/asyas/training-actor-git-sync.yaml` in the Asya repo.
+
+### Option C: pip-install init container (single package)
+
+Same git-creds Secret as Option B. Useful when the repo has a `pyproject.toml`
+and you only need the package's public API (not raw source files):
+
+```yaml
+spec:
+  volumes:
+    - name: code
+      emptyDir: {}
+  initContainers:
+    - name: install-code
+      image: python:3.13-slim
+      command:
+        - sh
+        - -c
+        - >-
+          pip install --target=/code --no-deps
+          git+https://x-access-token:${GIT_TOKEN}@github.com/my-org/my-repo.git@${GIT_BRANCH}
+      env:
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: git-creds
+              key: token
+        - name: GIT_BRANCH
+          value: experiment/vit-v1
+      volumeMounts:
+        - name: code
+          mountPath: /code
+  volumeMounts:
+    - name: code
+      mountPath: /code
+      readOnly: true
+  env:
+    - name: PYTHONPATH
+      value: /code
+```
+
+Full example: `examples/asyas/training-actor-pip-install.yaml` in the Asya repo.
+
+### Note on secrets in init containers
+
+`spec.secretRefs` only injects into `asya-runtime`. Init containers reference
+secrets directly via `env[].valueFrom.secretKeyRef` inside the init container
+spec, as shown above.
+
 ## Data Locations
 
 | Data | Where | Why |
