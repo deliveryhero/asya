@@ -59,7 +59,7 @@ spec:
           value: {{ include "asya-loadtest.scenariosJson" . | quote }}
         - name: K6_VUS
           value: {{ .Values.k6.vus | quote }}
-        - name: K6_STAGES
+        - name: ASYA_K6_STAGES
           value: {{ $stages | toJson | quote }}
         {{- if .Values.metrics.prometheus.remoteWriteUrl }}
         - name: K6_PROMETHEUS_RW_SERVER_URL

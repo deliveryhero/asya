@@ -54,7 +54,7 @@ data:
 
     export const options = {
       vus: parseInt(__ENV.K6_VUS),
-      stages: JSON.parse(__ENV.K6_STAGES),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
     };
 
     export default function () {
@@ -81,7 +81,7 @@ data:
 
     export const options = {
       vus: parseInt(__ENV.K6_VUS),
-      stages: JSON.parse(__ENV.K6_STAGES),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
     };
 
     export default function () {
@@ -110,7 +110,7 @@ data:
 
     export const options = {
       vus: parseInt(__ENV.K6_VUS),
-      stages: JSON.parse(__ENV.K6_STAGES),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
     };
 
     export default function () {
@@ -149,7 +149,7 @@ data:
 
     export const options = {
       vus: parseInt(__ENV.K6_VUS),
-      stages: JSON.parse(__ENV.K6_STAGES),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
     };
 
     // Per-VU MCP session ID — initialized lazily on the first iteration.
