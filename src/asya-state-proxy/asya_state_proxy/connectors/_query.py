@@ -26,16 +26,27 @@ logger = logging.getLogger("asya.state-proxy")
 # Guard field names against SQL injection.
 _VALID_FIELD = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_.]*$")
 
-# Hard limit on list() results for a single query call.
-MAX_QUERY_KEYS = 10_000
-# Max number of objects fetched per call (first N from the listing).
-MAX_FETCH_KEYS = 1_000
-# Total bytes budget for the per-call temp dir. Objects that would push the
-# accumulated download past this limit are skipped with a warning so a handful
-# of large objects cannot fill the container's ephemeral storage.
-MAX_TOTAL_FETCH_BYTES = 256 * 1024 * 1024  # 256 MiB
-# Hard cap on result rows returned per call — protects against OOM.
-MAX_RESULT_ROWS = 10_000
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("invalid %s=%r — must be an integer; using default %d", name, raw, default)
+        return default
+
+
+# All limits are configurable via environment variables so operators can tune
+# them per deployment without rebuilding the image. See docs for guidance.
+MAX_QUERY_KEYS: int = _env_int("QUERY_MAX_KEYS", 10_000)
+MAX_FETCH_KEYS: int = _env_int("QUERY_MAX_FETCH_KEYS", 1_000)
+# Total bytes fetched into the temp dir per call. Stops (with a warning) after
+# writing the file that pushed the total over the budget so that a single large
+# object is always retrievable but a flood of large objects cannot fill the disk.
+MAX_TOTAL_FETCH_BYTES: int = _env_int("QUERY_MAX_FETCH_BYTES", 256 * 1024 * 1024)  # 256 MiB
+MAX_RESULT_ROWS: int = _env_int("QUERY_MAX_RESULT_ROWS", 10_000)
 
 
 @dataclass

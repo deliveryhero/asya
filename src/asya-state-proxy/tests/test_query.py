@@ -284,20 +284,42 @@ def test_stub_query_non_json_doc_skipped() -> None:
     assert result.total >= 1
 
 
-def test_stub_query_bytes_budget_stops_fetch() -> None:
-    """Objects that push total bytes past MAX_TOTAL_FETCH_BYTES are skipped."""
-    from asya_state_proxy.connectors._query import MAX_TOTAL_FETCH_BYTES
+def test_bytes_budget_stops_after_second_object(monkeypatch) -> None:
+    """Budget check fires *after* writing each file (so first object always returned).
+
+    With a budget set to 1.5x one document's byte size:
+      - Object 1 written (total < budget, continue)
+      - Object 2 written (total > budget, warning logged, stop)
+      - Object 3 never fetched
+    Result: exactly 2 rows returned.
+    """
+    import asya_state_proxy.connectors._query as q_mod
+
+    doc = {"id": "x", "payload": "y" * 50}
+    one_doc_bytes = len(json.dumps(doc).encode())
+    budget = int(one_doc_bytes * 1.5)  # fits exactly 1 doc; triggers stop after 2nd
+
+    monkeypatch.setattr(q_mod, "MAX_TOTAL_FETCH_BYTES", budget)
 
     c = _StubConnector()
-    # Write one object that fills the entire budget.
-    big_payload = {"data": "x" * MAX_TOTAL_FETCH_BYTES}
-    c._put("big/a", big_payload)
-    # Write a second object that would exceed the budget.
-    c._put("big/b", {"status": "ok"})
+    for i in range(3):
+        c._put(f"item/{i}", {**doc, "id": str(i)})
+
+    result = c.query(QueryRequest(prefix="item/"))
+    assert result.total == 2, f"expected 2 rows (3rd skipped by budget), got {result.total}"
+
+
+def test_bytes_budget_single_oversized_object_still_returned(monkeypatch) -> None:
+    """A single object larger than the budget must still be returned (stop fires after write)."""
+    import asya_state_proxy.connectors._query as q_mod
+
+    monkeypatch.setattr(q_mod, "MAX_TOTAL_FETCH_BYTES", 10)  # tiny budget
+
+    c = _StubConnector()
+    c._put("big/doc", {"status": "done", "payload": "x" * 100})
 
     result = c.query(QueryRequest(prefix="big/"))
-    # At least one file was fetched (the first one); the second was skipped.
-    assert result.total >= 1
+    assert result.total == 1  # the single large object is still returned
 
 
 # ---------------------------------------------------------------------------

@@ -55,4 +55,20 @@ data:
             value: {{ . | quote }}
           {{- end }}
           {{- end }}
+          {{- with .Values.persistence.config.query.maxFetchBytes }}
+          - name: QUERY_MAX_FETCH_BYTES
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.persistence.config.query.maxFetchKeys }}
+          - name: QUERY_MAX_FETCH_KEYS
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.persistence.config.query.maxKeys }}
+          - name: QUERY_MAX_KEYS
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.persistence.config.query.maxResultRows }}
+          - name: QUERY_MAX_RESULT_ROWS
+            value: {{ . | quote }}
+          {{- end }}
 {{- end }}

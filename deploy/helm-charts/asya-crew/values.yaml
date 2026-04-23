@@ -273,6 +273,13 @@ persistence:
     secretKey: "" # AWS secret key (S3 only, for dev/LocalStack; use IRSA in production)
     project: "" # GCP project ID (GCS only)
     emulatorHost: "" # GCS emulator host:port (GCS only)
+    # /query endpoint limits — override only when the defaults are too large for your containers.
+    # Unset keys use connector defaults (see docs/reference/state-proxy-connectors/s3.md).
+    query:
+      maxFetchBytes: "" # QUERY_MAX_FETCH_BYTES: total bytes fetched per call (default 256 MiB)
+      maxFetchKeys: "" # QUERY_MAX_FETCH_KEYS: objects downloaded per call (default 1000)
+      maxKeys: "" # QUERY_MAX_KEYS: max objects listed before returning 400 (default 10000)
+      maxResultRows: "" # QUERY_MAX_RESULT_ROWS: SQL LIMIT cap on returned rows (default 10000)
   connector:
     image: "" # auto-selected based on backend if not set
 
