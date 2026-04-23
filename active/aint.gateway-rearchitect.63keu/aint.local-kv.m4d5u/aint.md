@@ -1,6 +1,6 @@
 ---
 title: "PR6: pvc-kv — low-infra gateway state proxy (in-memory + PVC, DuckDB /query)"
-status: working
+status: pushed
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
@@ -11,6 +11,7 @@ tags:
 dependencies:
   - i0ewl
 ---
+
 
 
 New `cmd/local-kv` Go binary: gateway mesh state proxy with zero external
