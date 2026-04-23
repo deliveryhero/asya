@@ -14,7 +14,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -o /pg-kv ./cmd/pg-kv/
 
 # Stage 2: pvc-kv (CGO enabled — requires DuckDB via go-duckdb)
-FROM golang:1.25 AS builder-pvc
+# golang:1.25-bookworm pins Debian 12 (glibc 2.36) to match the kind node.
+FROM golang:1.25-bookworm AS builder-pvc
 ENV GOTOOLCHAIN=local
 WORKDIR /app/go
 
