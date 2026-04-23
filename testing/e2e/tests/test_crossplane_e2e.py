@@ -2225,13 +2225,16 @@ spec:
 
 
 def _get_pod_name(actor_name: str, namespace: str) -> str | None:
-    """Return the name of the first Ready pod for an actor, or None.
+    """Return the name of a Ready, Running, non-terminating pod for an actor.
 
-    Runs 'kubectl wait pod --for=condition=Ready' before querying to close
-    the race between the Crossplane XR Ready condition (Deployment Available)
-    and the pod's Running phase being visible to 'kubectl get pods
-    --field-selector=status.phase=Running'. In CI the two events can be
-    milliseconds apart and the phase update may not have propagated yet.
+    Two races to guard against:
+    1. Phase lag: Crossplane XR Ready fires milliseconds before the pod's
+       status.phase=Running is visible in etcd. A 'kubectl wait' call
+       ensures the pod condition is settled before we query.
+    2. Rolling update: Crossplane reconciliation can trigger a Deployment
+       rollout mid-test, producing a terminating old pod (phase=Running but
+       deletionTimestamp set) alongside a new pod. jsonpath items[0] is
+       arbitrary ordering, so we parse the full list and skip terminating pods.
     """
     subprocess.run(
         [
@@ -2258,16 +2261,25 @@ def _get_pod_name(actor_name: str, namespace: str) -> str | None:
             namespace,
             "-l",
             f"asya.sh/actor={actor_name}",
-            "--field-selector=status.phase=Running",
             "-o",
-            "jsonpath={.items[0].metadata.name}",
+            "json",
         ],
         capture_output=True,
         text=True,
         timeout=10,
     )
-    name = result.stdout.strip()
-    return name if name else None
+    if not result.stdout.strip():
+        return None
+    pods = json.loads(result.stdout).get("items", [])
+    for pod in pods:
+        if pod.get("metadata", {}).get("deletionTimestamp"):
+            continue  # terminating — old pod from a rolling update
+        if pod.get("status", {}).get("phase") != "Running":
+            continue
+        conditions = {c["type"]: c["status"] for c in pod.get("status", {}).get("conditions", [])}
+        if conditions.get("Ready") == "True":
+            return pod["metadata"]["name"]
+    return None
 
 
 @pytest.mark.timeout(300)
