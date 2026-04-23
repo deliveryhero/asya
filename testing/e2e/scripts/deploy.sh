@@ -221,7 +221,7 @@ time {
     "asya-state-proxy-go:dev"
   )
 
-  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "pubsub-gcs" ]]; then
+  if [[ "$PROFILE" == "sqs-s3-pg" ]] || [[ "$PROFILE" == "sqs-s3-pvc" ]] || [[ "$PROFILE" == "pubsub-gcs-pg" ]]; then
     IMAGES_TO_LOAD+=("asya-state-proxy-py:dev")
   fi
 
@@ -383,7 +383,7 @@ time {
     --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
   echo "[+] JWKS key pair generated and jwks-keys Secret applied"
 
-  if [[ "$PROFILE" == "sqs-s3" ]]; then
+  if [[ "$PROFILE" == "sqs-s3-pg" ]] || [[ "$PROFILE" == "sqs-s3-pvc" ]]; then
     # AWS credentials for Crossplane provider (credentials file format)
     kubectl create secret generic aws-creds \
       -n crossplane-system \
@@ -404,7 +404,7 @@ aws_secret_access_key = test
 
     # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
     # Do NOT create it here — Helm requires ownership metadata on managed resources
-  elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
+  elif [[ "$PROFILE" == "pubsub-gcs-pg" ]]; then
     # Generate a real RSA private key so the GCP auth library can sign the JWT assertion.
     # A placeholder key fails to parse, so the provider can never reach the mock OAuth server.
     # The mock OAuth server (mock-oauth.asya-system) accepts any POST and returns a dummy
