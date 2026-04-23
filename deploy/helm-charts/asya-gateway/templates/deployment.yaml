@@ -208,7 +208,7 @@ spec:
         volumeMounts:
         - name: state-proxy-mesh-socket
           mountPath: {{ .Values.stateProxy.mesh.socketDir }}
-        {{- if eq $meshBackend "s3kv" }}
+        {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "s3kv" }}
         - name: state-proxy-mesh-tmp
           mountPath: /tmp
         {{- end }}
@@ -359,7 +359,7 @@ spec:
       volumes:
       - name: state-proxy-mesh-socket
         emptyDir: {}
-      {{- if eq $meshBackend "s3kv" }}
+      {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "s3kv" }}
       - name: state-proxy-mesh-tmp
         emptyDir: {}
       {{- end }}
