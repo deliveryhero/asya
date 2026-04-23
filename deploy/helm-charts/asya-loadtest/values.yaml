@@ -40,7 +40,7 @@ target:
     pubsub:
       project: "" # GCP project ID (required for pubsub)
     rabbitmq:
-      url: "" # amqp://user:pass@host:5672/
+      url: "" # amqp://host:5672/ (include credentials in the URL if auth is required)
 
   mesh:
     # Full URL including path, e.g. http://asya-gateway-api:8080/api/v1/mesh/
