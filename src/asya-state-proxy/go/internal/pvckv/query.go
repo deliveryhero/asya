@@ -59,11 +59,11 @@ func (q *queryEngine) query(ctx context.Context, req pg.QueryRequest) (*pg.Query
 	// CREATE TABLE (not VIEW) materializes results once per query, which is
 	// efficient for local files since subsequent WHERE/ORDER/LIMIT passes avoid
 	// re-scanning the directory.
-	loadSQL := fmt.Sprintf(
+	loadSQL := fmt.Sprintf( // nosemgrep -- glob is a server-controlled filesystem path; single-quotes escaped
 		"CREATE OR REPLACE TABLE _pvckv AS SELECT filename, content FROM read_text('%s')",
 		strings.ReplaceAll(glob, "'", "''"),
 	)
-	if _, err := q.db.ExecContext(ctx, loadSQL); err != nil {
+	if _, err := q.db.ExecContext(ctx, loadSQL); err != nil { // nosemgrep -- loadSQL is server-constructed (glob path only)
 		errStr := err.Error()
 		if strings.Contains(errStr, "No files found") || strings.Contains(errStr, "no files") {
 			return &pg.QueryResponse{Rows: []pg.KVRow{}, Total: 0}, nil
@@ -83,7 +83,7 @@ func (q *queryEngine) query(ctx context.Context, req pg.QueryRequest) (*pg.Query
 
 	if req.Count {
 		var total int
-		if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _pvckv"+where, args...).Scan(&total); err != nil {
+		if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _pvckv"+where, args...).Scan(&total); err != nil { // nosemgrep -- where built from validateFieldName + $N params
 			return nil, fmt.Errorf("duckdb count: %w", err)
 		}
 		return &pg.QueryResponse{Total: total}, nil
@@ -97,7 +97,7 @@ func (q *queryEngine) query(ctx context.Context, req pg.QueryRequest) (*pg.Query
 		limitClause += fmt.Sprintf(" OFFSET %d", req.Offset)
 	}
 
-	rows, err := q.db.QueryContext(ctx,
+	rows, err := q.db.QueryContext(ctx, // nosemgrep -- where/orderBy from validateFieldName + $N params; limitClause is integer-only
 		"SELECT filename, content FROM _pvckv"+where+orderBy+limitClause, args...)
 	if err != nil {
 		return nil, fmt.Errorf("duckdb query: %w", err)
