@@ -63,6 +63,8 @@ stateProxy:
       repository: ghcr.io/deliveryhero/asya-state-proxy-go
       tag: ""
       pullPolicy: IfNotPresent
+    # For pvc-kv backend, increase memory to ≥512Mi: DuckDB scans JSON files
+    # in-process and materializes results in RAM. 128Mi causes OOMKill under load.
     resources:
       requests:
         cpu: 50m

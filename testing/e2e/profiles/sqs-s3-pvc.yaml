@@ -107,6 +107,15 @@ gateway:
         repository: ghcr.io/deliveryhero/asya-state-proxy-go
         tag: dev
         pullPolicy: Never
+      # DuckDB requires significantly more memory than pg-kv for in-process
+      # JSON file scans. 512Mi prevents OOMKill under concurrent test load.
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
       pvcKv:
         mode: pvc
         storageDir: /data/mesh
