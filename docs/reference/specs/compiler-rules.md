@@ -350,8 +350,8 @@ The extracted config record includes scope metadata:
 Nested scopes are tracked independently — each `with` block produces a separate
 config record with its own `scope_actors` list.
 
-See [`flow_with_asyncio_timeout.py`](https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py)
-in [asya-samples](https://github.com/asyacore/asya-samples) for a full walkthrough.
+See [`flow_with_asyncio_timeout.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/resiliency/flows/flow_with_asyncio_timeout.py)
+in [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) for a full walkthrough.
 
 ### Decorators on actor definitions
 
@@ -382,8 +382,8 @@ The extracted config record includes scope metadata:
 The `ASYA_IGNORE_DECORATORS` env var tells asya-runtime to strip the decorator
 before loading the handler module, so `@retry(...)` does not execute at runtime.
 
-See [`flow_decorator_retry.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_retry.py)
-in [asya-samples](https://github.com/asyacore/asya-samples) for a full walkthrough.
+See [`flow_decorator_retry.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_retry.py)
+in [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) for a full walkthrough.
 
 ### Rule-matched vs unknown decorators
 
@@ -442,8 +442,8 @@ p = normalize(p)  # asya: inline    — force inline, no actor boundary
 p = validate(p)   # asya: actor     — force separate actor
 ```
 
-See [`flow_inline_comment_overrides.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_inline_comment_overrides.py)
-in [asya-samples](https://github.com/asyacore/asya-samples) for a working example.
+See [`flow_inline_comment_overrides.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_inline_comment_overrides.py)
+in [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) for a working example.
 
 ---
 
@@ -550,8 +550,8 @@ and outputs for the envelope protocol.
 
 ### Example
 
-See [`flow_tool_adapter.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py)
-in [asya-samples](https://github.com/asyacore/asya-samples).
+See [`flow_tool_adapter.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_tool_adapter.py)
+in [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo).
 
 ---
 

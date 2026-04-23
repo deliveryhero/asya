@@ -2,7 +2,7 @@
 
 Curated examples showing what Asya artifacts look like. For full working examples
 with real LLM calls, multiple categories, and GKE deployment, see
-[asya-samples](https://github.com/asyacore/asya-samples).
+[end-to-end/monorepo/](end-to-end/monorepo/).
 
 ## Flow Examples (`flows/`)
 
@@ -66,6 +66,6 @@ that use the ABI yield protocol for dynamic routing, streaming, and pause/resume
 
 For comprehensive, deployment-ready examples organized by pattern category:
 
-- **[asya-samples](https://github.com/asyacore/asya-samples)** — full monorepo with
+- **[end-to-end/monorepo/](end-to-end/monorepo/)** — full monorepo with
   control-flow, compiler-sugar, agentic, and resiliency pattern categories.
   Includes real LLM actors, Dockerfiles, Skaffold configs, and GKE deployment.

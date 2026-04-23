@@ -364,7 +364,7 @@ failing actor and the end of the try body.
 
 ## See also
 
-- [Examples](../../examples/flows/) — teaser flow examples; comprehensive `try_except_*.py` patterns in [asya-samples/resiliency](https://github.com/asyacore/asya-samples/tree/main/src/resiliency/flows)
+- [Examples](../../examples/flows/) — teaser flow examples; comprehensive `try_except_*.py` patterns in [examples/end-to-end/monorepo/resiliency](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo/src/resiliency/flows)
 - [Actor Timeouts](guide-timeouts.md) — per-actor execution deadlines
 - [Pause/Resume](guide-pause-resume.md) — human-in-the-loop error recovery
 

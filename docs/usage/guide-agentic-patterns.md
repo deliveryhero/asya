@@ -112,7 +112,7 @@ LLM and have nothing to stream. Streaming happens in handler actors.
 
 ## Pattern catalog
 
-The [asya-samples/agentic](https://github.com/asyacore/asya-samples/tree/main/src/agentic/flows) repository contains 15+ compilable flow patterns
+The [examples/end-to-end/monorepo/agentic](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo/src/agentic/flows) section contains 15+ compilable flow patterns
 covering the full spectrum of agentic architectures. The table below maps each
 pattern to common framework equivalents and identifies where in this guide it is
 explained in detail.
@@ -136,7 +136,7 @@ explained in detail.
 | 15 | Plan-and-execute | Flow: sequential + `while` step loop | LangGraph plan-and-execute |
 
 Patterns 1-9 are explained in detail below. Patterns 10-15 follow the same
-primitives; see [asya-samples/agentic](https://github.com/asyacore/asya-samples/tree/main/src/agentic/flows) for compilable code.
+primitives; see [examples/end-to-end/monorepo/agentic](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo/src/agentic/flows) for compilable code.
 
 ---
 
@@ -197,7 +197,7 @@ handler -- the flow provides the outer loop, the actor provides the streaming.
 See [Live streaming](#live-streaming) and
 [Streaming with FLY Events](guide-streaming.md).
 
-Full example: [`flow_react_tool_loop.py`](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_react_tool_loop.py)
+Full example: [`flow_react_tool_loop.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/agentic/flows/flow_react_tool_loop.py)
 
 ---
 
@@ -244,7 +244,7 @@ different prompts, different scaling). The evaluator writes `state["score"]`
 and `state["feedback"]`; the generator reads the feedback on the next
 iteration.
 
-Full example: [`flow_evaluator_optimizer.py`](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_evaluator_optimizer.py)
+Full example: [`flow_evaluator_optimizer.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/agentic/flows/flow_evaluator_optimizer.py)
 
 ---
 
@@ -291,7 +291,7 @@ The orchestrator actor is the only one that requires an LLM -- it examines
 accumulated worker results and decides `next_action`. The `if/elif` dispatch
 compiles to condition routers. Each worker is a separately scaled AsyncActor.
 
-Full example: [`flow_orchestrator_workers.py`](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_orchestrator_workers.py)
+Full example: [`flow_orchestrator_workers.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/agentic/flows/flow_orchestrator_workers.py)
 
 ---
 
@@ -321,7 +321,7 @@ or `output_validator` raises an exception, the envelope is routed to the
 behavior as ADK's `before_model_callback` / `after_model_callback`, but as
 explicit actors in the pipeline.
 
-Full example: [`flow_guardrails_sandwich.py`](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_guardrails_sandwich.py)
+Full example: [`flow_guardrails_sandwich.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/agentic/flows/flow_guardrails_sandwich.py)
 
 ---
 
@@ -415,7 +415,7 @@ async def map_reduce(state: dict) -> dict:
     return state
 ```
 
-See [`flow_map_reduce.py`](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_map_reduce.py) for a full example.
+See [`flow_map_reduce.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/agentic/flows/flow_map_reduce.py) for a full example.
 
 ---
 
@@ -540,7 +540,7 @@ actor → x-pause ── [task paused, human reviews] ──→ x-resume → pos
               sidecar sets x-asya-pause           gateway routes resume
 ```
 
-Compare with [`flow_human_in_the_loop.py`](https://github.com/asyacore/asya-samples/blob/main/src/agentic/flows/flow_human_in_the_loop.py), which shows the
+Compare with [`flow_human_in_the_loop.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/agentic/flows/flow_human_in_the_loop.py), which shows the
 **poll-based approval loop** in Flow DSL: the flow keeps running, hitting an
 `approval_gate` actor that polls for human input. The pause/resume pattern
 here is a true suspension — the envelope is stored, nothing runs until the
@@ -858,7 +858,7 @@ yield payload
 | State proxy and persistent storage | [guide-state-proxy.md](guide-state-proxy.md) |
 | ABI verb reference, path syntax, testing | [ABI Protocol](../reference/specs/abi-protocol.md) |
 | Flow DSL syntax, supported constructs | [Flow DSL](../reference/specs/flow-dsl.md) |
-| Flow DSL examples (19 patterns) | [asya-samples/agentic](https://github.com/asyacore/asya-samples/tree/main/src/agentic/flows) |
+| Flow DSL examples (19 patterns) | [examples/end-to-end/monorepo/agentic](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo/src/agentic/flows) |
 | ABI handler examples (3 patterns) | `examples/actors/agentic/` |
 | Gateway security model (auth, dual-deployment) | [Gateway](../reference/components/core-gateway.md) |
 | Envelope protocol and routing semantics | [Envelope](../reference/specs/envelope.md) |
