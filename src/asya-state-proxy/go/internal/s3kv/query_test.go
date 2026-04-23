@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -311,4 +312,259 @@ func copyMap(m map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+// newQueryEngineWithDocs creates a QueryEngine backed by a fixed set of in-memory docs
+// keyed by logical key → field map.
+//
+// The Connector stores documents in S3 using LITERAL slashes in object keys:
+//   mesh/msg/ns/region/task-abc.json  (not mesh/msg/ns%2Fregion%2Ftask-abc.json)
+//
+// URL-encoding of slashes only happens for temp file names on disk (so DuckDB
+// does not interpret "/" as a directory separator inside tmpDir).
+func newQueryEngineWithDocs(t *testing.T, docs map[string]map[string]any) (*QueryEngine, *Connector) {
+	t.Helper()
+
+	// S3 object keys use literal slashes — same convention as Connector.objectKey().
+	var objects []s3types.Object
+	for k := range docs {
+		objKey := "mesh/msg/" + k + ".json"
+		objects = append(objects, s3types.Object{Key: aws.String(objKey)})
+	}
+
+	mock := &mockS3Client{
+		listObjectsV2Fn: func(_ context.Context, _ *s3.ListObjectsV2Input, _ ...func(*s3.Options)) (*s3.ListObjectsV2Output, error) {
+			return &s3.ListObjectsV2Output{Contents: objects}, nil
+		},
+		getObjectFn: func(_ context.Context, params *s3.GetObjectInput, _ ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+			key := aws.ToString(params.Key)
+			// Strip S3 prefix + .json suffix to recover the logical key.
+			logKey := strings.TrimPrefix(key, "mesh/msg/")
+			logKey = strings.TrimSuffix(logKey, ".json")
+			fields, ok := docs[logKey]
+			if !ok {
+				return nil, &s3types.NoSuchKey{}
+			}
+			return makeS3Doc(t, copyMap(fields)), nil
+		},
+	}
+
+	conn := NewConnector(mock, "bucket", "mesh/msg", nil)
+	qe, err := NewQueryEngine(conn, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { qe.Close() })
+	return qe, conn
+}
+
+// TestQueryEngine_EmptyBucket verifies Query returns {Total:0} for empty prefix.
+func TestQueryEngine_EmptyBucket(t *testing.T) {
+	qe, _ := newQueryEngineWithDocs(t, map[string]map[string]any{})
+	resp, err := qe.Query(context.Background(), QueryRequest{Prefix: "nomatch/"})
+	require.NoError(t, err)
+	assert.Equal(t, 0, resp.Total)
+	assert.Empty(t, resp.Rows)
+}
+
+// TestQueryEngine_Count verifies the count-only path (req.Count=true).
+func TestQueryEngine_Count(t *testing.T) {
+	qe, _ := newQueryEngineWithDocs(t, map[string]map[string]any{
+		"msg/a": {"status": "pending"},
+		"msg/b": {"status": "pending"},
+		"msg/c": {"status": "running"},
+	})
+
+	// Count all.
+	resp, err := qe.Query(context.Background(), QueryRequest{Count: true})
+	require.NoError(t, err)
+	assert.Equal(t, 3, resp.Total)
+	assert.Empty(t, resp.Rows, "count-only must not return rows")
+
+	// Count with filter.
+	resp2, err := qe.Query(context.Background(), QueryRequest{
+		Count:  true,
+		Filter: map[string]any{"status": "pending"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, resp2.Total)
+	assert.Empty(t, resp2.Rows)
+}
+
+// TestQueryEngine_LimitOffset verifies pagination.
+func TestQueryEngine_LimitOffset(t *testing.T) {
+	docs := map[string]map[string]any{
+		"msg/1": {"status": "pending", "seq": 1.0},
+		"msg/2": {"status": "pending", "seq": 2.0},
+		"msg/3": {"status": "pending", "seq": 3.0},
+		"msg/4": {"status": "pending", "seq": 4.0},
+	}
+	qe, _ := newQueryEngineWithDocs(t, docs)
+
+	resp, err := qe.Query(context.Background(), QueryRequest{
+		Sort:  []string{"seq"},
+		Limit: 2,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 4, resp.Total, "Total is count before LIMIT")
+	assert.Len(t, resp.Rows, 2)
+
+	resp2, err := qe.Query(context.Background(), QueryRequest{
+		Sort:   []string{"seq"},
+		Limit:  2,
+		Offset: 2,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 4, resp2.Total)
+	assert.Len(t, resp2.Rows, 2)
+
+	// Rows from first and second page must not overlap.
+	keys1 := map[string]bool{resp.Rows[0].Key: true, resp.Rows[1].Key: true}
+	for _, r := range resp2.Rows {
+		assert.False(t, keys1[r.Key], "page 2 must not repeat page 1 keys")
+	}
+}
+
+// TestQueryEngine_Sort verifies descending sort puts higher-status lexicographically last.
+func TestQueryEngine_Sort(t *testing.T) {
+	qe, _ := newQueryEngineWithDocs(t, map[string]map[string]any{
+		"msg/a": {"status": "running"},
+		"msg/b": {"status": "pending"},
+		"msg/c": {"status": "completed"},
+	})
+
+	resp, err := qe.Query(context.Background(), QueryRequest{Sort: []string{"status"}})
+	require.NoError(t, err)
+	require.Len(t, resp.Rows, 3)
+	statuses := []string{}
+	for _, r := range resp.Rows {
+		var v map[string]any
+		require.NoError(t, json.Unmarshal(r.Value, &v))
+		statuses = append(statuses, v["status"].(string))
+	}
+	// Ascending: completed < pending < running.
+	assert.Equal(t, "completed", statuses[0])
+	assert.Equal(t, "pending", statuses[1])
+	assert.Equal(t, "running", statuses[2])
+
+	resp2, err := qe.Query(context.Background(), QueryRequest{Sort: []string{"-status"}})
+	require.NoError(t, err)
+	require.Len(t, resp2.Rows, 3)
+	var v0 map[string]any
+	require.NoError(t, json.Unmarshal(resp2.Rows[0].Value, &v0))
+	assert.Equal(t, "running", v0["status"], "descending: running first")
+}
+
+// TestQueryEngine_FilterOperators verifies $ne, $gt, $in, $nin, $exists.
+func TestQueryEngine_FilterOperators(t *testing.T) {
+	qe, _ := newQueryEngineWithDocs(t, map[string]map[string]any{
+		"msg/1": {"status": "pending", "priority": 1.0},
+		"msg/2": {"status": "running", "priority": 5.0},
+		"msg/3": {"status": "completed", "priority": 3.0},
+		"msg/4": {"status": "pending"},
+	})
+
+	// $ne: exclude completed.
+	resp, err := qe.Query(context.Background(), QueryRequest{
+		Filter: map[string]any{"status": map[string]any{"$ne": "completed"}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 3, resp.Total)
+
+	// $gt: priority > 2.
+	resp2, err := qe.Query(context.Background(), QueryRequest{
+		Filter: map[string]any{"priority": map[string]any{"$gt": 2.0}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, resp2.Total)
+
+	// $in.
+	resp3, err := qe.Query(context.Background(), QueryRequest{
+		Filter: map[string]any{"status": map[string]any{"$in": []any{"pending", "running"}}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 3, resp3.Total)
+
+	// $nin: exclude pending and running → only completed.
+	resp4, err := qe.Query(context.Background(), QueryRequest{
+		Filter: map[string]any{"status": map[string]any{"$nin": []any{"pending", "running"}}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, resp4.Total)
+
+	// $exists: only docs with priority field.
+	resp5, err := qe.Query(context.Background(), QueryRequest{
+		Filter: map[string]any{"priority": map[string]any{"$exists": true}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 3, resp5.Total)
+}
+
+// TestQueryEngine_KeysWithSlashes verifies keys containing "/" survive encode→DuckDB→decode.
+func TestQueryEngine_KeysWithSlashes(t *testing.T) {
+	qe, _ := newQueryEngineWithDocs(t, map[string]map[string]any{
+		"ns/region/task-abc": {"status": "running"},
+		"ns/region/task-xyz": {"status": "pending"},
+	})
+
+	resp, err := qe.Query(context.Background(), QueryRequest{
+		Filter: map[string]any{"status": "running"},
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Rows, 1)
+	// Key must be decoded back to the original slash form.
+	assert.Equal(t, "ns/region/task-abc", resp.Rows[0].Key)
+}
+
+// TestQueryEngine_TimestampsPreserved verifies _ca/_ua survive the DuckDB roundtrip.
+func TestQueryEngine_TimestampsPreserved(t *testing.T) {
+	qe, _ := newQueryEngineWithDocs(t, map[string]map[string]any{
+		"msg/ts": {"status": "pending"},
+	})
+
+	resp, err := qe.Query(context.Background(), QueryRequest{})
+	require.NoError(t, err)
+	require.Len(t, resp.Rows, 1)
+	row := resp.Rows[0]
+	// _ca/_ua are set to "2026-04-22T10:00:00.000000000Z" in makeS3Doc.
+	assert.False(t, row.CreatedAt.IsZero(), "CreatedAt must be set")
+	assert.False(t, row.UpdatedAt.IsZero(), "UpdatedAt must be set")
+	// Both timestamps are the same in makeS3Doc fixture (_ua = _ca).
+	assert.Equal(t, 2026, row.CreatedAt.Year())
+	// Value must NOT contain _ca/_ua (they are stripped by parseStored).
+	var v map[string]any
+	require.NoError(t, json.Unmarshal(row.Value, &v))
+	assert.NotContains(t, v, "_ca")
+	assert.NotContains(t, v, "_ua")
+}
+
+// TestQueryEngine_NullFieldsInMixedSchema verifies that union_by_name=true
+// causes NULL columns for documents missing a field, and that those NULLs
+// don't corrupt other documents' values.
+func TestQueryEngine_NullFieldsInMixedSchema(t *testing.T) {
+	// doc-a has "extra", doc-b does not.
+	qe, _ := newQueryEngineWithDocs(t, map[string]map[string]any{
+		"msg/doc-a": {"status": "pending", "extra": "present"},
+		"msg/doc-b": {"status": "running"},
+	})
+
+	resp, err := qe.Query(context.Background(), QueryRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, 2, resp.Total)
+
+	byKey := map[string]KVRow{}
+	for _, r := range resp.Rows {
+		byKey[r.Key] = r
+	}
+
+	var va map[string]any
+	require.NoError(t, json.Unmarshal(byKey["msg/doc-a"].Value, &va))
+	assert.Equal(t, "pending", va["status"])
+	assert.Equal(t, "present", va["extra"])
+
+	var vb map[string]any
+	require.NoError(t, json.Unmarshal(byKey["msg/doc-b"].Value, &vb))
+	assert.Equal(t, "running", vb["status"])
+	// "extra" must be absent or null — must not bleed from doc-a.
+	if extra, exists := vb["extra"]; exists {
+		assert.Nil(t, extra, "extra must be null for doc-b, not 'present'")
+	}
 }
