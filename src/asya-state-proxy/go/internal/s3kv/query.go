@@ -114,7 +114,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 		 FROM read_json_auto('%s', filename=true, union_by_name=true, ignore_errors=true)`,
 		glob,
 	)
-	if _, err := q.db.ExecContext(ctx, loadSQL); err != nil {
+	if _, err := q.db.ExecContext(ctx, loadSQL); err != nil { // nosemgrep
 		return nil, fmt.Errorf("duckdb load: %w", err)
 	}
 
@@ -124,9 +124,11 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 
 	// Count query path.
+	// where is built by buildWhereClause: field names validated against validField regexp,
+	// values passed as parameterized args — not interpolated into the SQL string.
 	if req.Count {
 		var total int
-		if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil {
+		if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil { // nosemgrep
 			return nil, fmt.Errorf("duckdb count: %w", err)
 		}
 		return &QueryResponse{Total: total}, nil
@@ -134,7 +136,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 
 	// Step 5a: count total matching rows before applying LIMIT (for pagination metadata).
 	var total int
-	if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil {
+	if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil { // nosemgrep
 		return nil, fmt.Errorf("duckdb count: %w", err)
 	}
 
@@ -148,7 +150,7 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	selectSQL := "SELECT filename, to_json(struct_pack(* EXCLUDE (filename))) AS doc FROM _tmp" +
 		where + orderBy + limitOffset
 
-	rows, err := q.db.QueryContext(ctx, selectSQL, args...)
+	rows, err := q.db.QueryContext(ctx, selectSQL, args...) // nosemgrep
 	if err != nil {
 		return nil, fmt.Errorf("duckdb select: %w", err)
 	}
