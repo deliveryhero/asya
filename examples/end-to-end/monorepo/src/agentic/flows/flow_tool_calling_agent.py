@@ -108,6 +108,8 @@ async def tool_calling_agent(p: dict) -> dict:
 
         if not p.get("tool_name"):
             break
+        if p["iteration"] >= p.get("max_iterations", 10):
+            break
 
         # Dispatch to the right tool via adapter actors.
         # The compiler detects p["tool_result"] = fn(p["arg"]) as an adapter

@@ -10,7 +10,9 @@ from _asya_utils import actor, flow
 
 @flow
 def react_agent(p: dict) -> dict:
-    while True:
+    p["iteration"] = 0
+    while p["iteration"] < p.get("max_iterations", 10):
+        p["iteration"] = p["iteration"] + 1
         p = llm_call(p)
         if p.get("tool_calls"):
             p = execute_tool(p)

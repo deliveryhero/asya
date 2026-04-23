@@ -46,7 +46,6 @@ def initialize(p: dict) -> dict:
 @actor
 def process_item(p: dict) -> dict:
     """Process single iteration."""
-    p["iteration"] += 1
     p["last_processed"] = p["iteration"]
     return p
 

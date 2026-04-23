@@ -24,6 +24,7 @@ async def text_improver(p: dict) -> dict:  # asya: flow
         p = await evaluate(p)
         if p["score"] >= p.get("threshold", 50):
             break
+        p["iteration"] = p["iteration"] + 1
 
     p["result"] = await polish(p["draft"])
 
