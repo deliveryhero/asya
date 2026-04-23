@@ -1,6 +1,7 @@
 ---
-title: "PR6: local-kv — low-infra gateway state proxy (in-memory + PVC, DuckDB /query)"
-status: open
+title: "PR6: pvc-kv — low-infra gateway state proxy (in-memory + PVC, DuckDB /query)"
+status: working
+slug: pvc-kv
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
