@@ -3,8 +3,9 @@
 Connectors inherit ObjectStoreQueryMixin to expose query(). Each connector
 backend provides _setup_duckdb_source() to wire DuckDB to its storage.
 
-  - S3 connectors: use DuckDB httpfs (reads directly from S3, no disk copy).
-  - GCS connectors (and generic fallback): download to a temp dir, read_text locally.
+Objects are fetched via the connector's own read() method (boto3 / GCS SDK)
+and written to a local temp dir. DuckDB then reads locally — no network calls
+from DuckDB, no S3-SDK compatibility concerns.
 
 Install DuckDB: pip install 'asya-state-proxy[query]'
 """
@@ -25,10 +26,14 @@ logger = logging.getLogger("asya.state-proxy")
 # Guard field names against SQL injection.
 _VALID_FIELD = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_.]*$")
 
-# Hard limit on list() results when using the generic (temp-file) path.
+# Hard limit on list() results for a single query call.
 MAX_QUERY_KEYS = 10_000
-# Cap fetch per call for the temp-file path only; httpfs path has no cap.
+# Max number of objects fetched per call (first N from the listing).
 MAX_FETCH_KEYS = 1_000
+# Total bytes budget for the per-call temp dir. Objects that would push the
+# accumulated download past this limit are skipped with a warning so a handful
+# of large objects cannot fill the container's ephemeral storage.
+MAX_TOTAL_FETCH_BYTES = 256 * 1024 * 1024  # 256 MiB
 # Hard cap on result rows returned per call — protects against OOM.
 MAX_RESULT_ROWS = 10_000
 
@@ -103,8 +108,9 @@ def _safe_sql_str(value: str, name: str) -> str:
 class ObjectStoreQueryMixin:
     """Adds query() to any StateProxyConnector implementing list() + read().
 
-    Subclasses override _setup_duckdb_source() to provide a DuckDB source
-    table (or view) named '_tmp' with columns (filename VARCHAR, content VARCHAR).
+    _setup_duckdb_source() fetches objects via the connector's own read() method
+    (which inherits the connector's full credential chain) and writes them to a
+    local temp dir. DuckDB then scans locally — no S3/GCS SDK calls from DuckDB.
 
     duckdb is imported lazily — connectors that never call query() don't need it.
     """
@@ -153,11 +159,10 @@ class ObjectStoreQueryMixin:
         return QueryResult(rows=rows, total=total)
 
     def _setup_duckdb_source(self, conn: Any, prefix: str, tmpdir: str) -> bool:
-        """Create '_tmp (filename VARCHAR, content VARCHAR)' in the DuckDB connection.
+        """Fetch objects via list()+read() into tmpdir, then load into DuckDB.
 
-        Returns True if there are no objects to query (caller returns empty result).
-        Default implementation downloads objects to tmpdir via list()+read().
-        Override in S3/GCS connectors to use httpfs for streaming reads.
+        Returns True when no objects are available (caller returns empty result).
+        Subclasses may override to substitute a different fetch strategy.
         """
         listed = self.list(prefix, delimiter="")  # type: ignore[attr-defined]
         keys = listed.keys
@@ -168,9 +173,12 @@ class ObjectStoreQueryMixin:
                 f"prefix {prefix!r} matches {len(keys)} objects; max is {MAX_QUERY_KEYS} — use a narrower prefix"
             )
         fetch_keys = keys[:MAX_FETCH_KEYS]
-        logger.debug("query: listing %d keys, fetching %d via temp dir", len(keys), len(fetch_keys))
+        logger.debug("query: listing %d keys, fetching up to %d", len(keys), len(fetch_keys))
 
-        _fetch_to_dir(self, fetch_keys, tmpdir)
+        files_written = _fetch_to_dir(self, fetch_keys, tmpdir)
+        if files_written == 0:
+            return True
+
         glob = os.path.join(tmpdir, "*.json")
         # glob is a system temp-dir path, not user input.
         load_sql = f"CREATE TABLE _tmp AS SELECT filename, content FROM read_text('{glob}') WHERE content IS NOT NULL"  # nosec B608  # nosemgrep
@@ -178,8 +186,15 @@ class ObjectStoreQueryMixin:
         return False
 
 
-def _fetch_to_dir(connector: Any, keys: list[str], tmpdir: str) -> None:
-    """Download each key and write as <sanitized>.json in tmpdir."""
+def _fetch_to_dir(connector: Any, keys: list[str], tmpdir: str) -> int:
+    """Download each key and write as <sanitized>.json in tmpdir.
+
+    Stops downloading when the accumulated byte count would exceed
+    MAX_TOTAL_FETCH_BYTES to protect container ephemeral storage. Returns the
+    number of files successfully written.
+    """
+    total_bytes = 0
+    files_written = 0
     for key in keys:
         try:
             data = connector.read(key).read()
@@ -188,44 +203,22 @@ def _fetch_to_dir(connector: Any, keys: list[str], tmpdir: str) -> None:
         except Exception as exc:
             logger.warning("query: failed to read key=%r: %s", key, exc)
             continue
+
+        total_bytes += len(data)
         safe_name = key.replace("/", "__").replace("\\", "__").replace("\x00", "")
         path = os.path.join(tmpdir, safe_name + ".json")
         with open(path, "w") as f:
             f.write(data.decode("utf-8", errors="replace"))
+        files_written += 1
 
+        if total_bytes > MAX_TOTAL_FETCH_BYTES:
+            logger.warning(
+                "query: stopping fetch at %d bytes (%d files) — "
+                "remaining keys skipped; narrow the prefix for complete results",
+                total_bytes,
+                files_written,
+            )
+            break
 
-def configure_s3_httpfs(conn: Any, region: str, endpoint_url: str | None) -> None:
-    """Configure DuckDB httpfs secrets for S3 access.
-
-    Uses credential_chain for real AWS (reads env vars, IRSA, instance profile).
-    Explicit credentials are used when a custom endpoint is set (LocalStack, MinIO).
-    All string values embedded in the SQL literal are validated by _safe_sql_str.
-    """
-    conn.execute("LOAD httpfs")  # nosemgrep
-
-    if endpoint_url:
-        # Custom endpoint: strip protocol, use path-style URLs.
-        ep = re.sub(r"^https?://", "", endpoint_url).rstrip("/")
-        use_ssl = endpoint_url.startswith("https://")
-        key_id = _safe_sql_str(os.environ.get("AWS_ACCESS_KEY_ID", ""), "AWS_ACCESS_KEY_ID")
-        secret = _safe_sql_str(os.environ.get("AWS_SECRET_ACCESS_KEY", ""), "AWS_SECRET_ACCESS_KEY")
-        ep_safe = _safe_sql_str(ep, "AWS_ENDPOINT_URL")
-        region_safe = _safe_sql_str(region, "AWS_REGION")
-        # Values are operator-supplied env vars, validated by _safe_sql_str (no single quotes).
-        secret_sql = (  # nosec B608  # nosemgrep
-            f"CREATE SECRET _s3 ("
-            f"  TYPE S3,"
-            f"  KEY_ID '{key_id}',"
-            f"  SECRET '{secret}',"
-            f"  REGION '{region_safe}',"
-            f"  ENDPOINT '{ep_safe}',"
-            f"  URL_STYLE 'path',"
-            f"  USE_SSL {str(use_ssl).lower()}"
-            f")"
-        )
-        conn.execute(secret_sql)  # nosemgrep
-    else:
-        # Real AWS: let credential_chain handle env vars, IRSA, instance profile.
-        region_safe = _safe_sql_str(region, "AWS_REGION")
-        secret_sql = f"CREATE SECRET _s3 (TYPE S3, PROVIDER credential_chain, REGION '{region_safe}')"  # nosec B608  # nosemgrep
-        conn.execute(secret_sql)  # nosemgrep
+    logger.debug("query: fetched %d files, %d bytes total", files_written, total_bytes)
+    return files_written

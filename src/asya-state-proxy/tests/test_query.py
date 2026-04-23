@@ -3,11 +3,10 @@
 Unit tests cover:
   - Helper functions (_validate_field, _build_where, _build_order) — no external deps
   - ObjectStoreQueryMixin.query() SQL logic via a stub connector + real DuckDB
-  - S3BufferedLWW.query() using moto for S3 + the temp-file fallback path
-    (moto does not intercept DuckDB httpfs, so httpfs is tested separately below)
+  - S3BufferedLWW.query() using moto for S3
   - HTTP server /query endpoint
 
-S3 httpfs integration (real LocalStack/MinIO) is covered in component tests.
+S3/GCS integration is covered in component tests (testing/component/state-proxy/).
 """
 
 from __future__ import annotations
@@ -114,11 +113,8 @@ def s3_bucket():
 
 @pytest.fixture()
 def s3_connector(s3_bucket):
-    """S3BufferedLWW patched to use the temp-file query path (bypasses httpfs)."""
-    c = S3BufferedLWW()
-    # Redirect query to the generic temp-file implementation so moto intercepts reads.
-    c._setup_duckdb_source = ObjectStoreQueryMixin._setup_duckdb_source.__get__(c)
-    return c
+    """S3BufferedLWW using the generic boto3-backed query path; moto intercepts reads."""
+    return S3BufferedLWW()
 
 
 def _put_s3(connector: S3BufferedLWW, key: str, doc: dict) -> None:
@@ -288,8 +284,24 @@ def test_stub_query_non_json_doc_skipped() -> None:
     assert result.total >= 1
 
 
+def test_stub_query_bytes_budget_stops_fetch() -> None:
+    """Objects that push total bytes past MAX_TOTAL_FETCH_BYTES are skipped."""
+    from asya_state_proxy.connectors._query import MAX_TOTAL_FETCH_BYTES
+
+    c = _StubConnector()
+    # Write one object that fills the entire budget.
+    big_payload = {"data": "x" * MAX_TOTAL_FETCH_BYTES}
+    c._put("big/a", big_payload)
+    # Write a second object that would exceed the budget.
+    c._put("big/b", {"status": "ok"})
+
+    result = c.query(QueryRequest(prefix="big/"))
+    # At least one file was fetched (the first one); the second was skipped.
+    assert result.total >= 1
+
+
 # ---------------------------------------------------------------------------
-# S3BufferedLWW query tests via moto (temp-file path)
+# S3BufferedLWW query tests via moto (generic boto3-backed path)
 # ---------------------------------------------------------------------------
 
 

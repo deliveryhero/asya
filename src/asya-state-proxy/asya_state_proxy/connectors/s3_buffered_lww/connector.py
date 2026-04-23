@@ -10,12 +10,12 @@ Reads configuration from environment variables:
 import io
 import logging
 import os
-from typing import Any, BinaryIO
+from typing import BinaryIO
 
 import boto3
 from botocore.exceptions import ClientError
 
-from asya_state_proxy.connectors._query import MAX_QUERY_KEYS, ObjectStoreQueryMixin, _safe_sql_str, configure_s3_httpfs
+from asya_state_proxy.connectors._query import ObjectStoreQueryMixin
 from asya_state_proxy.connectors._s3_xattr import S3XattrMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
@@ -148,33 +148,3 @@ class S3BufferedLWW(ObjectStoreQueryMixin, S3XattrMixin, StateProxyConnector):
             raise FileNotFoundError(f"Key not found: {key}")
         self._s3.delete_object(Bucket=self._bucket, Key=full_key)
         logger.debug("delete key=%s", key)
-
-    def _setup_duckdb_source(self, conn: Any, prefix: str, tmpdir: str) -> bool:
-        """Override: use DuckDB httpfs to read S3 objects directly (no temp files).
-
-        Creates an in-memory TABLE (not VIEW) so that the S3 scan runs eagerly and
-        any IOException (empty prefix, no matching objects) is caught here rather
-        than propagating from a later SELECT call. Rows are capped at MAX_QUERY_KEYS
-        to bound per-call S3 API usage.
-        Returns True when no objects match (caller returns empty QueryResult).
-        """
-        import duckdb
-
-        configure_s3_httpfs(conn, self._region, self._endpoint_url)
-
-        _safe_sql_str(prefix, "prefix")
-
-        full_prefix = f"{self._prefix}/{prefix}" if self._prefix else prefix
-        glob = f"s3://{self._bucket}/{full_prefix}**"
-
-        # Use TABLE (eager) so the IOException from an empty prefix fires here.
-        sql = f"CREATE TABLE _tmp AS SELECT filename, content FROM read_text('{glob}') WHERE content IS NOT NULL LIMIT {MAX_QUERY_KEYS}"  # nosec B608  # nosemgrep
-        try:
-            conn.execute(sql)  # nosemgrep
-        except duckdb.IOException:
-            logger.debug("query/httpfs: no objects match prefix=%r glob=%r", prefix, glob)
-            return True
-
-        count = conn.execute("SELECT COUNT(*) FROM _tmp").fetchone()[0]  # nosemgrep
-        logger.debug("query/httpfs: glob=%r loaded %d rows", glob, count)
-        return count == 0
