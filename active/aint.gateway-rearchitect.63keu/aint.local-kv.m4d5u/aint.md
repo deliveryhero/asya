@@ -1,15 +1,17 @@
 ---
 title: "PR6: pvc-kv — low-infra gateway state proxy (in-memory + PVC, DuckDB /query)"
 status: working
-slug: pvc-kv
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
   - gateway-rearchitect
   - pr:new
+  - pr:464
+  - branch:gateway-rearchitect/m4d5u.pvc-kv
 dependencies:
   - i0ewl
 ---
+
 
 New `cmd/local-kv` Go binary: gateway mesh state proxy with zero external
 infrastructure. Two modes — inmem (no persistence) and pvc (JSON files on PVC).
