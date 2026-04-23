@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "4d510c717a885db515b1fe045da5ca895508ede6",
+  "commit": "eb726d368fac5c3b500273bb770321216fcb0af8",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -21854,8 +21854,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 33229,
-    "test": 14997,
+    "code": 34068,
+    "test": 15347,
     "code_files": [
       {
         "code": 933,
@@ -23762,9 +23762,9 @@
         "language": "Go"
       },
       {
-        "code": 14,
-        "comment": 0,
-        "blank": 4,
+        "code": 28,
+        "comment": 3,
+        "blank": 8,
         "path": "src/asya-state-proxy/Dockerfile.go",
         "language": "Go"
       },
@@ -23787,6 +23787,13 @@
         "comment": 9,
         "blank": 17,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/_gcs_xattr.py",
+        "language": "Python"
+      },
+      {
+        "code": 142,
+        "comment": 44,
+        "blank": 49,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/_query.py",
         "language": "Python"
       },
       {
@@ -23832,7 +23839,7 @@
         "language": "Python"
       },
       {
-        "code": 76,
+        "code": 77,
         "comment": 18,
         "blank": 23,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/gcs_buffered_lww/connector.py",
@@ -23895,7 +23902,7 @@
         "language": "Python"
       },
       {
-        "code": 106,
+        "code": 107,
         "comment": 18,
         "blank": 25,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_lww/connector.py",
@@ -23930,9 +23937,9 @@
         "language": "Python"
       },
       {
-        "code": 213,
+        "code": 277,
         "comment": 9,
-        "blank": 44,
+        "blank": 58,
         "path": "src/asya-state-proxy/asya_state_proxy/server.py",
         "language": "Python"
       },
@@ -23941,6 +23948,13 @@
         "comment": 8,
         "blank": 12,
         "path": "src/asya-state-proxy/go/cmd/pg-kv/main.go",
+        "language": "Go"
+      },
+      {
+        "code": 52,
+        "comment": 8,
+        "blank": 12,
+        "path": "src/asya-state-proxy/go/cmd/pvc-kv/main.go",
         "language": "Go"
       },
       {
@@ -23976,6 +23990,20 @@
         "comment": 5,
         "blank": 4,
         "path": "src/asya-state-proxy/go/internal/pg/store.go",
+        "language": "Go"
+      },
+      {
+        "code": 522,
+        "comment": 26,
+        "blank": 57,
+        "path": "src/asya-state-proxy/go/internal/pvckv/connector.go",
+        "language": "Go"
+      },
+      {
+        "code": 43,
+        "comment": 190,
+        "blank": 29,
+        "path": "src/asya-state-proxy/go/internal/pvckv/query.go",
         "language": "Go"
       },
       {
@@ -24723,6 +24751,20 @@
         "language": "Go"
       },
       {
+        "code": 171,
+        "comment": 1,
+        "blank": 33,
+        "path": "src/asya-state-proxy/go/internal/pvckv/connector_test.go",
+        "language": "Go"
+      },
+      {
+        "code": 179,
+        "comment": 1,
+        "blank": 26,
+        "path": "src/asya-state-proxy/go/internal/pvckv/query_test.go",
+        "language": "Go"
+      },
+      {
         "code": 309,
         "comment": 3,
         "blank": 42,
@@ -24745,6 +24787,6 @@
       }
     ]
   },
-  "test_execution_time": 339000000000,
-  "timestamp": "2026-04-23T14:34:24.072691692Z"
+  "test_execution_time": 332000000000,
+  "timestamp": "2026-04-23T18:47:52.793320718Z"
 }
