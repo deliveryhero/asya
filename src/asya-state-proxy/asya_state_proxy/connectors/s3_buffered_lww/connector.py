@@ -15,7 +15,7 @@ from typing import Any, BinaryIO
 import boto3
 from botocore.exceptions import ClientError
 
-from asya_state_proxy.connectors._query import ObjectStoreQueryMixin, _safe_sql_str, configure_s3_httpfs
+from asya_state_proxy.connectors._query import MAX_QUERY_KEYS, ObjectStoreQueryMixin, _safe_sql_str, configure_s3_httpfs
 from asya_state_proxy.connectors._s3_xattr import S3XattrMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
@@ -152,8 +152,10 @@ class S3BufferedLWW(ObjectStoreQueryMixin, S3XattrMixin, StateProxyConnector):
     def _setup_duckdb_source(self, conn: Any, prefix: str, tmpdir: str) -> bool:
         """Override: use DuckDB httpfs to read S3 objects directly (no temp files).
 
-        DuckDB streams from S3 without loading all objects into memory; the caller's
-        LIMIT clause is pushed down so only the needed chunks are fetched.
+        Creates an in-memory TABLE (not VIEW) so that the S3 scan runs eagerly and
+        any IOException (empty prefix, no matching objects) is caught here rather
+        than propagating from a later SELECT call. Rows are capped at MAX_QUERY_KEYS
+        to bound per-call S3 API usage.
         Returns True when no objects match (caller returns empty QueryResult).
         """
         import duckdb
@@ -165,13 +167,14 @@ class S3BufferedLWW(ObjectStoreQueryMixin, S3XattrMixin, StateProxyConnector):
         full_prefix = f"{self._prefix}/{prefix}" if self._prefix else prefix
         glob = f"s3://{self._bucket}/{full_prefix}**"
 
-        sql = f"CREATE VIEW _tmp AS SELECT filename, content FROM read_text('{glob}') WHERE content IS NOT NULL"  # nosec B608  # nosemgrep
+        # Use TABLE (eager) so the IOException from an empty prefix fires here.
+        sql = f"CREATE TABLE _tmp AS SELECT filename, content FROM read_text('{glob}') WHERE content IS NOT NULL LIMIT {MAX_QUERY_KEYS}"  # nosec B608  # nosemgrep
         try:
             conn.execute(sql)  # nosemgrep
         except duckdb.IOException:
-            # DuckDB raises IOException when the glob matches no S3 objects.
             logger.debug("query/httpfs: no objects match prefix=%r glob=%r", prefix, glob)
             return True
 
-        logger.debug("query/httpfs: glob=%r view created", glob)
-        return False
+        count = conn.execute("SELECT COUNT(*) FROM _tmp").fetchone()[0]  # nosemgrep
+        logger.debug("query/httpfs: glob=%r loaded %d rows", glob, count)
+        return count == 0
