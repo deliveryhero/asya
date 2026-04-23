@@ -12,6 +12,14 @@ tracing:
   enabled: true
   endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
 
+observability:
+  prometheus:
+    enabled: true
+  loki:
+    enabled: true
+  promtail:
+    enabled: true
+
 transport:
   rabbitmq:
     enabled: false

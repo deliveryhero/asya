@@ -438,6 +438,17 @@ echo
 
 # Phase 5: Deploy infrastructure layer with Helmfile
 echo "[.] Phase 5: Deploying infrastructure layer..."
+
+# Promtail watches pod log files via inotify; the default kernel limit (128) is
+# too low for Kind nodes with many pods. Raise it before the stack deploys.
+INOTIFY_MIN=512
+INOTIFY_CUR=$(sysctl -n fs.inotify.max_user_instances 2> /dev/null || echo 0)
+if [[ "$INOTIFY_CUR" -lt "$INOTIFY_MIN" ]]; then
+  echo "[.] Raising fs.inotify.max_user_instances ($INOTIFY_CUR → $INOTIFY_MIN)..."
+  sudo sysctl -w "fs.inotify.max_user_instances=$INOTIFY_MIN" ||
+    echo "[!] Could not raise inotify limit — Promtail may crash"
+fi
+
 time {
   cd "$CHARTS_DIR"
   if ! helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" sync --concurrency "$CONCURRENCY" --selector 'layer=infra'; then

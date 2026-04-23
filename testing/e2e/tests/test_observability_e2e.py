@@ -17,14 +17,14 @@ import subprocess
 import time
 
 import pytest
-import requests
+
 
 logger = logging.getLogger(__name__)
 
-TEMPO_URL = os.environ.get("ASYA_TEMPO_URL", "")
-PROMETHEUS_URL = os.environ.get("ASYA_PROMETHEUS_URL", "")
-LOKI_URL = os.environ.get("ASYA_LOKI_URL", "")
 NAMESPACE = os.environ.get("ASYA_NAMESPACE", "asya-e2e")
+TEMPO_URL = os.environ.get("ASYA_TEMPO_URL", f"http://tempo.{NAMESPACE}.svc.cluster.local:3200")
+PROMETHEUS_URL = os.environ.get("ASYA_PROMETHEUS_URL", f"http://prometheus-server.{NAMESPACE}.svc.cluster.local:80")
+LOKI_URL = os.environ.get("ASYA_LOKI_URL", f"http://loki.{NAMESPACE}.svc.cluster.local:3100")
 
 
 def _kubectl_exec_wget(pod_selector: str, url: str, namespace: str = NAMESPACE) -> dict:
@@ -56,13 +56,13 @@ def _kubectl_exec_wget(pod_selector: str, url: str, namespace: str = NAMESPACE) 
 
 def _query_tempo(query: str, limit: int = 10) -> dict:
     """Query Tempo search API from inside the cluster via a sidecar pod."""
-    url = f"http://tempo.{NAMESPACE}.svc.cluster.local:3200/api/search?q={query}&limit={limit}"
+    url = f"{TEMPO_URL}/api/search?q={query}&limit={limit}"
     return _kubectl_exec_wget("asya.sh/actor=x-sink", url)
 
 
 def _query_prometheus(query: str) -> dict:
     """Query Prometheus from inside the cluster via a sidecar pod."""
-    url = f"http://prometheus-server.{NAMESPACE}.svc.cluster.local:80/api/v1/query?query={query}"
+    url = f"{PROMETHEUS_URL}/api/v1/query?query={query}"
     return _kubectl_exec_wget("asya.sh/actor=x-sink", url)
 
 
@@ -70,10 +70,7 @@ def _query_loki(query: str, limit: int = 5) -> dict:
     """Query Loki from inside the cluster via a sidecar pod."""
     start = int((time.time() - 600) * 1e9)  # 10 minutes ago
     end = int(time.time() * 1e9)
-    url = (
-        f"http://loki.{NAMESPACE}.svc.cluster.local:3100/loki/api/v1/query_range"
-        f"?query={query}&start={start}&end={end}&limit={limit}"
-    )
+    url = f"{LOKI_URL}/loki/api/v1/query_range?query={query}&start={start}&end={end}&limit={limit}"
     return _kubectl_exec_wget("asya.sh/actor=x-sink", url)
 
 
@@ -129,7 +126,7 @@ class TestTracing:
         trace_id = traces[0]["traceID"]
 
         # Fetch full trace
-        url = f"http://tempo.{NAMESPACE}.svc.cluster.local:3200/api/traces/{trace_id}"
+        url = f"{TEMPO_URL}/api/traces/{trace_id}"
         trace_data = _kubectl_exec_wget("asya.sh/actor=x-sink", url)
 
         # Find actor.process span and check attributes
@@ -224,7 +221,7 @@ class TestLogs:
 
     def test_loki_is_healthy(self):
         """Loki is deployed and has labels."""
-        url = f"http://loki.{NAMESPACE}.svc.cluster.local:3100/loki/api/v1/labels"
+        url = f"{LOKI_URL}/loki/api/v1/labels"
         data = _kubectl_exec_wget("asya.sh/actor=x-sink", url)
         labels = data.get("data", [])
         assert "container" in labels, f"Loki missing 'container' label. Labels: {labels}"
