@@ -177,6 +177,7 @@ a state proxy sidecar container and a logical mount to the pod.
 | `mount.path` | `string` | Absolute path inside the runtime container (must start with `/`). |
 | `writeMode` | `string` | Write buffering: `buffered` (default) or `passthrough`. |
 | `connector.image` | `string` | Container image for the state proxy connector. |
+| `connector.imagePullPolicy` | `string` | Image pull policy (`Always`, `IfNotPresent`, `Never`). Default: `IfNotPresent`. |
 | `connector.env` | `array` | Backend-specific environment variables (each: `name`, `value`). |
 | `connector.resources` | `object` | Kubernetes resource requests/limits for the connector. |
 

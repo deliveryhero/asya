@@ -392,6 +392,14 @@ spec:
                             type: string
                             description: Container image for the state proxy connector
                             minLength: 1
+                          imagePullPolicy:
+                            type: string
+                            description: Image pull policy for the connector container
+                            enum:
+                              - Always
+                              - IfNotPresent
+                              - Never
+                            default: IfNotPresent
                           env:
                             type: array
                             description: Backend-specific environment variables

@@ -560,6 +560,7 @@ spec:
                         {{`{{- range $xrSpec.stateProxy | default list }}`}}
                         - name: asya-state-proxy-{{`{{ .name }}`}}
                           image: {{`{{ .connector.image }}`}}
+                          imagePullPolicy: {{`{{ .connector.imagePullPolicy | default "IfNotPresent" }}`}}
                           env:
                           - name: CONNECTOR_SOCKET
                             value: /var/run/asya/state/{{`{{ .name }}`}}.sock
