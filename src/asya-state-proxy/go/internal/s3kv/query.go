@@ -15,9 +15,17 @@ import (
 	_ "github.com/marcboeker/go-duckdb" // registers "duckdb" database/sql driver
 )
 
-// maxQueryKeys caps the number of S3 objects fetched per query to prevent disk
-// space exhaustion and unbounded AWS egress costs.
+// maxQueryKeys is the hard limit on list results; queries returning more keys
+// return an error so callers narrow their prefix.
 const maxQueryKeys = 10_000
+
+// maxFetchKeys limits how many S3 objects are fetched and loaded into DuckDB
+// in a single query call. This bounds per-call latency so that the upstream
+// HTTP client (mesh-api FindExpired) does not time out while we wait for
+// hundreds of parallel S3 GETs. Callers that need all results should page
+// using Limit/Offset. For FindExpired the sampling is acceptable: expired
+// tasks beyond this window are caught on the next FindExpired cycle (every 5s).
+const maxFetchKeys = 50
 
 // QueryRequest is the JSON body for POST /query.
 type QueryRequest struct {
@@ -108,6 +116,13 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 	if len(keys) > maxQueryKeys {
 		return nil, fmt.Errorf("query prefix %q matches %d objects, limit is %d — use a narrower prefix", req.Prefix, len(keys), maxQueryKeys)
+	}
+
+	// Cap the fetch to maxFetchKeys to bound per-call latency.
+	// Callers that need complete results should use a narrower prefix or pagination.
+	if len(keys) > maxFetchKeys {
+		keys = keys[:maxFetchKeys]
+		q.logger.Debug("capping fetch to maxFetchKeys", "total_listed", len(keys), "fetching", maxFetchKeys)
 	}
 
 	// Step 2+3: fetch docs and write to temp dir.
