@@ -10,7 +10,14 @@ postgres:
 
 tracing:
   enabled: true
-  endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
+
+observability:
+  prometheus:
+    enabled: true
+  loki:
+    enabled: true
+  promtail:
+    enabled: true
 
 transport:
   rabbitmq:
@@ -121,8 +128,6 @@ gateway:
         storageDir: /data/mesh
         partition: true
         archiveStatuses: "completed,failed,canceled,succeeded"
-  tracing:
-    endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
   extraEnvFrom:
   - secretRef:
       name: aws-creds
@@ -249,7 +254,6 @@ crossplane:
     sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
     sqsWaitTimeSeconds: "2"
     awsCredsSecret: aws-creds
-    tracingEndpoint: tempo.asya-e2e.svc.cluster.local:4317
   providerConfigs:
     install: false
   functions:
