@@ -101,14 +101,14 @@ func TestInMem_Query_Exists(t *testing.T) {
 }
 
 func TestBuildDuckDBWhere_Empty(t *testing.T) {
-	where, args, err := buildDuckDBWhere(nil)
+	where, args, err := buildDuckDBWhere(nil, "", "/data")
 	assert.NoError(t, err)
 	assert.Empty(t, where)
 	assert.Nil(t, args)
 }
 
 func TestBuildDuckDBWhere_ImplicitEq(t *testing.T) {
-	where, args, err := buildDuckDBWhere(map[string]any{"status": "running"})
+	where, args, err := buildDuckDBWhere(map[string]any{"status": "running"}, "", "/data")
 	assert.NoError(t, err)
 	assert.Contains(t, where, "json_extract_string")
 	assert.Contains(t, where, "$1")
@@ -118,7 +118,7 @@ func TestBuildDuckDBWhere_ImplicitEq(t *testing.T) {
 func TestBuildDuckDBWhere_Gt(t *testing.T) {
 	where, args, err := buildDuckDBWhere(map[string]any{
 		"progress": map[string]any{"$gt": float64(50)},
-	})
+	}, "", "/data")
 	assert.NoError(t, err)
 	assert.Contains(t, where, ">")
 	assert.Equal(t, []any{float64(50)}, args)
@@ -127,7 +127,7 @@ func TestBuildDuckDBWhere_Gt(t *testing.T) {
 func TestBuildDuckDBWhere_UnsupportedOp(t *testing.T) {
 	_, _, err := buildDuckDBWhere(map[string]any{
 		"x": map[string]any{"$regex": "abc"},
-	})
+	}, "", "/data")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported operator")
 }

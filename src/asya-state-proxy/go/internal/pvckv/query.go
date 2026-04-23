@@ -52,7 +52,8 @@ func (q *queryEngine) query(ctx context.Context, req pg.QueryRequest) (*pg.Query
 		scanDir = filepath.Join(q.baseDir, "active")
 	}
 
-	glob := filepath.Join(scanDir, req.Prefix+"*.json")
+	// glob all JSON files recursively; prefix filtering happens in WHERE clause
+	glob := filepath.Join(scanDir, "**/*.json")
 
 	// read_text avoids the duckdb.Map type issue that read_json_auto produces
 	loadSQL := fmt.Sprintf(
@@ -67,7 +68,7 @@ func (q *queryEngine) query(ctx context.Context, req pg.QueryRequest) (*pg.Query
 		return nil, fmt.Errorf("duckdb load: %w", err)
 	}
 
-	where, args, err := buildDuckDBWhere(req.Filter)
+	where, args, err := buildDuckDBWhere(req.Filter, req.Prefix, scanDir)
 	if err != nil {
 		return nil, err
 	}
@@ -124,10 +125,26 @@ func filenameToKey(filename, scanDir string) string {
 }
 
 // buildDuckDBWhere translates a Mango filter map into a DuckDB WHERE clause.
+// Also adds a prefix filter on the filename if prefix is non-empty.
 // Uses json_extract_string(content, '$.field') for all field access.
-func buildDuckDBWhere(filter map[string]any) (string, []any, error) {
+func buildDuckDBWhere(filter map[string]any, prefix, scanDir string) (string, []any, error) {
+	var conditions []string
+	var args []any
+	idx := 1
+
+	// Prefix filter: filename must start with {scanDir}/{prefix}
+	if prefix != "" {
+		// DuckDB filename is an absolute path; key = filename minus scanDir prefix and .json suffix
+		conditions = append(conditions, fmt.Sprintf("filename LIKE $%d", idx))
+		args = append(args, filepath.Join(scanDir, prefix)+"%")
+		idx++
+	}
+
 	if len(filter) == 0 {
-		return "", nil, nil
+		if len(conditions) == 0 {
+			return "", nil, nil
+		}
+		return " WHERE " + strings.Join(conditions, " AND "), args, nil
 	}
 
 	// Sort keys for deterministic SQL (test stability)
@@ -136,10 +153,6 @@ func buildDuckDBWhere(filter map[string]any) (string, []any, error) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-
-	var conditions []string
-	var args []any
-	idx := 1
 
 	for _, field := range keys {
 		condition := filter[field]

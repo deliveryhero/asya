@@ -305,6 +305,10 @@ func (c *pvcConnector) Write(_ context.Context, key string, value json.RawMessag
 func (c *pvcConnector) WriteConditional(_ context.Context, key string, value json.RawMessage, ifStatus string) error {
 	path := c.activePath(key)
 
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+		return fmt.Errorf("conditional write %q mkdir: %w", key, err)
+	}
+
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
 	if err != nil {
 		return fmt.Errorf("conditional write %q open: %w", key, err)
@@ -358,7 +362,12 @@ func (c *pvcConnector) Delete(_ context.Context, key string) error {
 		return fmt.Errorf("delete %q: %w", key, pg.ErrNotFound)
 	}
 	if c.cfg.Partition && c.shouldArchive(path) {
-		dst := filepath.Join(c.cfg.BaseDir, "archive", filepath.Base(path))
+		activeDir := filepath.Join(c.cfg.BaseDir, "active")
+		rel, _ := filepath.Rel(activeDir, path)
+		dst := filepath.Join(c.cfg.BaseDir, "archive", rel)
+		if err := os.MkdirAll(filepath.Dir(dst), 0750); err != nil {
+			return fmt.Errorf("archive mkdir %q: %w", key, err)
+		}
 		if err := os.Rename(path, dst); err != nil {
 			return fmt.Errorf("archive %q: %w", path, err)
 		}
@@ -391,19 +400,24 @@ func (c *pvcConnector) List(_ context.Context, prefix string) ([]string, error) 
 	if c.cfg.Partition {
 		dir = filepath.Join(dir, "active")
 	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("list: %w", err)
-	}
 	var keys []string
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-			continue
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".json") {
+			return nil
 		}
-		key := strings.TrimSuffix(e.Name(), ".json")
+		// Derive logical key: strip base dir + separator, strip .json suffix
+		rel, err := filepath.Rel(dir, path)
+		if err != nil {
+			return nil
+		}
+		key := strings.TrimSuffix(rel, ".json")
 		if strings.HasPrefix(key, prefix) {
 			keys = append(keys, key)
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list: %w", err)
 	}
 	sort.Strings(keys)
 	return keys, nil
@@ -470,8 +484,12 @@ func parseKVRow(key string, data []byte) (*pg.KVRow, error) {
 }
 
 // atomicWrite writes data to path via temp file + rename on the same filesystem.
+// Creates parent directories if they don't exist (keys may contain slashes).
 func atomicWrite(path string, data []byte) error {
 	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return err
+	}
 	tmp, err := os.CreateTemp(dir, ".pvckv-*")
 	if err != nil {
 		return err

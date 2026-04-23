@@ -127,6 +127,26 @@ func TestConnector_WriteConditional_Fail(t *testing.T) {
 	}
 }
 
+func TestConnector_PVC_KeysWithSlashes(t *testing.T) {
+	pvc, err := NewConnector(Config{Mode: "pvc", BaseDir: t.TempDir()})
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	require.NoError(t, pvc.Write(ctx, "msg/abc123", json.RawMessage(`{"status":"running"}`)))
+
+	row, err := pvc.Read(ctx, "msg/abc123")
+	require.NoError(t, err)
+	assert.Equal(t, "msg/abc123", row.Key)
+
+	keys, err := pvc.List(ctx, "msg/")
+	require.NoError(t, err)
+	assert.Contains(t, keys, "msg/abc123")
+
+	require.NoError(t, pvc.Delete(ctx, "msg/abc123"))
+	exists, _ := pvc.Exists(ctx, "msg/abc123")
+	assert.False(t, exists)
+}
+
 func TestConnector_PVC_Partition_Archive(t *testing.T) {
 	dir := t.TempDir()
 	conn, err := NewConnector(Config{
