@@ -275,17 +275,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - name: sqs-s3
-          profile: sqs-s3
+        - name: sqs-s3-pvc
+          profile: sqs-s3-pvc
           run_pipeline: true
           run_crossplane: true
-        - name: pubsub-gcs
-          profile: pubsub-gcs
+        - name: pubsub-gcs-pg
+          profile: pubsub-gcs-pg
           run_pipeline: true
           run_crossplane: true
           ## For now, focusing on SQS+S3 only
-          # - name: rabbitmq-minio
-          #   profile: rabbitmq-minio
+          # - name: rabbitmq-minio-pg
+          #   profile: rabbitmq-minio-pg
           #   run_pipeline: true
           #   run_crossplane: true
 

@@ -5,10 +5,14 @@ helmDefaults:
   atomic: false
 
 environments:
-  rabbitmq-minio:
+  rabbitmq-minio-pg:
     values:
       - values.yaml
-      - ../profiles/rabbitmq-minio.yaml
+      - ../profiles/rabbitmq-minio-pg.yaml
+  sqs-s3-pg:
+    values:
+      - values.yaml
+      - ../profiles/sqs-s3-pg.yaml
   sqs-s3-pvc:
     values:
       - values.yaml

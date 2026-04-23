@@ -1,5 +1,7 @@
 # Stage 1: pg-kv (CGO disabled — smallest binary, no C runtime needed)
-FROM golang:1.25-alpine AS builder-pg
+# Named "builder" to preserve compatibility with component tests that use
+# `target: builder` to run `go run ./cmd/pg-kv/` in development mode.
+FROM golang:1.25-alpine AS builder
 ENV GOTOOLCHAIN=local
 WORKDIR /app/go
 
@@ -32,6 +34,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Final image: debian-slim provides glibc required by the DuckDB runtime
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder-pg  /pg-kv  /pg-kv
+COPY --from=builder     /pg-kv  /pg-kv
 COPY --from=builder-pvc /pvc-kv /pvc-kv
 ENTRYPOINT ["/pg-kv"]
