@@ -3,7 +3,6 @@ package s3kv
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -107,12 +106,20 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	glob := filepath.Join(tmpDir, "*.json")
 	q.logger.Debug("duckdb query", "glob", glob, "keys", len(keys))
 
-	// Step 4: load into DuckDB.
-	// glob is a system-generated temp path (os.MkdirTemp) — no user input.
+	// Step 4: load into DuckDB using read_text (raw string content).
+	//
+	// We use read_text instead of read_json_auto for two reasons:
+	// 1. read_json_auto infers column types from JSON, mapping nested objects to
+	//    duckdb.Map — an unserializable go-duckdb type that breaks json.Marshal.
+	// 2. read_text is faster: no type inference, schema is always (filename, content).
+	//
+	// Filtering uses json_extract_string(content, '$.field') so no explicit columns
+	// are needed. glob is a system-generated path from os.MkdirTemp — no user input.
 	loadSQL := fmt.Sprintf( // nosemgrep
 		`CREATE OR REPLACE TABLE _tmp AS
-		 SELECT filename, * EXCLUDE (filename)
-		 FROM read_json_auto('%s', filename=true, union_by_name=true, ignore_errors=true)`,
+		 SELECT filename, content
+		 FROM read_text('%s')
+		 WHERE content IS NOT NULL`,
 		glob,
 	)
 	if _, err := q.db.ExecContext(ctx, loadSQL); err != nil { // nosemgrep
@@ -125,8 +132,8 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 
 	// Count query path.
-	// where is built by buildWhereClause: field names validated against validField regexp,
-	// values passed as parameterized args — not interpolated into the SQL string.
+	// where uses json_extract_string(content, '$.field') — field names are validated
+	// against validField regexp; values are positional args, not interpolated.
 	if req.Count {
 		var total int
 		if err := q.db.QueryRowContext(ctx, "SELECT count(*) FROM _tmp"+where, args...).Scan(&total); err != nil { // nosemgrep
@@ -148,10 +155,8 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 	limitOffset := buildLimitOffset(req.Limit, req.Offset)
 
-	// DuckDB does not allow STAR inside a function call (struct_pack(*) fails with
-	// "STAR expression is only allowed as the root element of an expression").
-	// Use SELECT * and exclude the filename column in Go instead.
-	selectSQL := "SELECT * FROM _tmp" + where + orderBy + limitOffset // nosemgrep
+	// content column already contains the raw stored JSON — pass straight to ParseStored.
+	selectSQL := "SELECT filename, content FROM _tmp" + where + orderBy + limitOffset // nosemgrep
 
 	rows, err := q.db.QueryContext(ctx, selectSQL, args...) // nosemgrep
 	if err != nil {
@@ -159,41 +164,15 @@ func (q *QueryEngine) Query(ctx context.Context, req QueryRequest) (*QueryRespon
 	}
 	defer rows.Close()
 
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, fmt.Errorf("duckdb columns: %w", err)
-	}
-
-	// Step 6: build KVRow slice.
+	// Step 6: build KVRow slice by parsing the raw stored JSON directly.
 	var result []KVRow
 	for rows.Next() {
-		vals := make([]any, len(cols))
-		ptrs := make([]any, len(cols))
-		for i := range vals {
-			ptrs[i] = &vals[i]
-		}
-		if err := rows.Scan(ptrs...); err != nil {
+		var filename, content string
+		if err := rows.Scan(&filename, &content); err != nil {
 			return nil, fmt.Errorf("duckdb scan: %w", err)
 		}
-		// Build doc JSON from all columns except filename.
-		var filename string
-		docMap := make(map[string]any, len(cols)-1)
-		for i, col := range cols {
-			if col == "filename" {
-				if s, ok := vals[i].(string); ok {
-					filename = s
-				}
-			} else {
-				docMap[col] = vals[i]
-			}
-		}
-		docJSON, err := json.Marshal(docMap)
-		if err != nil {
-			q.logger.Warn("skip un-marshallable row", "key", filename, "err", err)
-			continue
-		}
 		logKey := logicalKeyFromFile(filename, tmpDir)
-		row, err := ParseStored(logKey, docJSON)
+		row, err := ParseStored(logKey, []byte(content))
 		if err != nil {
 			q.logger.Warn("skip unparseable row", "key", logKey, "err", err)
 			continue
@@ -313,7 +292,7 @@ func buildWhereClause(filter map[string]any) (string, []any, error) {
 			}
 		default:
 			// Implicit $eq.
-			conditions = append(conditions, fmt.Sprintf("%s = $%d", field, idx))
+			conditions = append(conditions, fmt.Sprintf("%s = $%d", jsonField(field), idx))
 			args = append(args, v)
 			idx++
 		}
@@ -325,23 +304,32 @@ func buildWhereClause(filter map[string]any) (string, []any, error) {
 	return " WHERE " + strings.Join(conditions, " AND "), args, nil
 }
 
+// jsonField returns a DuckDB expression that extracts the given top-level field
+// from the `content` column (raw stored JSON). Uses json_extract_string so the
+// result is always a VARCHAR — no duckdb.Map or type-inference issues.
+// Field names are pre-validated by validField before this is called.
+func jsonField(field string) string {
+	return fmt.Sprintf("json_extract_string(content, '$.%s')", field)
+}
+
 // buildOperatorCondition translates one Mango operator into a SQL condition.
-// extraArgs holds the positional parameters for the condition; nextIdx is the
-// next free parameter index after consuming the operator's arguments.
+// All field references use json_extract_string(content, '$.field') so values
+// are always VARCHAR — no column-type inference and no duckdb.Map issues.
 func buildOperatorCondition(field, op string, operand any, idx int) (cond string, extraArgs []any, nextIdx int, err error) {
+	jf := jsonField(field)
 	switch op {
 	case "$eq":
-		return fmt.Sprintf("%s = $%d", field, idx), []any{operand}, idx + 1, nil
+		return fmt.Sprintf("%s = $%d", jf, idx), []any{operand}, idx + 1, nil
 	case "$ne":
-		return fmt.Sprintf("%s != $%d", field, idx), []any{operand}, idx + 1, nil
+		return fmt.Sprintf("%s != $%d", jf, idx), []any{operand}, idx + 1, nil
 	case "$gt":
-		return fmt.Sprintf("%s > $%d", field, idx), []any{operand}, idx + 1, nil
+		return fmt.Sprintf("%s > $%d", jf, idx), []any{operand}, idx + 1, nil
 	case "$gte":
-		return fmt.Sprintf("%s >= $%d", field, idx), []any{operand}, idx + 1, nil
+		return fmt.Sprintf("%s >= $%d", jf, idx), []any{operand}, idx + 1, nil
 	case "$lt":
-		return fmt.Sprintf("%s < $%d", field, idx), []any{operand}, idx + 1, nil
+		return fmt.Sprintf("%s < $%d", jf, idx), []any{operand}, idx + 1, nil
 	case "$lte":
-		return fmt.Sprintf("%s <= $%d", field, idx), []any{operand}, idx + 1, nil
+		return fmt.Sprintf("%s <= $%d", jf, idx), []any{operand}, idx + 1, nil
 	case "$in":
 		vals := toAnySlice(operand)
 		if len(vals) == 0 {
@@ -351,7 +339,7 @@ func buildOperatorCondition(field, op string, operand any, idx int) (cond string
 		for i := range vals {
 			phs[i] = fmt.Sprintf("$%d", idx+i)
 		}
-		return fmt.Sprintf("%s IN (%s)", field, strings.Join(phs, ", ")), vals, idx + len(vals), nil
+		return fmt.Sprintf("%s IN (%s)", jf, strings.Join(phs, ", ")), vals, idx + len(vals), nil
 	case "$nin":
 		vals := toAnySlice(operand)
 		if len(vals) == 0 {
@@ -361,20 +349,24 @@ func buildOperatorCondition(field, op string, operand any, idx int) (cond string
 		for i := range vals {
 			phs[i] = fmt.Sprintf("$%d", idx+i)
 		}
-		return fmt.Sprintf("%s NOT IN (%s)", field, strings.Join(phs, ", ")), vals, idx + len(vals), nil
+		return fmt.Sprintf("%s NOT IN (%s)", jf, strings.Join(phs, ", ")), vals, idx + len(vals), nil
 	case "$exists":
 		b, _ := operand.(bool)
+		// Use json_extract (not json_extract_string) for null check — returns NULL
+		// when the key is absent, regardless of value type.
+		jfExist := fmt.Sprintf("json_extract(content, '$.%s')", field)
 		if b {
-			return fmt.Sprintf("%s IS NOT NULL", field), nil, idx, nil
+			return fmt.Sprintf("%s IS NOT NULL", jfExist), nil, idx, nil
 		}
-		return fmt.Sprintf("%s IS NULL", field), nil, idx, nil
+		return fmt.Sprintf("%s IS NULL", jfExist), nil, idx, nil
 	default:
 		return "", nil, idx, fmt.Errorf("unsupported filter operator: %s", op)
 	}
 }
 
 // buildOrderBy translates a sort spec slice into a DuckDB ORDER BY clause.
-// "-field" means DESC; "field" means ASC.
+// "-field" means DESC; "field" means ASC. Uses json_extract_string for
+// consistency with buildWhereClause — sorts values as VARCHAR.
 func buildOrderBy(sort []string) (string, error) {
 	if len(sort) == 0 {
 		return "", nil
@@ -390,7 +382,7 @@ func buildOrderBy(sort []string) (string, error) {
 		if !validField.MatchString(field) {
 			return "", fmt.Errorf("invalid sort field: %q", field)
 		}
-		parts = append(parts, field+" "+dir)
+		parts = append(parts, jsonField(field)+" "+dir)
 	}
 	return " ORDER BY " + strings.Join(parts, ", "), nil
 }

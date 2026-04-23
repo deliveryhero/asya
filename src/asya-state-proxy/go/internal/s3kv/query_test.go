@@ -27,35 +27,35 @@ func TestBuildWhere_Empty(t *testing.T) {
 func TestBuildWhere_ImplicitEq(t *testing.T) {
 	where, args, err := buildWhereClause(map[string]any{"status": "running"})
 	require.NoError(t, err)
-	assert.Contains(t, where, "status = $1")
+	assert.Contains(t, where, "json_extract_string(content, '$.status') = $1")
 	assert.Equal(t, []any{"running"}, args)
 }
 
 func TestBuildWhere_ExplicitEq(t *testing.T) {
 	where, args, err := buildWhereClause(map[string]any{"status": map[string]any{"$eq": "running"}})
 	require.NoError(t, err)
-	assert.Contains(t, where, "status = $1")
+	assert.Contains(t, where, "json_extract_string(content, '$.status') = $1")
 	assert.Equal(t, []any{"running"}, args)
 }
 
 func TestBuildWhere_Ne(t *testing.T) {
 	where, args, err := buildWhereClause(map[string]any{"status": map[string]any{"$ne": "failed"}})
 	require.NoError(t, err)
-	assert.Contains(t, where, "status != $1")
+	assert.Contains(t, where, "json_extract_string(content, '$.status') != $1")
 	assert.Equal(t, []any{"failed"}, args)
 }
 
 func TestBuildWhere_Gt(t *testing.T) {
 	where, args, err := buildWhereClause(map[string]any{"progress": map[string]any{"$gt": 50}})
 	require.NoError(t, err)
-	assert.Contains(t, where, "progress > $1")
+	assert.Contains(t, where, "json_extract_string(content, '$.progress') > $1")
 	assert.Equal(t, []any{50}, args)
 }
 
 func TestBuildWhere_Lte(t *testing.T) {
 	where, _, err := buildWhereClause(map[string]any{"progress": map[string]any{"$lte": 100}})
 	require.NoError(t, err)
-	assert.Contains(t, where, "progress <= $1")
+	assert.Contains(t, where, "json_extract_string(content, '$.progress') <= $1")
 }
 
 func TestBuildWhere_In(t *testing.T) {
@@ -63,7 +63,7 @@ func TestBuildWhere_In(t *testing.T) {
 		"status": map[string]any{"$in": []any{"running", "pending"}},
 	})
 	require.NoError(t, err)
-	assert.Contains(t, where, "status IN ($1, $2)")
+	assert.Contains(t, where, "json_extract_string(content, '$.status') IN ($1, $2)")
 	assert.Equal(t, []any{"running", "pending"}, args)
 }
 
@@ -72,7 +72,7 @@ func TestBuildWhere_Nin(t *testing.T) {
 		"status": map[string]any{"$nin": []any{"succeeded", "failed", "canceled"}},
 	})
 	require.NoError(t, err)
-	assert.Contains(t, where, "status NOT IN ($1, $2, $3)")
+	assert.Contains(t, where, "json_extract_string(content, '$.status') NOT IN ($1, $2, $3)")
 	assert.Equal(t, 3, len(args))
 	// Types must be preserved ([]any, not []string).
 	assert.IsType(t, "succeeded", args[0])
@@ -81,13 +81,13 @@ func TestBuildWhere_Nin(t *testing.T) {
 func TestBuildWhere_ExistsTrue(t *testing.T) {
 	where, _, err := buildWhereClause(map[string]any{"deadline_at": map[string]any{"$exists": true}})
 	require.NoError(t, err)
-	assert.Contains(t, where, "deadline_at IS NOT NULL")
+	assert.Contains(t, where, "json_extract(content, '$.deadline_at') IS NOT NULL")
 }
 
 func TestBuildWhere_ExistsFalse(t *testing.T) {
 	where, _, err := buildWhereClause(map[string]any{"error": map[string]any{"$exists": false}})
 	require.NoError(t, err)
-	assert.Contains(t, where, "error IS NULL")
+	assert.Contains(t, where, "json_extract(content, '$.error') IS NULL")
 }
 
 func TestBuildWhere_InEmptySlice(t *testing.T) {
@@ -120,19 +120,19 @@ func TestBuildOrderBy_Empty(t *testing.T) {
 func TestBuildOrderBy_Asc(t *testing.T) {
 	s, err := buildOrderBy([]string{"created_at"})
 	require.NoError(t, err)
-	assert.Equal(t, " ORDER BY created_at ASC", s)
+	assert.Equal(t, " ORDER BY json_extract_string(content, '$.created_at') ASC", s)
 }
 
 func TestBuildOrderBy_Desc(t *testing.T) {
 	s, err := buildOrderBy([]string{"-progress"})
 	require.NoError(t, err)
-	assert.Equal(t, " ORDER BY progress DESC", s)
+	assert.Equal(t, " ORDER BY json_extract_string(content, '$.progress') DESC", s)
 }
 
 func TestBuildOrderBy_Multi(t *testing.T) {
 	s, err := buildOrderBy([]string{"status", "-progress"})
 	require.NoError(t, err)
-	assert.Equal(t, " ORDER BY status ASC, progress DESC", s)
+	assert.Equal(t, " ORDER BY json_extract_string(content, '$.status') ASC, json_extract_string(content, '$.progress') DESC", s)
 }
 
 func TestBuildOrderBy_InvalidField(t *testing.T) {
@@ -469,9 +469,9 @@ func TestQueryEngine_FilterOperators(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 3, resp.Total)
 
-	// $gt: priority > 2.
+	// $gt: priority > "2" (string comparison since json_extract_string returns strings).
 	resp2, err := qe.Query(context.Background(), QueryRequest{
-		Filter: map[string]any{"priority": map[string]any{"$gt": 2.0}},
+		Filter: map[string]any{"priority": map[string]any{"$gt": "2"}},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, 2, resp2.Total)

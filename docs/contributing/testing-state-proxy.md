@@ -14,7 +14,7 @@ and E2E tests — each with different infrastructure and scope.
 
 | Backend | Unit | Component | Integration | E2E |
 |---------|------|-----------|-------------|-----|
-| S3 LWW | ✅ (moto) | ✅ | ✅ (sqs-s3, rabbitmq-minio) | ✅ CI (sqs-s3) |
+| S3 LWW (Last-Write-Wins) | ✅ (moto) | ✅ | ✅ (sqs-s3, rabbitmq-minio) | ✅ CI (sqs-s3) |
 | S3 CAS | ✅ (moto) | ✅ | — | — |
 | S3 passthrough | ✅ (moto) | ✅ | — | — |
 | GCS LWW | ✅ (mock) | ✅ | ✅ (pubsub-gcs) | ✅ CI (pubsub-gcs) |
