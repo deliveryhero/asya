@@ -85,3 +85,7 @@ Three tiers with concrete kubectl commands:
 - [x] Update ONBOARDING.md with "Code Delivery Options" section
 - [x] Commit, push, PR (#460)
 - [x] Set aint status to pushed
+- [x] Add E2E test: test_init_container_code_delivery (functional, uses busybox)
+- [x] Add E2E test: test_git_sync_code_delivery (real git-sync, public asya repo)
+- [x] Fix Kind cluster: upgraded asya-crossplane chart (initContainers XRD), fixed TLS cert for local registry
+- [x] Both tests pass locally (kind-asya-e2e-sqs-s3), ~30s each
