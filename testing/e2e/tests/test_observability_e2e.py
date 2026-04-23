@@ -25,6 +25,12 @@ NAMESPACE = os.environ.get("ASYA_NAMESPACE", "asya-e2e")
 TEMPO_URL = os.environ.get("ASYA_TEMPO_URL", f"http://tempo.{NAMESPACE}.svc.cluster.local:3200")
 PROMETHEUS_URL = os.environ.get("ASYA_PROMETHEUS_URL", f"http://prometheus-server.{NAMESPACE}.svc.cluster.local:80")
 LOKI_URL = os.environ.get("ASYA_LOKI_URL", f"http://loki.{NAMESPACE}.svc.cluster.local:3100")
+OBSERVABILITY_ENABLED = os.environ.get("ASYA_OBSERVABILITY_ENABLED", "false").lower() == "true"
+
+_skip_if_disabled = pytest.mark.skipif(
+    not OBSERVABILITY_ENABLED,
+    reason="observability stack not enabled (set ASYA_OBSERVABILITY_ENABLED=true)",
+)
 
 
 def _kubectl_exec_wget(pod_selector: str, url: str, namespace: str = NAMESPACE) -> dict:
@@ -79,6 +85,7 @@ def _query_loki(query: str, limit: int = 5) -> dict:
 # ---------------------------------------------------------------------------
 
 
+@_skip_if_disabled
 class TestTracing:
     """Verify distributed traces flow through the actor mesh."""
 
@@ -178,6 +185,7 @@ class TestTracing:
 # ---------------------------------------------------------------------------
 
 
+@_skip_if_disabled
 class TestMetrics:
     """Verify Prometheus scrapes sidecar metrics."""
 
@@ -216,6 +224,7 @@ class TestMetrics:
 # ---------------------------------------------------------------------------
 
 
+@_skip_if_disabled
 class TestLogs:
     """Verify Loki collects sidecar and gateway logs."""
 

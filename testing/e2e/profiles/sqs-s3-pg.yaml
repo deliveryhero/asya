@@ -10,7 +10,6 @@ postgres:
 
 tracing:
   enabled: true
-  endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
 
 observability:
   prometheus:
@@ -120,8 +119,6 @@ gateway:
     name: asya_gateway
     username: asya
     password: asya-db-password
-  tracing:
-    endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
   extraEnvFrom:
   - secretRef:
       name: aws-creds
@@ -248,7 +245,6 @@ crossplane:
     sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
     sqsWaitTimeSeconds: "2"
     awsCredsSecret: aws-creds
-    tracingEndpoint: tempo.asya-e2e.svc.cluster.local:4317
   providerConfigs:
     install: false
   functions:

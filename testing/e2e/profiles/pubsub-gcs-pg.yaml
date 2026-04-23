@@ -11,7 +11,6 @@ postgres:
 
 tracing:
   enabled: true
-  endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
 
 observability:
   prometheus:
@@ -242,7 +241,6 @@ crossplane:
   sidecar:
     image: ghcr.io/deliveryhero/asya-sidecar:latest
     imagePullPolicy: Never
-    tracingEndpoint: tempo.asya-e2e.svc.cluster.local:4317
     pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
     gcpProjectId: test-project
   providerConfigs:
