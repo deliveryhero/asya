@@ -31,12 +31,12 @@ fi
 
 # Validate profile
 case "$PROFILE" in
-  sqs-s3) ;;
+  sqs-s3-pvc) ;;
   rabbitmq-minio) ;;
-  pubsub-gcs) ;;
+  pubsub-gcs-pg) ;;
   *)
     echo "[!] Unknown profile: $PROFILE"
-    echo "    Valid profiles: sqs-s3, rabbitmq-minio, pubsub-gcs"
+    echo "    Valid profiles: sqs-s3-pvc, rabbitmq-minio, pubsub-gcs-pg"
     exit 1
     ;;
 esac
@@ -120,8 +120,8 @@ time {
     "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
   PG_KV_BUILD_PID=$!
 
-  # Build state-proxy-py (Python connectors, for active profile)
-  if [[ "$PROFILE" == "sqs-s3" ]] || [[ "$PROFILE" == "pubsub-gcs" ]]; then
+  # Build state-proxy-py (Python connectors, for profiles that use it)
+  if [[ "$PROFILE" == "sqs-s3-pvc" ]] || [[ "$PROFILE" == "pubsub-gcs-pg" ]]; then
     echo "[.] Building asya-state-proxy-py image..."
     docker build -t "${IMAGE_PREFIX}asya-state-proxy-py:dev" \
       -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile" \

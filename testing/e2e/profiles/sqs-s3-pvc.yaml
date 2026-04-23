@@ -1,0 +1,274 @@
+# Test profile: SQS + S3 actor state + pvc-kv gateway state
+#
+# SQS message transport (LocalStack), S3 actor/crew persistence (LocalStack),
+# pvc-kv gateway state proxy (no PostgreSQL required).
+
+namespace: asya-e2e
+
+postgres:
+  enabled: false
+
+tracing:
+  enabled: true
+  endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
+
+transport:
+  rabbitmq:
+    enabled: false
+  sqs:
+    enabled: true
+
+storage:
+  minio:
+    enabled: false
+  s3:
+    enabled: true
+
+actors:
+  namespace: asya-e2e
+  storage:
+    type: s3
+    endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
+    bucket: asya-results
+    resultsBucket: asya-results
+    errorsBucket: asya-errors
+    region: us-east-1
+    accessKey: test
+    secretKey: test
+
+crew:
+  image:
+    tag: latest
+    pullPolicy: Never
+  sqs:
+    dlq:
+      enabled: true
+      providerConfigRef: localstack
+      region: us-east-1
+  persistence:
+    enabled: true
+    backend: s3
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-py:dev
+    config:
+      bucket: asya-results
+      errorsBucket: asya-errors
+      endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
+      region: us-east-1
+      accessKey: test
+      secretKey: test
+  x-sink:
+    env:
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
+      ASYA_SQS_WAIT_TIME_SECONDS: "2"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+    scaling:
+      enabled: true
+      minReplicaCount: 1
+  x-sump:
+    env:
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
+      ASYA_SQS_WAIT_TIME_SECONDS: "2"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+    scaling:
+      enabled: true
+      minReplicaCount: 1
+
+gateway:
+  meshApi:
+    image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
+      pullPolicy: Never
+  mcp:
+    enabled: true
+    image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
+      pullPolicy: Never
+  a2a:
+    enabled: true
+    image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
+      pullPolicy: Never
+    auth:
+      apiKey: "test-api-key-e2e"
+      jwt:
+        jwksURL: "http://asya-jwks-server.asya-e2e.svc.cluster.local/jwks.json"
+        issuer: "https://test-issuer.e2e"
+        audience: "asya-gateway-e2e"
+  stateProxy:
+    mesh:
+      backend: pvc-kv
+      image:
+        repository: ghcr.io/deliveryhero/asya-state-proxy-go
+        tag: dev
+        pullPolicy: Never
+      pvcKv:
+        mode: pvc
+        storageDir: /data/mesh
+        partition: true
+        archiveStatuses: "completed,failed,canceled,succeeded"
+  tracing:
+    endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
+  extraEnvFrom:
+  - secretRef:
+      name: aws-creds
+  transports:
+    rabbitmq:
+      enabled: false
+    sqs:
+      enabled: true
+      config:
+        endpoint: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
+        region: "us-east-1"
+        visibilityTimeout: 30
+        waitTimeSeconds: 2
+  mcpTools:
+  - name: test_echo
+    description: "Echo test tool"
+    actor: test-echo
+    timeout: 120
+  - name: test_pipeline
+    description: "Pipeline test tool"
+    actor: test-doubler
+    timeout: 45
+  - name: test_error
+    description: "Error test tool"
+    actor: test-error
+    timeout: 120
+  - name: test_timeout
+    description: "Timeout test tool"
+    actor: test-timeout
+    timeout: 30
+  - name: test_timeout_cold
+    description: "Cold start timeout test tool"
+    actor: test-timeout-cold
+    timeout: 15
+  - name: test_slow_boundary
+    description: "Slow boundary test tool"
+    actor: test-slow-boundary
+    timeout: 30
+  - name: test_multihop
+    description: "Multi-hop chain test tool"
+    actor: test-multihop-0
+    timeout: 90
+  - name: test_nested_flow
+    description: "Nested flow test tool"
+    actor: start-test-nested-flow
+    timeout: 60
+  - name: test_empty_response
+    description: "Empty response test tool"
+    actor: test-empty
+    timeout: 30
+  - name: test_unicode
+    description: "Unicode test tool"
+    actor: test-unicode
+    timeout: 30
+  - name: test_large_payload
+    description: "Large payload test tool"
+    actor: test-large-payload
+    timeout: 60
+  - name: test_fanout
+    description: "Fan-out test tool"
+    actor: test-fanout
+    timeout: 60
+  - name: test_nested
+    description: "Nested test tool"
+    actor: test-nested
+    timeout: 60
+  - name: test_queue_health
+    description: "Queue health test tool"
+    actor: test-queue-health
+    timeout: 30
+  - name: test-retry-exhaustion
+    description: "Retry exhaustion test tool"
+    actor: test-retry-exhaustion
+    timeout: 60
+  - name: test-retry-nonretryable
+    description: "Non-retryable policy test tool"
+    actor: test-retry-nonretryable
+    timeout: 30
+  a2aAgents:
+  - name: test-agent
+    description: "Test A2A agent"
+    actor: test-echo
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_echo
+      name: Echo
+      description: "Echo back input"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
+  - name: pipeline-agent
+    description: "Pipeline test agent"
+    actor: test-doubler
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_pipeline
+      name: Pipeline
+      description: "Multi-hop pipeline test"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
+  - name: slow-boundary-agent
+    description: "Slow boundary test agent"
+    actor: test-slow-boundary
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_slow_boundary
+      name: Slow Boundary
+      description: "Slow boundary test"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
+
+crossplane:
+  transport: sqs
+  providers:
+    aws:
+      enabled: true
+  sqs:
+    receiveWaitTimeSeconds: 2
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
+    imagePullPolicy: Never
+    sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
+    sqsWaitTimeSeconds: "2"
+    awsCredsSecret: aws-creds
+    tracingEndpoint: tempo.asya-e2e.svc.cluster.local:4317
+  providerConfigs:
+    install: false
+  functions:
+    flavorsEnabled: true
+  awsProviderConfig:
+    name: localstack
+    credentialsSource: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-creds
+      key: credentials
+    endpoint:
+      enabled: true
+      url: http://localstack-sqs.asya-system.svc.cluster.local:4566
+      hostnameImmutable: true
+    skipCredentialsValidation: true
+    skipMetadataApiCheck: true
+    skipRequestingAccountId: true
+    skipRegionValidation: true
+    s3UsePathStyle: true
+  awsRegion: us-east-1
+  awsAccountId: "000000000000"
+  actorNamespace: asya-e2e
+  irsa:
+    enabled: false
+  keda:
+    authProvider: secret
+    secretRef:
+      name: aws-creds
+      accessKeyIdKey: AWS_ACCESS_KEY_ID
+      secretAccessKeyKey: AWS_SECRET_ACCESS_KEY

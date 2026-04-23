@@ -9,14 +9,14 @@ environments:
     values:
       - values.yaml
       - ../profiles/rabbitmq-minio.yaml
-  sqs-s3:
+  sqs-s3-pvc:
     values:
       - values.yaml
-      - ../profiles/sqs-s3.yaml
-  pubsub-gcs:
+      - ../profiles/sqs-s3-pvc.yaml
+  pubsub-gcs-pg:
     values:
       - values.yaml
-      - ../profiles/pubsub-gcs.yaml
+      - ../profiles/pubsub-gcs-pg.yaml
 
 ---
 
@@ -64,6 +64,7 @@ releases:
   - name: postgres
     namespace: {{ .Values.namespace | default "asya-e2e" }}
     chart: ./postgres
+    condition: postgres.enabled
     labels:
       layer: infra
     hooks:
@@ -419,7 +420,9 @@ releases:
     namespace: {{ .Values.namespace | default "asya-e2e" }}
     chart: ../../../deploy/helm-charts/asya-gateway
     needs:
+      {{- if .Values.postgres.enabled }}
       - postgres
+      {{- end }}
     values:
       - {{- .Values.gateway | toYaml | nindent 8 }}
       {{- if .Values.tracing.enabled }}

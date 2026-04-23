@@ -4,6 +4,9 @@ metadata:
   name: {{ include "asya-gateway.fullname" . }}
   labels:
     {{- include "asya-gateway.labels" . | nindent 4 }}
+{{- if and (eq (.Values.stateProxy.mesh.backend | default "pg-kv") "pvc-kv") (gt (.Values.replicaCount | int) 1) }}
+  {{- fail "stateProxy.mesh.backend=pvc-kv requires replicaCount: 1 (local storage is not shared across pods)" }}
+{{- end }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -100,15 +103,28 @@ spec:
         - name: state-proxy-mesh-socket
           mountPath: {{ .Values.stateProxy.mesh.socketDir }}
 
-      # --- state-proxy-pg-kv: PG connector sidecar ---
+      # --- state-proxy sidecar: backend selected by stateProxy.mesh.backend ---
       - name: state-proxy-mesh
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
         image: "{{ .Values.stateProxy.mesh.image.repository }}:{{ .Values.stateProxy.mesh.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.stateProxy.mesh.image.pullPolicy }}
+        {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "pvc-kv" }}
+        command: ["/pvc-kv"]
+        {{- end }}
         env:
         - name: CONNECTOR_SOCKET
           value: {{ printf "%s/state-proxy.sock" .Values.stateProxy.mesh.socketDir | quote }}
+        {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "pvc-kv" }}
+        - name: PVC_KV_MODE
+          value: {{ .Values.stateProxy.mesh.pvcKv.mode | quote }}
+        - name: PVC_KV_BASE_DIR
+          value: {{ .Values.stateProxy.mesh.pvcKv.storageDir | quote }}
+        - name: PVC_KV_PARTITION
+          value: {{ .Values.stateProxy.mesh.pvcKv.partition | toString | quote }}
+        - name: PVC_KV_ARCHIVE_STATUSES
+          value: {{ .Values.stateProxy.mesh.pvcKv.archiveStatuses | quote }}
+        {{- else }}
         - name: STATE_PROXY_PG_INDEXES
           value: {{ .Values.stateProxy.mesh.indexes | quote }}
         {{- if .Values.database.existingSecret }}
@@ -126,6 +142,7 @@ spec:
         {{- end }}
         - name: STATE_PROXY_PG_URL
           value: "host={{ .Values.database.host }} port={{ .Values.database.port }} dbname={{ .Values.database.name }} user={{ .Values.database.username }} password=$(DB_PASSWORD) sslmode={{ .Values.database.sslMode }}"
+        {{- end }}
         livenessProbe:
           exec:
             command: ["/bin/sh", "-c", "test -S {{ .Values.stateProxy.mesh.socketDir }}/state-proxy.sock"]
@@ -136,6 +153,10 @@ spec:
         volumeMounts:
         - name: state-proxy-mesh-socket
           mountPath: {{ .Values.stateProxy.mesh.socketDir }}
+        {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "pvc-kv" }}
+        - name: pvc-kv-data
+          mountPath: {{ .Values.stateProxy.mesh.pvcKv.storageDir }}
+        {{- end }}
 
       {{- if .Values.mcp.enabled }}
       # --- mcp-adapter: MCP Streamable HTTP ---
@@ -283,6 +304,10 @@ spec:
       volumes:
       - name: state-proxy-mesh-socket
         emptyDir: {}
+      {{- if eq (.Values.stateProxy.mesh.backend | default "pg-kv") "pvc-kv" }}
+      - name: pvc-kv-data
+        emptyDir: {}
+      {{- end }}
       {{- if .Values.mcp.enabled }}
       - name: mcp-tools
         configMap:

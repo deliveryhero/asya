@@ -1,0 +1,278 @@
+# Test profile: Pub/Sub + GCS actor state + pg-kv gateway state
+#
+# Tests Google Cloud Pub/Sub message transport with GCS object storage
+# (using gcloud Pub/Sub emulator and fake-gcs-server in E2E environment).
+# Gateway uses pg-kv (PostgreSQL) for mesh state.
+
+namespace: asya-e2e
+
+postgres:
+  enabled: true
+
+tracing:
+  enabled: true
+  endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
+
+observability:
+  prometheus:
+    enabled: true
+  loki:
+    enabled: true
+  promtail:
+    enabled: true
+
+# KEDA operator configuration for the pubsub-gcs profile.
+# PUBSUB_EMULATOR_HOST routes the gcp-pubsub scaler to the in-cluster emulator,
+# bypassing GCP OAuth (the emulator accepts requests without authentication).
+# Without this, KEDA fails with Unauthenticated errors against pubsub.googleapis.com,
+# causing ScaledObject Ready=False which blocks function-auto-ready from firing.
+keda:
+  env:
+  - name: PUBSUB_EMULATOR_HOST
+    value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+
+transport:
+  rabbitmq:
+    enabled: false
+  sqs:
+    enabled: false
+  pubsub:
+    enabled: true
+
+storage:
+  minio:
+    enabled: false
+  s3:
+    enabled: false
+  gcs:
+    enabled: true
+
+actors:
+  namespace: asya-e2e
+  storage:
+    type: gcs
+    bucket: asya-results
+    resultsBucket: asya-results
+    errorsBucket: asya-errors
+    project: test-project
+    emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
+
+crew:
+  image:
+    tag: latest
+    pullPolicy: Never
+  persistence:
+    enabled: true
+    backend: gcs
+    config:
+      bucket: asya-results
+      errorsBucket: asya-errors
+      project: test-project
+      emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-py:dev
+  x-sink:
+    env:
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
+      PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+    scaling:
+      enabled: true
+      minReplicaCount: 1
+  x-sump:
+    env:
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
+      PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+    scaling:
+      enabled: true
+      minReplicaCount: 1
+
+gateway:
+  meshApi:
+    image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
+      pullPolicy: Never
+  mcp:
+    enabled: true
+    image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
+      pullPolicy: Never
+  a2a:
+    enabled: true
+    image:
+      repository: ghcr.io/deliveryhero/asya-gateway
+      tag: latest
+      pullPolicy: Never
+    auth:
+      apiKey: "test-api-key-e2e"
+      jwt:
+        jwksURL: "http://asya-jwks-server.asya-e2e.svc.cluster.local/jwks.json"
+        issuer: "https://test-issuer.e2e"
+        audience: "asya-gateway-e2e"
+  stateProxy:
+    mesh:
+      image:
+        repository: ghcr.io/deliveryhero/asya-state-proxy-go
+        tag: dev
+        pullPolicy: Never
+  database:
+    host: asya-gateway-postgresql.asya-e2e.svc.cluster.local
+    port: 5432
+    name: asya_gateway
+    username: asya
+    password: asya-db-password
+  transports:
+    rabbitmq:
+      enabled: false
+    sqs:
+      enabled: false
+    pubsub:
+      enabled: true
+      config:
+        projectId: "test-project"
+        endpoint: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+  mcpTools:
+  - name: test_echo
+    description: "Echo test tool"
+    actor: test-echo
+    timeout: 120
+  - name: test_pipeline
+    description: "Pipeline test tool"
+    actor: test-doubler
+    timeout: 45
+  - name: test_error
+    description: "Error test tool"
+    actor: test-error
+    timeout: 120
+  - name: test_timeout
+    description: "Timeout test tool"
+    actor: test-timeout
+    timeout: 30
+  - name: test_timeout_cold
+    description: "Cold start timeout test tool"
+    actor: test-timeout-cold
+    timeout: 15
+  - name: test_slow_boundary
+    description: "Slow boundary test tool"
+    actor: test-slow-boundary
+    timeout: 30
+  - name: test_multihop
+    description: "Multi-hop chain test tool"
+    actor: test-multihop-0
+    timeout: 90
+  - name: test_nested_flow
+    description: "Nested flow test tool"
+    actor: start-test-nested-flow
+    timeout: 60
+  - name: test_empty_response
+    description: "Empty response test tool"
+    actor: test-empty
+    timeout: 30
+  - name: test_unicode
+    description: "Unicode test tool"
+    actor: test-unicode
+    timeout: 30
+  - name: test_large_payload
+    description: "Large payload test tool"
+    actor: test-large-payload
+    timeout: 60
+  - name: test_fanout
+    description: "Fan-out test tool"
+    actor: test-fanout
+    timeout: 60
+  - name: test_nested
+    description: "Nested test tool"
+    actor: test-nested
+    timeout: 60
+  - name: test_queue_health
+    description: "Queue health test tool"
+    actor: test-queue-health
+    timeout: 30
+  - name: test-retry-exhaustion
+    description: "Retry exhaustion test tool"
+    actor: test-retry-exhaustion
+    timeout: 60
+  - name: test-retry-nonretryable
+    description: "Non-retryable policy test tool"
+    actor: test-retry-nonretryable
+    timeout: 30
+  a2aAgents:
+  - name: test-agent
+    description: "Test A2A agent"
+    actor: test-echo
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_echo
+      name: Echo
+      description: "Echo back input"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
+  - name: pipeline-agent
+    description: "Pipeline test agent"
+    actor: test-doubler
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_pipeline
+      name: Pipeline
+      description: "Multi-hop pipeline test"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
+  - name: slow-boundary-agent
+    description: "Slow boundary test agent"
+    actor: test-slow-boundary
+    timeout: 120
+    streaming: true
+    skills:
+    - id: test_slow_boundary
+      name: Slow Boundary
+      description: "Slow boundary test"
+    inputModes: [text/plain, application/json]
+    outputModes: [text/plain, application/json]
+
+crossplane:
+  transport: pubsub
+  providers:
+    aws:
+      enabled: false
+    gcp:
+      enabled: true
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
+    imagePullPolicy: Never
+    tracingEndpoint: tempo.asya-e2e.svc.cluster.local:4317
+    pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
+    gcpProjectId: test-project
+  providerConfigs:
+    install: false
+  functions:
+    flavorsEnabled: true
+  gcpProviderConfig:
+    name: gcp-emulator
+    projectId: test-project
+    emulatorHost: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+    credentialsSource: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: gcp-creds
+      key: credentials.json
+  pubsub:
+    keda:
+      secretRef:
+        name: gcp-keda-secret
+        credentialsKey: credentials.json
+      scaler:
+        enabled: true
+        address: "asya-scaler-pubsub.asya-system.svc.cluster.local:6000"
+        image:
+          repository: ghcr.io/deliveryhero/asya-crew
+          tag: latest
+          pullPolicy: Never
+        env:
+        - name: PUBSUB_EMULATOR_HOST
+          value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+  actorNamespace: asya-e2e
+  irsa:
+    enabled: false

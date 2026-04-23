@@ -5,6 +5,9 @@
 
 namespace: asya-e2e
 
+postgres:
+  enabled: true
+
 localstack:
   enabled: false
 
