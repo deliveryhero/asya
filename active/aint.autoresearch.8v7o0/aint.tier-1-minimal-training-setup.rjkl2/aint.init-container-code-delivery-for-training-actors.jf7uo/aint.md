@@ -1,6 +1,6 @@
 ---
 title: Init container code delivery for training actors
-status: pushed
+status: merged
 priority: 1 # high
 dependencies: [cynl0]
 tags: [tier-1, autoresearch, code-delivery, init-container]
