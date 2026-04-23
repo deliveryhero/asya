@@ -36,6 +36,10 @@ spec:
         asya.sh/loadtest: "true"
         asya.sh/loadtest-mode: {{ .Values.mode | quote }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       restartPolicy: Never
       serviceAccountName: {{ include "asya-loadtest.serviceAccountName" . }}
       containers:
@@ -43,6 +47,11 @@ spec:
         image: {{ include "asya-loadtest.image" . }}
         imagePullPolicy: {{ .Values.workload.image.pullPolicy }}
         command: ["/bin/bash", "/scripts/entrypoint.sh"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: ASYA_MODE
           value: {{ .Values.mode | quote }}

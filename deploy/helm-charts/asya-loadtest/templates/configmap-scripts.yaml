@@ -283,14 +283,16 @@ data:
             params = pika.URLParameters(os.environ["ASYA_RABBITMQ_URL"])
             self._conn = pika.BlockingConnection(params)
             self._channel = self._conn.channel()
+            self._lock = Lock()
 
         def send(self, actor: str, envelope: dict) -> None:
             queue = f"{QUEUE_PREFIX}{actor}"
-            self._channel.basic_publish(
-                exchange="",
-                routing_key=queue,
-                body=json.dumps(envelope).encode(),
-            )
+            with self._lock:
+                self._channel.basic_publish(
+                    exchange="",
+                    routing_key=queue,
+                    body=json.dumps(envelope).encode(),
+                )
 
 
     _SENDERS = {"sqs": _SQSSender, "pubsub": _PubSubSender, "rabbitmq": _RabbitMQSender}
@@ -315,9 +317,20 @@ data:
             if self.path != "/envelopes":
                 self._respond(404, b"not found", "text/plain")
                 return
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-            actor   = body["actor"]
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+            except ValueError:
+                self._respond(400, b"invalid Content-Length", "text/plain")
+                return
+            if length <= 0 or length > 1_048_576:
+                self._respond(400, b"Content-Length missing or exceeds 1 MiB", "text/plain")
+                return
+            try:
+                body = json.loads(self.rfile.read(length))
+                actor = body["actor"]
+            except (json.JSONDecodeError, KeyError):
+                self._respond(400, b"invalid JSON or missing 'actor' field", "text/plain")
+                return
             payload = body.get("payload", {})
             vu      = payload.pop("_k6_vu", "0")
             itr     = payload.pop("_k6_iter", "0")
@@ -341,5 +354,5 @@ data:
             self.wfile.write(body)
 
 
-    print(f"[+] Transport injector :{PORT} (transport={TRANSPORT} prefix={QUEUE_PREFIX!r})")
-    ThreadingHTTPServer(("", PORT), _Handler).serve_forever()
+    print(f"[+] Transport injector 127.0.0.1:{PORT} (transport={TRANSPORT} prefix={QUEUE_PREFIX!r})")
+    ThreadingHTTPServer(("127.0.0.1", PORT), _Handler).serve_forever()

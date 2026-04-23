@@ -73,17 +73,10 @@ Build the ASYA_SCENARIOS JSON value (list of {actor, payload} objects for all en
 */}}
 {{- define "asya-loadtest.scenariosJson" -}}
 {{- $list := list -}}
-{{- if .Values.scenarios.echo.enabled -}}
-  {{- $list = append $list (dict "actor" "loadtest-echo" "payload" (dict)) -}}
-{{- end -}}
-{{- if .Values.scenarios.slow.enabled -}}
-  {{- $list = append $list (dict "actor" "loadtest-slow" "payload" (dict)) -}}
-{{- end -}}
-{{- if .Values.scenarios.fanout.enabled -}}
-  {{- $list = append $list (dict "actor" "loadtest-fanout" "payload" (dict)) -}}
-{{- end -}}
-{{- if .Values.scenarios.stateful.enabled -}}
-  {{- $list = append $list (dict "actor" "loadtest-stateful" "payload" (dict)) -}}
+{{- range $name, $cfg := .Values.scenarios -}}
+  {{- if $cfg.enabled -}}
+    {{- $list = append $list (dict "actor" (printf "loadtest-%s" $name) "payload" (dict)) -}}
+  {{- end -}}
 {{- end -}}
 {{- $list | toJson }}
 {{- end }}
