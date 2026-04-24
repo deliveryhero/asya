@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.1.2] - 2026-04-24
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Features
+* feat(state-proxy): DuckDB /query for S3/GCS Python connectors [i0ewl] by @atemate in https://github.com/deliveryhero/asya/pull/463
+* feat(state-proxy): pvc-kv connector — inmem + PVC + DuckDB /query [m4d5u] by @atemate in https://github.com/deliveryhero/asya/pull/464
+* feat(e2e): enable observability stack in all profiles and fix dead env vars [lbilw] by @atemate in https://github.com/deliveryhero/asya/pull/466
+* feat(loadtest): add asya-loadtest standalone Helm chart with k6 by @atemate in https://github.com/deliveryhero/asya/pull/467
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.1.1...v1.1.2
+
+
+
 ## [1.1.0] - 2026-04-21
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -1602,6 +1618,9 @@ All images are published to GitHub Container Registry:
 [1.0.9]: https://github.com/deliveryhero/asya/releases/tag/v1.0.9
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/deliveryhero/asya/releases/tag/v1.1.0
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/deliveryhero/asya/releases/tag/v1.1.2
 
