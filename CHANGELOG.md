@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.1.3] - 2026-04-24
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Features
+* feat(helm): split image values into repository+tag across all charts [dvgpp] by @atemate in https://github.com/deliveryhero/asya/pull/465
+* feat(tracing): add HTTP/protobuf OTLP transport to all Go components by @atemate in https://github.com/deliveryhero/asya/pull/469
+### Bug Fixes
+* fix(ci): open PR instead of direct push for changelog update by @atemate in https://github.com/deliveryhero/asya/pull/468
+* fix(crossplane): quote OTEL endpoint values in compositions [h1ykl] by @atemate in https://github.com/deliveryhero/asya/pull/470
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v1.1.2...v1.1.3
+
+
+
 ## [1.1.2] - 2026-04-24
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -1621,6 +1638,9 @@ All images are published to GitHub Container Registry:
 [1.1.0]: https://github.com/deliveryhero/asya/releases/tag/v1.1.0
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.1.2...HEAD
 [1.1.2]: https://github.com/deliveryhero/asya/releases/tag/v1.1.2
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/deliveryhero/asya/releases/tag/v1.1.3
 
