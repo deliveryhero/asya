@@ -407,9 +407,9 @@ spec:
                         containers:
                         - name: asya-runtime
                           image: {{`{{ $xrSpec.image | quote }}`}}
-                          imagePullPolicy: {{`{{ $xrSpec.imagePullPolicy | default "IfNotPresent" }}`}}
+                          imagePullPolicy: {{`{{ $xrSpec.imagePullPolicy | default "IfNotPresent" | quote }}`}}
                           command:
-                          - {{`{{ $xrSpec.pythonExecutable | default "python3" }}`}}
+                          - {{`{{ $xrSpec.pythonExecutable | default "python3" | quote }}`}}
                           - {{`{{ $runtimeMountPath }}`}}
                           env:
                           - name: ASYA_SOCKET_DIR
@@ -432,11 +432,11 @@ spec:
                           {{`{{- range $xrSpec.secretRefs | default list }}`}}
                           {{`{{- $secretName := .secretName -}}`}}
                           {{`{{- range .keys | default list }}`}}
-                          - name: {{`{{ .envVar }}`}}
+                          - name: {{`{{ .envVar | quote }}`}}
                             valueFrom:
                               secretKeyRef:
-                                name: {{`{{ $secretName }}`}}
-                                key: {{`{{ .key }}`}}
+                                name: {{`{{ $secretName | quote }}`}}
+                                key: {{`{{ .key | quote }}`}}
                           {{`{{- end }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if $xrSpec.stateProxy }}`}}
@@ -457,10 +457,10 @@ spec:
                             mountPath: /var/run/asya/state
                           {{`{{- end }}`}}
                           {{`{{- range $xrSpec.volumeMounts | default list }}`}}
-                          - name: {{`{{ .name }}`}}
-                            mountPath: {{`{{ .mountPath }}`}}
+                          - name: {{`{{ .name | quote }}`}}
+                            mountPath: {{`{{ .mountPath | quote }}`}}
                             {{`{{- if .subPath }}`}}
-                            subPath: {{`{{ .subPath }}`}}
+                            subPath: {{`{{ .subPath | quote }}`}}
                             {{`{{- end }}`}}
                             {{`{{- if .readOnly }}`}}
                             readOnly: {{`{{ .readOnly }}`}}
@@ -529,14 +529,14 @@ spec:
                           {{`{{- end }}`}}
                           {{`{{- if and $xrSpec.tracing $xrSpec.tracing.endpoint }}`}}
                           - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                            value: {{`"{{ $xrSpec.tracing.endpoint }}"`}}
+                            value: {{`{{ $xrSpec.tracing.endpoint | quote }}`}}
                           {{`{{- else if ne $tracingEndpoint "" }}`}}
                           - name: OTEL_EXPORTER_OTLP_ENDPOINT
                             value: {{`{{ $tracingEndpoint | quote }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if and $xrSpec.tracing $xrSpec.tracing.protocol }}`}}
                           - name: OTEL_EXPORTER_OTLP_PROTOCOL
-                            value: {{`"{{ $xrSpec.tracing.protocol }}"`}}
+                            value: {{`{{ $xrSpec.tracing.protocol | quote }}`}}
                           {{`{{- else if ne $tracingProtocol "" }}`}}
                           - name: OTEL_EXPORTER_OTLP_PROTOCOL
                             value: {{`{{ $tracingProtocol | quote }}`}}
