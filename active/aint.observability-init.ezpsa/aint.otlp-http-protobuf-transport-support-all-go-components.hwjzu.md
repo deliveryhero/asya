@@ -1,12 +1,16 @@
 ---
 title: OTLP HTTP/protobuf transport support for all Go components
-status: open
+status: working
 priority: 3 # low
+assignee: Artem Yushkovskiy
 tags:
   - observability
   - otel
   - debt
+  - worktree:.worktrees/hwjzu.otlp-http-protobuf-transport-support-all-go-components
+  - branch:hwjzu.otlp-http-protobuf-transport-support-all-go-components
 ---
+
 
 
 ## Problem
