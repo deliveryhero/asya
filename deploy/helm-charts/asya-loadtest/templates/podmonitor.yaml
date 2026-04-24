@@ -1,0 +1,23 @@
+{{- if and (eq .Values.mode "transport") .Values.metrics.prometheus.podMonitor }}
+# PodMonitor scrapes the transport injector's /metrics endpoint.
+# Only relevant in transport mode — gateway modes export metrics via k6 remote write.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "asya-loadtest.fullname" . }}-injector
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "asya-loadtest.selectorLabels" . | nindent 6 }}
+      asya.sh/loadtest-mode: "transport"
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  podMetricsEndpoints:
+  - port: injector-metrics
+    path: /metrics
+    interval: 15s
+{{- end }}

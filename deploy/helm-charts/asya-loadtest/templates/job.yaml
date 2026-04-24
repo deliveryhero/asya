@@ -1,0 +1,117 @@
+{{- /* Validate mode */ -}}
+{{- if not (has .Values.mode (list "transport" "mesh-api" "a2a" "mcp")) -}}
+  {{- fail (printf "mode %q is invalid; must be one of: transport, mesh-api, a2a, mcp" .Values.mode) -}}
+{{- end -}}
+{{- /* Validate that at least one scenario is enabled */ -}}
+{{- $enabledCount := 0 -}}
+{{- range .Values.scenarios -}}
+  {{- if .enabled -}}
+    {{- $enabledCount = add1 $enabledCount -}}
+  {{- end -}}
+{{- end -}}
+{{- if eq $enabledCount 0 -}}
+  {{- fail "at least one scenario must be enabled (e.g. scenarios.echo.enabled=true)" -}}
+{{- end -}}
+{{- /* Build k6 stages from vus + duration + rampUp */ -}}
+{{- $stages := list -}}
+{{- if and .Values.k6.rampUp (ne .Values.k6.rampUp "0") (ne .Values.k6.rampUp "0s") -}}
+  {{- $stages = append $stages (dict "duration" .Values.k6.rampUp "target" .Values.k6.vus) -}}
+{{- end -}}
+{{- $stages = append $stages (dict "duration" .Values.k6.duration "target" .Values.k6.vus) -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "asya-loadtest.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+    asya.sh/loadtest-mode: {{ .Values.mode | quote }}
+spec:
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "asya-loadtest.selectorLabels" . | nindent 8 }}
+        asya.sh/loadtest: "true"
+        asya.sh/loadtest-mode: {{ .Values.mode | quote }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      restartPolicy: Never
+      serviceAccountName: {{ include "asya-loadtest.serviceAccountName" . }}
+      containers:
+      - name: k6
+        image: {{ include "asya-loadtest.image" . }}
+        imagePullPolicy: {{ .Values.workload.image.pullPolicy }}
+        command: ["/bin/bash", "/scripts/entrypoint.sh"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: ASYA_MODE
+          value: {{ .Values.mode | quote }}
+        - name: ASYA_SCENARIOS
+          value: {{ include "asya-loadtest.scenariosJson" . | quote }}
+        - name: K6_VUS
+          value: {{ .Values.k6.vus | quote }}
+        - name: ASYA_K6_STAGES
+          value: {{ $stages | toJson | quote }}
+        {{- if .Values.metrics.prometheus.remoteWriteUrl }}
+        - name: K6_PROMETHEUS_RW_SERVER_URL
+          value: {{ .Values.metrics.prometheus.remoteWriteUrl | quote }}
+        {{- end }}
+        {{- if ne .Values.mode "transport" }}
+        - name: ASYA_TARGET_URL
+          value: {{ include "asya-loadtest.targetUrl" . | quote }}
+        {{- end }}
+        {{- if eq .Values.mode "a2a" }}
+        - name: ASYA_A2A_AGENT_ID
+          value: {{ .Values.target.a2a.agentId | quote }}
+        {{- end }}
+        {{- if eq .Values.mode "transport" }}
+        - name: INJECTOR_PORT
+          value: {{ .Values.metrics.prometheus.scrapePort | quote }}
+        - name: ASYA_TRANSPORT_TYPE
+          value: {{ .Values.target.transport.type | quote }}
+        - name: ASYA_QUEUE_PREFIX
+          value: {{ include "asya-loadtest.queuePrefix" . | quote }}
+        {{- if eq .Values.target.transport.type "sqs" }}
+        - name: ASYA_SQS_REGION
+          value: {{ .Values.target.transport.sqs.region | quote }}
+        {{- if .Values.target.transport.sqs.endpoint }}
+        - name: ASYA_SQS_ENDPOINT
+          value: {{ .Values.target.transport.sqs.endpoint | quote }}
+        {{- end }}
+        {{- if .Values.target.transport.sqs.accessKey }}
+        - name: ASYA_SQS_ACCESS_KEY
+          value: {{ .Values.target.transport.sqs.accessKey | quote }}
+        - name: ASYA_SQS_SECRET_KEY
+          value: {{ .Values.target.transport.sqs.secretKey | quote }}
+        {{- end }}
+        {{- else if eq .Values.target.transport.type "pubsub" }}
+        - name: ASYA_PUBSUB_PROJECT
+          value: {{ required "target.transport.pubsub.project is required for pubsub transport" .Values.target.transport.pubsub.project | quote }}
+        {{- else if eq .Values.target.transport.type "rabbitmq" }}
+        - name: ASYA_RABBITMQ_URL
+          value: {{ required "target.transport.rabbitmq.url is required for rabbitmq transport" .Values.target.transport.rabbitmq.url | quote }}
+        {{- end }}
+        {{- end }}
+        {{- if and (eq .Values.mode "transport") .Values.metrics.prometheus.podMonitor }}
+        ports:
+        - name: injector-metrics
+          containerPort: {{ .Values.metrics.prometheus.scrapePort }}
+          protocol: TCP
+        {{- end }}
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+      volumes:
+      - name: scripts
+        configMap:
+          name: {{ include "asya-loadtest.fullname" . }}-scripts
+          defaultMode: 0755

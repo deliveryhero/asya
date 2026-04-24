@@ -1,0 +1,358 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "asya-loadtest.fullname" . }}-scripts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+data:
+  # ─── Bash entrypoint ─────────────────────────────────────────────────────────
+  # Starts the Python injector (transport mode only) and then runs k6.
+  entrypoint.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    MODE="${ASYA_MODE}"
+    K6_ARGS=(run)
+    [ -n "${K6_PROMETHEUS_RW_SERVER_URL:-}" ] && K6_ARGS+=(--out experimental-prometheus-rw)
+
+    case "$MODE" in
+      transport)
+        python3 /scripts/injector.py &
+        INJECTOR_PID=$!
+        echo "[+] Waiting for transport injector on :8080..."
+        for i in $(seq 1 30); do
+          curl -sf http://localhost:8080/health > /dev/null && break
+          sleep 1
+        done
+        k6 "${K6_ARGS[@]}" /scripts/transport-load-test.js
+        STATUS=$?
+        kill "$INJECTOR_PID" 2>/dev/null || true
+        exit "$STATUS"
+        ;;
+      mesh-api)
+        exec k6 "${K6_ARGS[@]}" /scripts/mesh-load-test.js
+        ;;
+      a2a)
+        exec k6 "${K6_ARGS[@]}" /scripts/a2a-load-test.js
+        ;;
+      mcp)
+        exec k6 "${K6_ARGS[@]}" /scripts/mcp-load-test.js
+        ;;
+      *)
+        echo "Unknown mode: $MODE (must be transport | mesh-api | a2a | mcp)" >&2
+        exit 1
+        ;;
+    esac
+
+  # ─── Transport mode: k6 → Python injector (localhost:8080) → SQS/PubSub/RabbitMQ ──
+  transport-load-test.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+
+    const scenarios = JSON.parse(__ENV.ASYA_SCENARIOS);
+
+    export const options = {
+      vus: parseInt(__ENV.K6_VUS),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
+    };
+
+    export default function () {
+      const s = scenarios[__VU % scenarios.length];
+      const body = JSON.stringify({
+        actor: s.actor,
+        payload: Object.assign({}, s.payload, { _k6_vu: String(__VU), _k6_iter: String(__ITER) }),
+      });
+      const res = http.post('http://localhost:8080/envelopes', body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      check(res, { 'accepted': (r) => r.status === 202 });
+    }
+
+  # ─── Mesh-API mode: k6 → gateway REST endpoint ────────────────────────────────
+  # Targets: POST {ASYA_TARGET_URL} with a simple JSON body.
+  # No protocol overhead — fastest gateway path, good for measuring gateway latency.
+  mesh-load-test.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+
+    const targetUrl = __ENV.ASYA_TARGET_URL;
+    const scenarios = JSON.parse(__ENV.ASYA_SCENARIOS);
+
+    export const options = {
+      vus: parseInt(__ENV.K6_VUS),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
+    };
+
+    export default function () {
+      const s = scenarios[__VU % scenarios.length];
+      const body = JSON.stringify({
+        actor: s.actor,
+        input: Object.assign({}, s.payload, { _k6_vu: String(__VU), _k6_iter: String(__ITER) }),
+      });
+      const res = http.post(targetUrl, body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      check(res, { 'submitted': (r) => r.status >= 200 && r.status < 300 });
+    }
+
+  # ─── A2A mode: k6 → A2A sendMessage ──────────────────────────────────────────
+  # Targets: POST {ASYA_TARGET_URL}/{ASYA_A2A_AGENT_ID}/sendMessage
+  # Follows A2A JSON-RPC message format.
+  a2a-load-test.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+
+    const baseUrl  = __ENV.ASYA_TARGET_URL.replace(/\/$/, '');
+    const agentId  = __ENV.ASYA_A2A_AGENT_ID;
+    const endpoint = agentId ? `${baseUrl}/${agentId}` : baseUrl;
+    const scenarios = JSON.parse(__ENV.ASYA_SCENARIOS);
+
+    export const options = {
+      vus: parseInt(__ENV.K6_VUS),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
+    };
+
+    export default function () {
+      const s = scenarios[__VU % scenarios.length];
+      const body = JSON.stringify({
+        jsonrpc: '2.0',
+        id: `${__VU}-${__ITER}`,
+        method: 'tasks/send',
+        params: {
+          message: {
+            role: 'user',
+            parts: [
+              {
+                type: 'data',
+                data: Object.assign({}, s.payload, { _k6_vu: String(__VU), _k6_iter: String(__ITER) }),
+              },
+            ],
+          },
+        },
+      });
+      const res = http.post(endpoint, body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      check(res, { 'submitted': (r) => r.status >= 200 && r.status < 300 });
+    }
+
+  # ─── MCP mode: k6 → MCP JSON-RPC (tools/call) ────────────────────────────────
+  # Each VU lazily initializes its own MCP session (Mcp-Session-Id) on first call.
+  # Module-level variables in k6 are per-VU, so sessionId is naturally isolated.
+  mcp-load-test.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+
+    const mcpUrl   = __ENV.ASYA_TARGET_URL.replace(/\/$/, '') + '/mcp';
+    const scenarios = JSON.parse(__ENV.ASYA_SCENARIOS);
+
+    export const options = {
+      vus: parseInt(__ENV.K6_VUS),
+      stages: JSON.parse(__ENV.ASYA_K6_STAGES),
+    };
+
+    // Per-VU MCP session ID — initialized lazily on the first iteration.
+    let sessionId = null;
+
+    function initSession() {
+      const res = http.post(
+        mcpUrl,
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: 0,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-03-26',
+            clientInfo: { name: 'asya-loadtest', version: '1.0' },
+            capabilities: {},
+          },
+        }),
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      if (res.status !== 200) {
+        throw new Error(`MCP initialize failed: ${res.status} ${res.body}`);
+      }
+      sessionId = res.headers['Mcp-Session-Id'] || res.headers['mcp-session-id'];
+      if (!sessionId) {
+        throw new Error('MCP initialize returned no Mcp-Session-Id');
+      }
+    }
+
+    export default function () {
+      if (!sessionId) {
+        initSession();
+      }
+      const s = scenarios[__VU % scenarios.length];
+      const body = JSON.stringify({
+        jsonrpc: '2.0',
+        id: __ITER,
+        method: 'tools/call',
+        params: {
+          name: s.actor,
+          arguments: Object.assign({}, s.payload, { _k6_vu: String(__VU), _k6_iter: String(__ITER) }),
+        },
+      });
+      const res = http.post(mcpUrl, body, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Mcp-Session-Id': sessionId,
+        },
+      });
+      check(res, { 'called': (r) => r.status >= 200 && r.status < 300 });
+    }
+
+  # ─── Transport injector ───────────────────────────────────────────────────────
+  # Bridges k6 HTTP to Asya transport backends.
+  # Accepts:  POST /envelopes  {"actor": "...", "payload": {...}}
+  # Responds: 202 Accepted
+  # Health:   GET /health
+  # Metrics:  GET /metrics  (Prometheus text format, scraped by PodMonitor)
+  injector.py: |
+    import json
+    import os
+    import time
+    import uuid
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Lock
+
+    from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+    TRANSPORT    = os.environ["ASYA_TRANSPORT_TYPE"]
+    QUEUE_PREFIX = os.environ["ASYA_QUEUE_PREFIX"]
+    PORT         = int(os.environ.get("INJECTOR_PORT", "8080"))
+
+    _envelopes_sent = Counter(
+        "asya_loadtest_envelopes_sent_total",
+        "Envelopes injected into transport",
+        ["transport", "actor", "result"],
+    )
+    _send_duration = Histogram(
+        "asya_loadtest_send_duration_seconds",
+        "Transport send latency",
+        ["transport", "actor"],
+    )
+
+
+    def _build_envelope(actor: str, payload: dict, vu: str, iteration: str) -> dict:
+        return {
+            "id": str(uuid.uuid4()),
+            "parent_id": None,
+            "route": {"prev": [], "curr": actor, "next": []},
+            "headers": {"trace_id": f"k6-{vu}-{iteration}"},
+            "payload": payload,
+        }
+
+
+    class _SQSSender:
+        def __init__(self):
+            import boto3
+            self._client = boto3.client(
+                "sqs",
+                region_name=os.environ.get("ASYA_SQS_REGION", "us-east-1"),
+                endpoint_url=os.environ.get("ASYA_SQS_ENDPOINT") or None,
+                aws_access_key_id=os.environ.get("ASYA_SQS_ACCESS_KEY") or None,
+                aws_secret_access_key=os.environ.get("ASYA_SQS_SECRET_KEY") or None,
+            )
+            self._urls: dict[str, str] = {}
+            self._lock = Lock()
+
+        def send(self, actor: str, envelope: dict) -> None:
+            queue = f"{QUEUE_PREFIX}{actor}"
+            if queue not in self._urls:
+                with self._lock:
+                    if queue not in self._urls:
+                        self._urls[queue] = self._client.get_queue_url(QueueName=queue)["QueueUrl"]
+            self._client.send_message(QueueUrl=self._urls[queue], MessageBody=json.dumps(envelope))
+
+
+    class _PubSubSender:
+        def __init__(self):
+            from google.cloud import pubsub_v1
+            self._project = os.environ["ASYA_PUBSUB_PROJECT"]
+            self._publisher = pubsub_v1.PublisherClient()
+
+        def send(self, actor: str, envelope: dict) -> None:
+            topic = f"projects/{self._project}/topics/{QUEUE_PREFIX}{actor}"
+            self._publisher.publish(topic, json.dumps(envelope).encode()).result()
+
+
+    class _RabbitMQSender:
+        def __init__(self):
+            import pika
+            params = pika.URLParameters(os.environ["ASYA_RABBITMQ_URL"])
+            self._conn = pika.BlockingConnection(params)
+            self._channel = self._conn.channel()
+            self._lock = Lock()
+
+        def send(self, actor: str, envelope: dict) -> None:
+            queue = f"{QUEUE_PREFIX}{actor}"
+            with self._lock:
+                self._channel.basic_publish(
+                    exchange="",
+                    routing_key=queue,
+                    body=json.dumps(envelope).encode(),
+                )
+
+
+    _SENDERS = {"sqs": _SQSSender, "pubsub": _PubSubSender, "rabbitmq": _RabbitMQSender}
+    if TRANSPORT not in _SENDERS:
+        raise ValueError(f"Unknown transport: {TRANSPORT!r}. Must be one of: {list(_SENDERS)}")
+    _sender = _SENDERS[TRANSPORT]()
+
+
+    class _Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_):
+            pass
+
+        def do_GET(self):
+            if self.path == "/health":
+                self._respond(200, b"ok", "text/plain")
+            elif self.path == "/metrics":
+                self._respond(200, generate_latest(), CONTENT_TYPE_LATEST)
+            else:
+                self._respond(404, b"not found", "text/plain")
+
+        def do_POST(self):
+            if self.path != "/envelopes":
+                self._respond(404, b"not found", "text/plain")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+            except ValueError:
+                self._respond(400, b"invalid Content-Length", "text/plain")
+                return
+            if length <= 0 or length > 1_048_576:
+                self._respond(400, b"Content-Length missing or exceeds 1 MiB", "text/plain")
+                return
+            try:
+                body = json.loads(self.rfile.read(length))
+                actor = body["actor"]
+            except (json.JSONDecodeError, KeyError):
+                self._respond(400, b"invalid JSON or missing 'actor' field", "text/plain")
+                return
+            payload = body.get("payload", {})
+            vu      = payload.pop("_k6_vu", "0")
+            itr     = payload.pop("_k6_iter", "0")
+            envelope = _build_envelope(actor, payload, vu, itr)
+            t0 = time.monotonic()
+            try:
+                _sender.send(actor, envelope)
+                _send_duration.labels(transport=TRANSPORT, actor=actor).observe(time.monotonic() - t0)
+                _envelopes_sent.labels(transport=TRANSPORT, actor=actor, result="ok").inc()
+                self._respond(202, b"", "text/plain")
+            except Exception as exc:
+                _send_duration.labels(transport=TRANSPORT, actor=actor).observe(time.monotonic() - t0)
+                _envelopes_sent.labels(transport=TRANSPORT, actor=actor, result="error").inc()
+                self._respond(500, str(exc).encode(), "text/plain")
+
+        def _respond(self, code: int, body: bytes, content_type: str) -> None:
+            self.send_response(code)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+
+    print(f"[+] Transport injector 127.0.0.1:{PORT} (transport={TRANSPORT} prefix={QUEUE_PREFIX!r})")
+    ThreadingHTTPServer(("127.0.0.1", PORT), _Handler).serve_forever()

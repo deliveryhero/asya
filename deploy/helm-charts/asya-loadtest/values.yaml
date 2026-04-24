@@ -1,0 +1,119 @@
+# asya-loadtest — standalone Helm chart for k6-based load testing
+#
+# Deploys a Kubernetes Job that drives load against an existing Asya installation.
+# Optionally deploys AsyncActor CRDs for dedicated load test actors (requires Crossplane).
+#
+# MODES:
+#   transport  — inject envelopes directly into the queue backend (SQS/PubSub/RabbitMQ)
+#   mesh-api   — submit tasks via the mesh-api REST endpoint (cluster-internal, no protocol overhead)
+#   a2a        — submit tasks via the A2A protocol
+#   mcp        — submit tasks via the MCP JSON-RPC protocol
+
+# Image shared by both the k6 Job runner and the deployed actor pods.
+# Must contain the k6 binary (asya-testing does).
+workload:
+  image:
+    repository: ghcr.io/deliveryhero/asya-testing
+    tag: "" # defaults to Chart.appVersion
+    pullPolicy: IfNotPresent
+
+# Load generation settings
+k6:
+  vus: 20
+  duration: 5m
+  rampUp: 0s # 0 = start at full VUs; otherwise a linear ramp-up stage is prepended
+
+# Target mode — selects both which endpoint k6 hits and whether the transport injector starts
+mode: transport # transport | mesh-api | a2a | mcp
+
+# Endpoint config — only the section matching `mode` is used
+target:
+  transport:
+    type: sqs # sqs | pubsub | rabbitmq
+    # Queue name: {queuePrefix}{actor}. Defaults to "asya-{namespace}-" when empty.
+    queuePrefix: ""
+    sqs:
+      endpoint: "" # empty = real AWS; set to http://localstack:4566 for local dev
+      region: us-east-1
+      accessKey: "" # leave empty to use IRSA / workload identity
+      secretKey: ""
+    pubsub:
+      project: "" # GCP project ID (required for pubsub)
+    rabbitmq:
+      url: "" # amqp://host:5672/ (include credentials in the URL if auth is required)
+
+  mesh:
+    # Full URL including path, e.g. http://asya-gateway-api:8080/api/v1/mesh/
+    url: ""
+
+  a2a:
+    # Base URL for A2A agent, e.g. http://asya-gateway-api:8080/a2a/
+    url: ""
+    agentId: "" # A2A agent identifier (appended to url)
+
+  mcp:
+    # MCP base URL (the /mcp path is appended automatically), e.g. http://asya-gateway-mcp:8080
+    url: ""
+
+# Scenarios — each enables both the actor AsyncActor CRD and load against it.
+# Actor name: loadtest-{scenario}.  At least one must be enabled.
+#
+# Common scaling defaults (override per scenario):
+_scalingDefaults: &scalingDefaults
+  minReplicaCount: 0
+  maxReplicaCount: 20
+  pollingInterval: 5
+  cooldownPeriod: 60
+  queueLength: 5
+
+scenarios:
+  # Echo: passthrough — zero processing time, measures transport + sidecar overhead baseline
+  echo:
+    enabled: false
+    scaling:
+      !!merge <<: *scalingDefaults
+
+  # Slow: configurable fixed delay — drives queue depth to trigger KEDA autoscaling
+  slow:
+    enabled: false
+    delayMs: 500 # sleep duration per envelope (env var LOADTEST_DELAY_MS in handler)
+    scaling:
+      !!merge <<: *scalingDefaults
+
+  # Fanout: yields N envelopes per input — stresses fan-out routing and x-sink convergence
+  fanout:
+    enabled: false
+    size: 3 # envelopes emitted per input (env var LOADTEST_FANOUT_SIZE in handler)
+    scaling:
+      !!merge <<: *scalingDefaults
+
+  # Stateful: reads and writes via state proxy — requires state proxy to be configured
+  # NOTE: stub only in v1; stateProxy wiring must be added before enabling
+  stateful:
+    enabled: false
+    scaling:
+      !!merge <<: *scalingDefaults
+
+# Metrics output
+metrics:
+  prometheus:
+    # k6 remote-write URL (enables --out experimental-prometheus-rw for all modes)
+    # Example: http://prometheus-operated:9090/api/v1/write
+    remoteWriteUrl: ""
+    # Port on which the transport injector exposes its own /metrics (transport mode only).
+    # Also the port k6 calls for envelope injection — both share the same port.
+    scrapePort: 8080
+    # Create a PodMonitor to scrape the injector metrics (requires Prometheus Operator)
+    podMonitor: false
+
+# Job lifecycle
+job:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 0
+
+# ServiceAccount — useful for IRSA (SQS/S3) or Workload Identity (PubSub)
+serviceAccount:
+  create: true
+  annotations: {}
+  # Example for IRSA:
+  #   eks.amazonaws.com/role-arn: "arn:aws:iam::123456789:role/asya-loadtest"

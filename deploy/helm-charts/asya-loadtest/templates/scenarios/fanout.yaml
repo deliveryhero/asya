@@ -1,0 +1,56 @@
+{{- if .Values.scenarios.fanout.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loadtest-fanout-handler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+data:
+  handler.py: |
+    import os
+    from collections.abc import Generator
+
+    def handler(payload: dict) -> Generator[dict, None, None]:
+        n = int(os.getenv("LOADTEST_FANOUT_SIZE", "3"))
+        for i in range(n):
+            yield {**payload, "_fan_index": i}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: loadtest-fanout
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-loadtest.labels" . | nindent 4 }}
+    asya.sh/loadtest: "true"
+spec:
+  actor: loadtest-fanout
+
+  image: {{ include "asya-loadtest.image" . }}
+  imagePullPolicy: {{ .Values.workload.image.pullPolicy }}
+  handler: handler.handler
+
+  env:
+  - name: PYTHONPATH
+    value: /app
+  - name: LOADTEST_FANOUT_SIZE
+    value: {{ .Values.scenarios.fanout.size | quote }}
+
+  volumeMounts:
+  - name: handler
+    mountPath: /app
+
+  volumes:
+  - name: handler
+    configMap:
+      name: loadtest-fanout-handler
+
+  scaling:
+    enabled: true
+    minReplicaCount: {{ .Values.scenarios.fanout.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.scenarios.fanout.scaling.maxReplicaCount }}
+    pollingInterval: {{ .Values.scenarios.fanout.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scenarios.fanout.scaling.cooldownPeriod }}
+    queueLength: {{ .Values.scenarios.fanout.scaling.queueLength }}
+{{- end }}

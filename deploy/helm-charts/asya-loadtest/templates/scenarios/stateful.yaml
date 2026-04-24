@@ -1,0 +1,3 @@
+{{- if .Values.scenarios.stateful.enabled }}
+{{- fail "scenarios.stateful is not yet fully wired: state proxy sidecar configuration must be added before enabling this scenario" }}
+{{- end }}
