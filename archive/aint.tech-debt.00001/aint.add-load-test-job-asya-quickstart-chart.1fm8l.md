@@ -1,10 +1,11 @@
 ---
 title: Add load test Job to asya-quickstart chart
-status: open
-priority: 2
+status: merged
+priority: 2 # medium
 tags:
   - type:feature
 ---
+
 
 ## Notes
 
