@@ -4,7 +4,8 @@ status: open
 priority: 2
 ---
 
-Create comprehensive load testing infrastructure to measure Asya operator performance and KEDA-based autoscaling under production-like workloads.
+Measure Asya operator performance and KEDA-based autoscaling under production-like workloads,
+and drive reconciliation latency toward P99 < 200ms.
 
 ## Current Observations
 
@@ -19,49 +20,52 @@ Create comprehensive load testing infrastructure to measure Asya operator perfor
 
 **Status:** Currently in Warning zone under load (460ms-1s P99)
 
-## Requirements
+## Foundation: asya-loadtest chart (done — PR #467)
+
+`deploy/helm-charts/asya-loadtest/` provides the load generation layer:
+- k6 Job with 4 modes: `transport` (direct SQS/PubSub/RabbitMQ injection),
+  `mesh-api`, `a2a`, `mcp`
+- 3 scenarios: `echo` (baseline), `slow` (drives queue depth → KEDA scale-up),
+  `fanout` (multiplies envelope count)
+- Prometheus remote write output (`metrics.prometheus.remoteWriteUrl`)
+- Verified in Kind (sqs-s3-pvc): 1,386 envelopes at ~46 req/s, 100% success
+
+## Remaining Work
 
 ### 1. Operator Reconciliation Metrics
 - Measure `controller_runtime_reconcile_time_seconds` under varying loads
 - Track workqueue duration (`workqueue_queue_duration_seconds`)
 - Monitor API server throttling (`client_rate_limiter_queries_total`)
 - Capture reconciliation errors and failure modes
-- Test with varying numbers of AsyncActor CRDs (10, 50, 100, 500)
+- Test with varying AsyncActor CRD counts (10, 50, 100, 500) using the
+  `slow` scenario at different VU levels to hold queue depth
 
-### 2. Actor Autoscaling Behavior
-- Measure time from queue depth increase to pod scaling
-- Track scale-up latency (0 → N pods)
-- Track scale-down latency (N → 0 pods)
-- Monitor KEDA ScaledObject reconciliation times
-- Test with different queue depths and burst patterns
+### 2. KEDA Autoscaling Behavior
+- Measure time from queue depth increase to pod scaling (scale-up latency 0 → N)
+- Measure scale-down latency (N → 0 pods)
+- Monitor `keda_internal_scale_loop_latency_seconds`
+- Test external scaler polling frequency vs actual execution (pubsub scaler)
+- Track HPA update delays and scaling decision accuracy
 
-### 3. KEDA Integration Efficiency
-- Measure `keda_internal_scale_loop_latency_seconds`
-- Test external scaler polling frequency vs actual execution
-- Monitor HPA update delays
-- Track scaling decision accuracy
+### 3. Grafana Dashboard
+- Panel: `controller_runtime_reconcile_time_seconds` histogram (p50/p95/p99)
+- Panel: KEDA scale-up latency (envelope inject time → first pod ready)
+- Panel: k6 throughput + error rate (from remote write)
+- Panel: actor queue depth over time
+- Ship as a ConfigMap with `grafana_dashboard: "1"` label (auto-imported)
 
-### 4. System Bottlenecks
-- Identify CPU/memory hotspots in operator
-- Monitor transport queue performance (RabbitMQ/SQS)
-- Track end-to-end envelope latency (gateway → actor → happy-end)
-- Measure resource utilization patterns
-
-## Deliverables
-
-1. Load testing framework (likely k6 or locust)
-2. Prometheus metrics collection configuration
-3. Grafana dashboard for reconciliation latencies
-4. Performance report with p50/p95/p99 latencies
-5. Recommendations for concurrency tuning (MaxConcurrentReconciles)
-6. Documentation of bottlenecks and optimization opportunities
+### 4. Performance Report + Tuning
+- Run load test with `slow` scenario at 20/50/100 VUs
+- Identify bottleneck: operator MaxConcurrentReconciles, KEDA polling interval,
+  or transport throughput
+- Recommend tuning parameters targeting P99 < 200ms reconciliation
 
 ## Acceptance Criteria
 
-- Load tests run against Kind cluster with realistic workloads
-- Metrics collected for operator, KEDA, and actors
-- Performance report identifies specific bottlenecks
-- Recommendations provided for achieving P99 < 200ms target
-
+- Load test drives sustained queue depth using `asya-loadtest` chart
+- Prometheus collects operator + KEDA + k6 metrics for the duration
+- Grafana dashboard shows reconciliation latency, autoscaling behavior, and throughput
+- Performance report identifies specific bottleneck and recommends a tuning change
+- At least one tuning change verified to improve P99
 
 _Migrated from beads `asya-si8`_

@@ -1,6 +1,9 @@
-git-aint state | 2026-04-23T11:40:58Z
+git-aint state | 2026-04-24T08:34:19Z
 
-Working(10) Open(144) Closed(374)
+Working(11) Open(141) Closed(379)
+
+[dvgpp] "split helm image values into repository+tag"  P2 working
+  .aint/active/aint.split-helm-image-values-into-repository-tag.dvgpp.md
 
 [7lh94] "merge asya-samples into examples/end-to-end/monorepo"  P2 working
   .aint/active/aint.merge-asya-samples-into-examples-end-to-end.7lh94.md
@@ -67,9 +70,6 @@ Working(10) Open(144) Closed(374)
 [8v7o0] "autoresearch"  P2 open  (recently modified)
   .aint/active/aint.autoresearch.8v7o0/ adr.compiled-flow-not-free-routing-actor.md, adr.dual-mount-same-backend.md, adr.git-state-proxy-over-git-sync.md, adr.rl-framing-for-experiment-loop.md, design.dataset-state-proxy.md, rfc.md
 
-[kzy6w] "Gateway rearchitect debt"  P3 open  (recently modified)
-  .aint/active/aint.gateway-rearchitect-debt.kzy6w/
-
 [63keu] "RFC: Replace asya-gateway with asya-mesh-api + protocol adapters"  P1 open
 
 [emmc5] "Implement A2A protocol"  P2 open
@@ -90,14 +90,14 @@ Working(10) Open(144) Closed(374)
 
 [kchkv] "Agentic security"  P2 open
 
-[l899s] "New transports"  P2 open
+[kzy6w] "Gateway rearchitect debt"  P3 open
 
-14 open aints not shown (git aint get)
+15 open aints not shown (git aint get)
 
 Closed(5):
+[i0ewl] "PR5: DuckDB /query for S3/GCS Python state proxy connectors"  merged
 [mtlj2] "Fix flaky SLA integration test (sidecar-runtime rabbitmq)"  merged
 [1frc7] "Implement 01-single-agent: OpenAI Agents SDK"  merged
 [1fzhp] "Research: kubectl-asya via Krew vs custom CLI wrapper"  rejected
 [1frs7] "XRD: Add spec.flavors field to AsyncActor"  merged
-[1jnjg] "E2E: Enable function-asya-flavors once ghcr.io image is public"  merged
-... and 369 more
+... and 374 more
