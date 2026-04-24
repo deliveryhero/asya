@@ -566,14 +566,14 @@ spec:
                           {{`{{- end }}`}}
                           {{`{{- if and $xrSpec.tracing $xrSpec.tracing.endpoint }}`}}
                           - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                            value: {{`"{{ $xrSpec.tracing.endpoint }}"`}}
+                            value: {{`{{ $xrSpec.tracing.endpoint | quote }}`}}
                           {{`{{- else if ne $tracingEndpoint "" }}`}}
                           - name: OTEL_EXPORTER_OTLP_ENDPOINT
                             value: {{`{{ $tracingEndpoint | quote }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if and $xrSpec.tracing $xrSpec.tracing.protocol }}`}}
                           - name: OTEL_EXPORTER_OTLP_PROTOCOL
-                            value: {{`"{{ $xrSpec.tracing.protocol }}"`}}
+                            value: {{`{{ $xrSpec.tracing.protocol | quote }}`}}
                           {{`{{- else if ne $tracingProtocol "" }}`}}
                           - name: OTEL_EXPORTER_OTLP_PROTOCOL
                             value: {{`{{ $tracingProtocol | quote }}`}}
