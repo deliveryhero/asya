@@ -14,9 +14,14 @@ metadata:
 spec:
   actor: {{ $pause.name }}
 
-  {{- if .Values.tracing.endpoint }}
+  {{- if or .Values.tracing.endpoint .Values.tracing.protocol }}
   tracing:
+    {{- if .Values.tracing.endpoint }}
     endpoint: {{ .Values.tracing.endpoint | quote }}
+    {{- end }}
+    {{- if .Values.tracing.protocol }}
+    protocol: {{ .Values.tracing.protocol | quote }}
+    {{- end }}
   {{- end }}
 
   {{- with $pause.sidecar }}

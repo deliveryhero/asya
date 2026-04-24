@@ -343,7 +343,10 @@ spec:
                   properties:
                     endpoint:
                       type: string
-                      description: "Creates OTEL_EXPORTER_OTLP_ENDPOINT env var in the sidecar (e.g. tempo:4317)"
+                      description: "OTLP endpoint. grpc (default): host:4317 — e.g. tempo:4317. http: full URL — e.g. http://tempo:4318"
+                    protocol:
+                      type: string
+                      description: "OTLP transport protocol. Leave empty for gRPC (default). Set 'http' for HTTP/protobuf."
 
                 stateProxy:
                   type: array

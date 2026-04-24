@@ -78,6 +78,10 @@ spec:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: {{ .Values.tracing.endpoint | quote }}
         {{- end }}
+        {{- if .Values.tracing.protocol }}
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: {{ .Values.tracing.protocol | quote }}
+        {{- end }}
         envFrom:
         - configMapRef:
             name: {{ include "asya-gateway.fullname" . }}

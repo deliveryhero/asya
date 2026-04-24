@@ -364,6 +364,7 @@ spec:
             {{`{{- $sidecarImage := "`}}{{ .Values.sidecar.image | default "ghcr.io/deliveryhero/asya-sidecar:latest" }}{{`" -}}`}}
             {{`{{- $sidecarImagePullPolicy := "`}}{{ .Values.sidecar.imagePullPolicy | default "IfNotPresent" }}{{`" -}}`}}
             {{`{{- $tracingEndpoint := "`}}{{ .Values.sidecar.tracingEndpoint }}{{`" -}}`}}
+            {{`{{- $tracingProtocol := "`}}{{ .Values.sidecar.tracingProtocol }}{{`" -}}`}}
             {{`{{- $socketPath := printf "%s/asya-runtime.sock" $socketDir -}}`}}
             {{`{{- $isSystemActor := or (eq $actorName "x-sink") (eq $actorName "x-sump") (eq $actorName "happy-end") (eq $actorName "error-end") -}}`}}
             {{`{{- $queueURL := "" -}}`}}
@@ -569,6 +570,13 @@ spec:
                           {{`{{- else if ne $tracingEndpoint "" }}`}}
                           - name: OTEL_EXPORTER_OTLP_ENDPOINT
                             value: {{`{{ $tracingEndpoint }}`}}
+                          {{`{{- end }}`}}
+                          {{`{{- if and $xrSpec.tracing $xrSpec.tracing.protocol }}`}}
+                          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                            value: {{`"{{ $xrSpec.tracing.protocol }}"`}}
+                          {{`{{- else if ne $tracingProtocol "" }}`}}
+                          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                            value: {{`{{ $tracingProtocol }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if $xrSpec.resiliency }}`}}
                           {{`{{- if $xrSpec.resiliency.policies }}`}}
