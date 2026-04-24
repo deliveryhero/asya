@@ -195,8 +195,7 @@ while state["attempt"] < 3:
 ```
 
 The compiler generates a loop-back router that re-inserts the loop body
-actors into `route.next` on each iteration. A guard prevents infinite
-loops (configurable via `--max-iterations`, default 100).
+actors into `route.next` on each iteration.
 
 `while True:` with `break` is supported for indefinite loops:
 
@@ -295,7 +294,7 @@ Flow source (.py)
 asya flow compile pipeline.py --output-dir compiled/ --plot --verbose
 ```
 
-**Validate only (no code generation):**
+**Validate (runs full compilation in memory, no files written):**
 ```bash
 asya flow validate pipeline.py
 ```
@@ -303,9 +302,6 @@ asya flow validate pipeline.py
 **Options:**
 - `--output-dir` — where to write generated files
 - `--plot` — generate Graphviz DOT and PNG flow diagrams
-- `--plot-width N` — label width in diagrams (default: 50)
-- `--max-iterations N` — loop iteration guard (default: 100)
-- `--overwrite` — overwrite existing files
 - `--verbose` — detailed output
 
 ### Generated files
@@ -321,17 +317,17 @@ asya flow validate pipeline.py
 
 ### Router naming
 
-Generated routers have predictable names tied to source line numbers:
+Generated routers have content-based slug names for readability:
 
 | Name pattern | Purpose |
 |---|---|
 | `start_{flow}` | Entry point |
-| `router_{flow}_line_{N}_if_{id}` | Conditional branch at line N |
-| `router_{flow}_line_{N}_seq_{id}` | Sequential mutations at line N |
-| `router_{flow}_line_{N}_while_{id}` | Loop control at line N |
-| `router_{flow}_line_{N}_except_{id}` | Error handler routing at line N |
-| `fanout_{flow}_line_{N}` | Fan-out dispatch |
-| `fanin_{flow}_line_{N}` | Fan-out aggregator |
+| `router_{flow}_if_{slug}` | Conditional branch (slug derived from condition) |
+| `router_{flow}_seq_{slug}` | Sequential mutations (slug from mutation content) |
+| `router_{flow}_while_{slug}` | Loop control (slug from loop body) |
+| `router_{flow}_except_{slug}` | Error handler routing (slug from exception type) |
+| `fanout_{flow}_{slug}` | Fan-out dispatch (slug from target) |
+| `fanin_{flow}_{slug}` | Fan-out aggregator (slug from aggregation key) |
 
 ---
 
@@ -560,13 +556,19 @@ where the function is defined:
    p = inline(inject_trace)(p)
    ```
 
-4. **Config rule** — exact-match rules in `.asya/config.compiler.rules.yaml`:
+4. **Config rule** — where-tree rules in `.asya/config.compiler.rules.yaml`:
 
    ```yaml
    - match: "tenacity.retry"
      treat-as: config
-     extract:
-       max_attempt_number: spec.resiliency.policies.default.maxAttempts
+     where:
+     - param: stop
+       flatten-on: "|"
+       where:
+       - match: "stop_after_attempt"
+         where:
+         - param: max_attempt_number
+           assign-to: spec.resiliency.policies.default.maxAttempts
    ```
 
 5. **Implicit defaults** — see table above
@@ -577,7 +579,8 @@ All five `treat-as` values are supported via all mechanisms.
 
 Rules with `treat-as: config` extract values from decorator arguments or
 context manager parameters and inject them into AsyncActor manifests.
-The `extract:` field maps parameter names to spec paths:
+The `where:` tree walks nested AST elements, and `assign-to` maps extracted
+values to AsyncActor spec paths:
 
 ```yaml
 # Context manager: asyncio.timeout(30) -> spec.resiliency.timeout.actor: 30
@@ -681,7 +684,7 @@ The extractor handles these AST expression types:
 
 ## IR specification
 
-**Source**: `src/asya-lab/asya_lab/flow/ir.py`
+**Source**: `src/asya-lab/asya_lab/flow/parser.py` (IR dataclasses defined inline, no separate ir.py)
 
 All IR nodes inherit from `IROperation(lineno: int)`:
 
@@ -760,11 +763,17 @@ suffix matching — any unambiguous suffix works.
 When a flow has exactly one actor call and no branching, the code generator
 emits a `FLOW_METADATA` constant instead of router functions.
 
-## Future: adapter generation
+## Adapter generation
 
 When a flow calls a decorated function (e.g. `@tool(...)`) that doesn't
-conform to the `dict -> dict` actor protocol, the compiler will generate
-an adapter handler. See aint [ch0h] for the full design.
+conform to the `dict -> dict` actor protocol, the compiler generates
+an adapter handler that bridges the two signatures:
+
+```python
+state["result"] = greet_user(state["tool_call"]["args"])  # asya: actor
+```
+
+The parser extracts input/output paths from the AST. The code generator emits a standalone adapter Python file that wraps `greet_user` in the actor protocol.
 
 The adapter shape is inferred from the call site, not from templates:
 
