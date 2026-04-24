@@ -1,6 +1,6 @@
 ---
 title: quote tracing endpoint values in crossplane compositions
-status: pushed
+status: working
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
