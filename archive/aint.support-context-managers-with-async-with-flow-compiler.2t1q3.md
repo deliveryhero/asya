@@ -1,14 +1,13 @@
 ---
 title: Support context managers (with/async with) in flow compiler
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/support-more-compiler-constructs/2t1q.support-context-managers-with-async-with-flow-compiler
-  - branch:support-more-compiler-constructs/2t1q.support-context-managers-with-async-with-flow-compiler
   - pr:281
 reason: "PR #281 merged"
 ---
+
 
 ## Problem
 

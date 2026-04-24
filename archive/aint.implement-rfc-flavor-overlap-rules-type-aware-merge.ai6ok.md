@@ -1,15 +1,14 @@
 ---
 title: "Implement RFC flavor overlap rules: type-aware merge with conflict detection"
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:306
 dependencies:
   - lfcf6
-tags:
-  - worktree:.worktrees/.worktrees/xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge
-  - branch:xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge
-  - pr:306
 ---
+
 
 ## Summary
 

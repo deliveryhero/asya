@@ -1,15 +1,14 @@
 ---
 title: "Phase 2: Manifests, error handling, rules, and CLI"
 status: merged
-priority: 1
+priority: 1 # high
 assignee: Artem Yushkovskiy
+tags:
+  - pr:339
 dependencies:
   - dlad8
-tags:
-  - worktree:.worktrees/.worktrees/compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli
-  - branch:compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli
-  - pr:339
 ---
+
 
 ## Overview
 

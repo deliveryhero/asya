@@ -1,14 +1,13 @@
 ---
 title: Strip handler decorators by actors
 status: merged
-priority: 2
+priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
-  - worktree:.worktrees/support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors
-  - branch:support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors
   - pr:280
   - pr:329
 ---
+
 
 ## Resolution
 
