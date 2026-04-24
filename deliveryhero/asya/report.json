@@ -1,12 +1,12 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "a1e7833f9728def4548eaf2ee1ce91d8f9bc1f5b",
+  "commit": "73b5951ccc0502f255701cd1f2b3ca216b7798db",
   "coverage": {
     "type": "merged",
     "format": "Merged",
-    "total": 6871,
-    "covered": 3628,
+    "total": 6887,
+    "covered": 3644,
     "files": [
       {
         "type": "statement",
@@ -8040,104 +8040,131 @@
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/internal/tracing/tracing.go",
         "normalized_path": "src/asya-sidecar/internal/tracing/tracing.go",
-        "total": 46,
-        "covered": 42,
+        "total": 54,
+        "covered": 50,
         "blocks": [
           {
             "type": "statement",
-            "start_line": 21,
+            "start_line": 25,
             "start_col": 89,
-            "end_line": 22,
+            "end_line": 26,
             "end_col": 20,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 22,
+            "start_line": 26,
             "start_col": 20,
-            "end_line": 25,
+            "end_line": 29,
             "end_col": 38,
             "num_stmt": 3,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 25,
+            "start_line": 29,
             "start_col": 38,
-            "end_line": 25,
+            "end_line": 29,
             "end_col": 52,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 28,
+            "start_line": 32,
             "start_col": 2,
-            "end_line": 36,
-            "end_col": 16,
-            "num_stmt": 3,
+            "end_line": 39,
+            "end_col": 24,
+            "num_stmt": 4,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 36,
+            "start_line": 39,
+            "start_col": 24,
+            "end_line": 45,
+            "end_col": 3,
+            "num_stmt": 1,
+            "count": 1
+          },
+          {
+            "type": "statement",
+            "start_line": 45,
+            "start_col": 8,
+            "end_line": 51,
+            "end_col": 3,
+            "num_stmt": 1,
+            "count": 1
+          },
+          {
+            "type": "statement",
+            "start_line": 52,
+            "start_col": 2,
+            "end_line": 52,
+            "end_col": 16,
+            "num_stmt": 1,
+            "count": 1
+          },
+          {
+            "type": "statement",
+            "start_line": 52,
             "start_col": 16,
-            "end_line": 38,
+            "end_line": 54,
             "end_col": 3,
             "num_stmt": 1,
             "count": 0
           },
           {
             "type": "statement",
-            "start_line": 41,
+            "start_line": 56,
             "start_col": 2,
-            "end_line": 48,
+            "end_line": 63,
             "end_col": 16,
             "num_stmt": 2,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 48,
+            "start_line": 63,
             "start_col": 16,
-            "end_line": 50,
+            "end_line": 65,
             "end_col": 3,
             "num_stmt": 1,
             "count": 0
           },
           {
             "type": "statement",
-            "start_line": 53,
+            "start_line": 67,
             "start_col": 2,
-            "end_line": 67,
+            "end_line": 77,
             "end_col": 25,
             "num_stmt": 5,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 73,
+            "start_line": 83,
             "start_col": 38,
-            "end_line": 74,
+            "end_line": 84,
             "end_col": 71,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 74,
+            "start_line": 84,
             "start_col": 71,
-            "end_line": 75,
+            "end_line": 85,
             "end_col": 44,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 75,
+            "start_line": 85,
             "start_col": 44,
-            "end_line": 77,
+            "end_line": 87,
             "end_col": 4,
             "num_stmt": 1,
             "count": 1
@@ -21558,104 +21585,131 @@
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-gateway/internal/tracing/tracing.go",
         "normalized_path": "src/asya-gateway/internal/tracing/tracing.go",
-        "total": 46,
-        "covered": 37,
+        "total": 54,
+        "covered": 45,
         "blocks": [
           {
             "type": "statement",
-            "start_line": 21,
+            "start_line": 25,
             "start_col": 89,
-            "end_line": 22,
+            "end_line": 26,
             "end_col": 20,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 22,
+            "start_line": 26,
             "start_col": 20,
-            "end_line": 25,
+            "end_line": 29,
             "end_col": 38,
             "num_stmt": 3,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 25,
+            "start_line": 29,
             "start_col": 38,
-            "end_line": 25,
+            "end_line": 29,
             "end_col": 52,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 28,
+            "start_line": 32,
             "start_col": 2,
-            "end_line": 36,
-            "end_col": 16,
-            "num_stmt": 3,
+            "end_line": 39,
+            "end_col": 24,
+            "num_stmt": 4,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 36,
+            "start_line": 39,
+            "start_col": 24,
+            "end_line": 45,
+            "end_col": 3,
+            "num_stmt": 1,
+            "count": 1
+          },
+          {
+            "type": "statement",
+            "start_line": 45,
+            "start_col": 8,
+            "end_line": 51,
+            "end_col": 3,
+            "num_stmt": 1,
+            "count": 1
+          },
+          {
+            "type": "statement",
+            "start_line": 52,
+            "start_col": 2,
+            "end_line": 52,
+            "end_col": 16,
+            "num_stmt": 1,
+            "count": 1
+          },
+          {
+            "type": "statement",
+            "start_line": 52,
             "start_col": 16,
-            "end_line": 38,
+            "end_line": 54,
             "end_col": 3,
             "num_stmt": 1,
             "count": 0
           },
           {
             "type": "statement",
-            "start_line": 41,
+            "start_line": 56,
             "start_col": 2,
-            "end_line": 48,
+            "end_line": 63,
             "end_col": 16,
             "num_stmt": 2,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 48,
+            "start_line": 63,
             "start_col": 16,
-            "end_line": 50,
+            "end_line": 65,
             "end_col": 3,
             "num_stmt": 1,
             "count": 0
           },
           {
             "type": "statement",
-            "start_line": 53,
+            "start_line": 67,
             "start_col": 2,
-            "end_line": 67,
+            "end_line": 77,
             "end_col": 25,
             "num_stmt": 5,
             "count": 1
           },
           {
             "type": "statement",
-            "start_line": 73,
+            "start_line": 83,
             "start_col": 38,
-            "end_line": 74,
+            "end_line": 84,
             "end_col": 71,
             "num_stmt": 1,
             "count": 0
           },
           {
             "type": "statement",
-            "start_line": 74,
+            "start_line": 84,
             "start_col": 71,
-            "end_line": 75,
+            "end_line": 85,
             "end_col": 44,
             "num_stmt": 1,
             "count": 0
           },
           {
             "type": "statement",
-            "start_line": 75,
+            "start_line": 85,
             "start_col": 44,
-            "end_line": 77,
+            "end_line": 87,
             "end_col": 4,
             "num_stmt": 1,
             "count": 0
@@ -21854,8 +21908,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 34068,
-    "test": 15347,
+    "code": 34098,
+    "test": 15393,
     "code_files": [
       {
         "code": 933,
@@ -23160,9 +23214,9 @@
         "language": "Go"
       },
       {
-        "code": 54,
-        "comment": 13,
-        "blank": 12,
+        "code": 69,
+        "comment": 9,
+        "blank": 11,
         "path": "src/asya-gateway/internal/tracing/tracing.go",
         "language": "Go"
       },
@@ -23692,9 +23746,9 @@
         "language": "Go"
       },
       {
-        "code": 54,
-        "comment": 13,
-        "blank": 12,
+        "code": 69,
+        "comment": 9,
+        "blank": 11,
         "path": "src/asya-sidecar/internal/tracing/tracing.go",
         "language": "Go"
       },
@@ -24611,9 +24665,9 @@
         "language": "Go"
       },
       {
-        "code": 60,
-        "comment": 12,
-        "blank": 16,
+        "code": 84,
+        "comment": 14,
+        "blank": 22,
         "path": "src/asya-gateway/internal/tracing/tracing_test.go",
         "language": "Go"
       },
@@ -24688,9 +24742,9 @@
         "language": "Go"
       },
       {
-        "code": 245,
-        "comment": 38,
-        "blank": 63,
+        "code": 267,
+        "comment": 39,
+        "blank": 68,
         "path": "src/asya-sidecar/internal/tracing/tracing_test.go",
         "language": "Go"
       },
@@ -24787,6 +24841,6 @@
       }
     ]
   },
-  "test_execution_time": 339000000000,
-  "timestamp": "2026-04-24T10:44:25.941934156Z"
+  "test_execution_time": 341000000000,
+  "timestamp": "2026-04-24T11:45:38.525295617Z"
 }
