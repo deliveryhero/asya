@@ -104,9 +104,9 @@ class ConnectorClient:
                 pass  # retry; fall through on second attempt
             finally:
                 conn.close()
-    # Both attempts failed — connector closed connections without responding.
-    # Treat as unsupported: the require_query_support fixture will skip on 501.
-    return 501, {}
+        # Both attempts failed — connector closed connections without responding.
+        # Treat as unsupported: the require_query_support fixture will skip on 501.
+        return 501, {}
 
 
 @pytest.fixture
