@@ -3453,8 +3453,13 @@ Unix socket.</p>
 <tbody>
 <tr>
 <td><code>OTEL_EXPORTER_OTLP_ENDPOINT</code></td>
-<td>OTLP exporter endpoint</td>
+<td>OTLP endpoint. Format depends on protocol: gRPC → <code>host:4317</code>; HTTP → <code>http://host:4318</code></td>
 <td><em>(unset)</em></td>
+</tr>
+<tr>
+<td><code>OTEL_EXPORTER_OTLP_PROTOCOL</code></td>
+<td>Transport protocol: <code>""</code> / <code>"grpc"</code> → gRPC (default); <code>"http"</code> → HTTP/protobuf</td>
+<td><em>(unset — gRPC)</em></td>
 </tr>
 </tbody>
 </table></div>

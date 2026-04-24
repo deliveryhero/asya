@@ -2975,11 +2975,27 @@
 </ul>
 <h2 id="distributed-tracing">Distributed Tracing<a class="headerlink" href="#distributed-tracing" title="Permanent link">#</a></h2>
 <h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">#</a></h3>
-<p>Set <code>OTEL_EXPORTER_OTLP_ENDPOINT</code> on sidecar and gateway to enable tracing:</p>
-<ul>
-<li><strong>Sidecar</strong>: Set via <code>spec.tracing.endpoint</code> in AsyncActor CR</li>
-<li><strong>Gateway</strong>: Set via <code>tracing.endpoint</code> in gateway Helm values</li>
-</ul>
+<p>Set <code>OTEL_EXPORTER_OTLP_ENDPOINT</code> on sidecar and gateway to enable tracing. Both gRPC
+(default) and HTTP/protobuf transports are supported, selected by <code>OTEL_EXPORTER_OTLP_PROTOCOL</code>.</p>
+<p>The endpoint format depends on the protocol:
+- <strong>gRPC</strong> (default, port 4317): bare <code>host:port</code> — e.g. <code>tempo:4317</code>
+- <strong>HTTP/protobuf</strong> (port 4318): full URL — e.g. <code>http://tempo:4318</code></p>
+<p><strong>Sidecar (per-actor)</strong>:
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">tracing</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">endpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tempo:4317&quot;</span><span class="w">      </span><span class="c1"># or &quot;http://tempo:4318&quot; for HTTP</span>
+<span class="w">    </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                </span><span class="c1"># omit or &quot;grpc&quot; for gRPC; &quot;http&quot; for HTTP/protobuf</span>
+</code></pre></div></p>
+<p><strong>Gateway</strong> (Helm values):
+<div class="highlight"><pre><span></span><code><span class="nt">tracing</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">endpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tempo:4317&quot;</span>
+<span class="w">  </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># omit or &quot;grpc&quot; for gRPC; &quot;http&quot; for HTTP/protobuf</span>
+</code></pre></div></p>
+<p><strong>Crossplane chart</strong> (cluster-wide sidecar default):
+<div class="highlight"><pre><span></span><code><span class="nt">sidecar</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">tracingEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tempo:4317&quot;</span>
+<span class="w">  </span><span class="nt">tracingProtocol</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">           </span><span class="c1"># omit or &quot;grpc&quot; for gRPC; &quot;http&quot; for HTTP/protobuf</span>
+</code></pre></div></p>
 <h3 id="playground-setup">Playground Setup<a class="headerlink" href="#playground-setup" title="Permanent link">#</a></h3>
 <p>Enable <code>sampleTracing.enabled: true</code> in the playground chart to deploy Grafana
 Tempo. The Tempo datasource is auto-provisioned in Grafana.</p>
