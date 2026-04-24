@@ -1,6 +1,6 @@
 ---
 title: "RFC: Replace asya-gateway with asya-mesh-api + protocol adapters"
-status: open
+status: closed
 priority: 1
 tags:
   - architecture
