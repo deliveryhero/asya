@@ -1,4 +1,4 @@
-git-aint state | 2026-04-24T10:33:49Z
+git-aint state | 2026-04-24T10:34:53Z
 
 Working(10) Open(142) Closed(380)
 
@@ -91,9 +91,9 @@ Working(10) Open(142) Closed(380)
 14 open aints not shown (git aint get)
 
 Closed(5):
-[i0ewl] "PR5: DuckDB /query for S3/GCS Python state proxy connectors"  merged
 [bvs44] "fix(flow-compiler): generate SVG instead of PNG to eliminate non-deterministic pre-commit regeneration"  merged
 [oihm2] "Unify terminology: task=A2A, tool=MCP, envelope=mesh"  merged
 [1f2ww] "Runtime: AsyncGenerator handler support"  merged
 [1fw74] "Sidecar: multi-frame streaming protocol (runtime <-> sidecar)"  rejected
+[1fld6] "Clean up build system, CI pipelines, and documentation after operator removal"  merged
 ... and 375 more
