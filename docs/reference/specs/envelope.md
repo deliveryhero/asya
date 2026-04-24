@@ -60,19 +60,18 @@ The mesh-api enforces monotonic status progression. When a status event arrives,
 | Order | Statuses | Description |
 |-------|----------|-------------|
 | 0 | `pending` | Created, not yet picked up |
-| 1 | `processing`, `retrying` | Being processed or retried by a sidecar |
+| 1 | `running` | Being processed by an actor (sidecar `received`/`processing`/`completed` events all map here) |
 | 2 | `paused` | Waiting for external input (HITL) |
 | 3 | `succeeded`, `failed`, `canceled` | Terminal — no further transitions |
 
 **Valid transitions**:
 ```
-pending → processing → succeeded
-pending → processing → failed
-pending → processing → paused → processing → succeeded
-pending → processing → retrying → succeeded
+pending → running → succeeded
+pending → running → failed
+pending → running → paused → running → succeeded
 ```
 
-Status never goes backward. Terminal statuses (`succeeded`, `failed`, `canceled`) are all order 3 — once terminal, no other status can overwrite. If two `processing` updates arrive simultaneously, the second overwrites with the same value (idempotent). FLY events have no ordering constraint — they are appended in arrival order.
+Status never goes backward. Terminal statuses (`succeeded`, `failed`, `canceled`) are all order 3 — once terminal, no other status can overwrite. If two `running` updates arrive simultaneously, the second overwrites with the same value (idempotent). FLY events have no ordering constraint — they are appended in arrival order.
 
 ### Sidecar-Managed Headers
 
@@ -191,8 +190,6 @@ Runtime returns error object:
 
 **Infrastructure errors** (timeout, runtime crash, parse error, route mismatch) bypass resiliency and route directly to `x-sump`.
 
-**Action**: Sidecar applies resiliency policy: retries if configured, or routes to `x-sink` (phase: failed) if exhausted/non-retryable
-
 ## Payload Enrichment Pattern
 
 **Recommended**: Actors append results to payload instead of replacing it.
@@ -242,12 +239,11 @@ When gateway is enabled, tasks have lifecycle statuses tracked throughout proces
 | Status | Description | When Set |
 |--------|-------------|----------|
 | `pending` | Task created, not yet processing | Gateway creates task from MCP tool call |
-| `running` | Task is being processed by actors | Sidecar sends first progress update (maps `processing`/`retrying` internal statuses) |
+| `running` | Task is being processed by actors | Sidecar sends first progress update (maps `received`/`processing`/`completed` sidecar events) |
 | `succeeded` | Pipeline completed successfully | `x-sink` crew actor reports success |
 | `failed` | Pipeline failed with error | `x-sink` crew actor reports failure (or gateway backstop timer) |
 | `paused` | Waiting for external input | Sidecar detects `x-asya-pause` header from x-pause crew actor |
 | `canceled` | Task was canceled | Client cancels via `POST /a2a/tasks/{id}:cancel` |
-| `retrying` | Handler failed, sidecar retrying | Sidecar enters retry loop per resiliency policy |
 | `unknown` | Status cannot be determined | Edge cases, missing updates |
 
 ### Progress Reporting

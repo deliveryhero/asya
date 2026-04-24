@@ -184,7 +184,6 @@ yield "DEL", ".status.error"          # clear error state (e.g., in except-dispa
 > The runtime's `_build_frame` reads `route.next` from the snapshot to construct
 > the output route. If it was deleted, the handler crashes with `KeyError: 'next'`.
 > Use `SET .route.next` with `[]` instead to clear routing without breaking frame building.
-```
 
 ### FLY — stream upstream
 

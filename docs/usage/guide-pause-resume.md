@@ -146,10 +146,6 @@ When the human sends a resume request (via the gateway's A2A `message/send` endp
 
 The pipeline continues from where it stopped.
 
-> [!IMPORTANT] x-pause prepends `x-resume` to the persisted `route.next` (so the stored value is `["x-resume", "publish"]`).
-> x-resume must strip itself from the restored route to avoid routing back to its own queue.
-> Currently `resume.py` writes the persisted route verbatim — file an issue if the pipeline loops instead of advancing to the next actor.
-
 ### Resume Input Example
 
 The human sends:

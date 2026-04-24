@@ -195,7 +195,8 @@ while state["attempt"] < 3:
 ```
 
 The compiler generates a loop-back router that re-inserts the loop body
-actors into `route.next` on each iteration.
+actors into `route.next` on each iteration. A guard prevents runaway
+iteration (default 100, set via `FlowCompiler(max_iterations=...)` API).
 
 `while True:` with `break` is supported for indefinite loops:
 
