@@ -1,6 +1,6 @@
 ---
 title: split helm image values into repository+tag
-status: working
+status: merged
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
