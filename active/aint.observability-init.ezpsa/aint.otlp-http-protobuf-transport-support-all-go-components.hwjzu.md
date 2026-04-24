@@ -1,6 +1,6 @@
 ---
 title: OTLP HTTP/protobuf transport support for all Go components
-status: working
+status: pushed
 priority: 3 # low
 assignee: Artem Yushkovskiy
 tags:
@@ -10,6 +10,7 @@ tags:
   - worktree:.worktrees/hwjzu.otlp-http-protobuf-transport-support-all-go-components
   - branch:hwjzu.otlp-http-protobuf-transport-support-all-go-components
 ---
+
 
 
 
