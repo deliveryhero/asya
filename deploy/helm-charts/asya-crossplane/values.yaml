@@ -134,7 +134,11 @@ sidecar:
   # GCP project ID for Pub/Sub access (cluster-wide)
   gcpProjectId: ""
   # OTLP endpoint for distributed tracing (leave empty to disable)
+  # grpc (default): host:port — e.g. tempo:4317
+  # http:           full URL  — e.g. http://tempo:4318
   tracingEndpoint: ""
+  # OTLP transport protocol. Leave empty for gRPC (default). Set "http" for HTTP/protobuf.
+  tracingProtocol: ""
 
 # KEDA authentication configuration (SQS)
 keda:

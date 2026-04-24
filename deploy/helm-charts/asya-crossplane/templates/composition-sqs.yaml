@@ -364,6 +364,7 @@ spec:
             {{`{{- $sidecarImage := "`}}{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag | default .Chart.AppVersion }}{{`" -}}`}}
             {{`{{- $sidecarImagePullPolicy := "`}}{{ .Values.sidecar.image.pullPolicy | default "IfNotPresent" }}{{`" -}}`}}
             {{`{{- $tracingEndpoint := "`}}{{ .Values.sidecar.tracingEndpoint }}{{`" -}}`}}
+            {{`{{- $tracingProtocol := "`}}{{ .Values.sidecar.tracingProtocol }}{{`" -}}`}}
             {{`{{- $socketPath := printf "%s/asya-runtime.sock" $socketDir -}}`}}
             {{`{{- $isSystemActor := or (eq $actorName "x-sink") (eq $actorName "x-sump") (eq $actorName "happy-end") (eq $actorName "error-end") -}}`}}
             {{`{{- $queueURL := "" -}}`}}
@@ -568,7 +569,14 @@ spec:
                             value: {{`"{{ $xrSpec.tracing.endpoint }}"`}}
                           {{`{{- else if ne $tracingEndpoint "" }}`}}
                           - name: OTEL_EXPORTER_OTLP_ENDPOINT
-                            value: {{`{{ $tracingEndpoint }}`}}
+                            value: {{`{{ $tracingEndpoint | quote }}`}}
+                          {{`{{- end }}`}}
+                          {{`{{- if and $xrSpec.tracing $xrSpec.tracing.protocol }}`}}
+                          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                            value: {{`"{{ $xrSpec.tracing.protocol }}"`}}
+                          {{`{{- else if ne $tracingProtocol "" }}`}}
+                          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                            value: {{`{{ $tracingProtocol | quote }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if $xrSpec.resiliency }}`}}
                           {{`{{- if $xrSpec.resiliency.policies }}`}}

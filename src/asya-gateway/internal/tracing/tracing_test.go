@@ -86,3 +86,35 @@ func TestInit_WithEndpoint(t *testing.T) {
 		t.Error("SpanContext should be valid for real provider")
 	}
 }
+
+func TestInit_HTTPProtocol(t *testing.T) {
+	oldProvider := otel.GetTracerProvider()
+	t.Cleanup(func() { otel.SetTracerProvider(oldProvider) })
+	t.Setenv("OTEL_EXPORTER_OTLP_PROTOCOL", "http")
+
+	// HTTP endpoint uses full URL format (host:port without scheme is also accepted
+	// by otlptracehttp.WithEndpoint — it will not actually connect in unit tests)
+	shutdown, err := Init("localhost:4318", "test-service", "test-ns")
+	if err != nil {
+		t.Fatalf("Init with HTTP protocol should not error: %v", err)
+	}
+	defer shutdown(context.Background())
+
+	tp := otel.GetTracerProvider()
+	if _, ok := tp.(noop.TracerProvider); ok {
+		t.Error("Expected real TracerProvider when endpoint is provided, got noop")
+	}
+
+	tracer := tp.Tracer("test")
+	ctx, span := tracer.Start(context.Background(), "test-span")
+	defer span.End()
+
+	if !span.IsRecording() {
+		t.Error("Span should be recording with HTTP protocol")
+	}
+
+	spanCtx := trace.SpanContextFromContext(ctx)
+	if !spanCtx.IsValid() {
+		t.Error("SpanContext should be valid for real provider")
+	}
+}

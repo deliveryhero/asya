@@ -75,6 +75,34 @@ func TestInit_RecordingWhenEndpointProvided(t *testing.T) {
 	}
 }
 
+func TestInit_HTTPProtocol(t *testing.T) {
+	resetGlobalTracer(t)
+	t.Setenv("OTEL_EXPORTER_OTLP_PROTOCOL", "http")
+
+	// otlptracehttp.WithEndpoint accepts bare host:port and will not actually connect
+	shutdown, err := Init("localhost:4318", "test-service", "test-namespace")
+	if err != nil {
+		t.Fatalf("Init with HTTP protocol should not error, got: %v", err)
+	}
+	if shutdown == nil {
+		t.Fatal("Init should return non-nil shutdown function")
+	}
+	defer func() { _ = shutdown(context.Background()) }()
+
+	tp := otel.GetTracerProvider()
+	if _, ok := tp.(*sdktrace.TracerProvider); !ok {
+		t.Errorf("Expected *sdktrace.TracerProvider with HTTP protocol, got %T", tp)
+	}
+
+	tracer := tp.Tracer("test")
+	_, span := tracer.Start(context.Background(), "test-span")
+	defer span.End()
+
+	if !span.IsRecording() {
+		t.Error("Expected recording span when HTTP endpoint is provided")
+	}
+}
+
 func TestInit_ServiceNameAndNamespace(t *testing.T) {
 	resetGlobalTracer(t)
 

@@ -13,7 +13,10 @@ image:
 
 # Distributed tracing configuration
 tracing:
+  # endpoint format depends on protocol: grpc → host:4317, http → http://host:4318
   endpoint: ""
+  # protocol: leave empty for gRPC (default), set "http" for HTTP/protobuf
+  protocol: ""
 
 # X-sink actor configuration
 # First layer of two-layer termination: reports final status to gateway, routes to hooks

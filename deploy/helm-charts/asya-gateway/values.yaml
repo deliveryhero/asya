@@ -225,7 +225,13 @@ affinity: {}
 
 # --- Tracing ---
 tracing:
+  # endpoint format depends on protocol:
+  #   grpc (default): bare host:port  — e.g. tempo:4317
+  #   http:           full URL        — e.g. http://tempo:4318
   endpoint: ""
+  # protocol selects the OTLP transport. Leave empty to use gRPC (default).
+  # Set to "http" to use HTTP/protobuf (OTLP port 4318).
+  protocol: ""
   # serviceName is sent as OTEL_SERVICE_NAME. Default "asya-gateway" maintains
   # backward compatibility with existing Tempo/Grafana dashboards.
   serviceName: "asya-gateway"

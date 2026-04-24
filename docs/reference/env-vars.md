@@ -215,7 +215,8 @@ Uses the same queue transport env vars as asya-gateway (`ASYA_QUEUE_TRANSPORT`,
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP exporter endpoint | _(unset)_ |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP endpoint. Format depends on protocol: gRPC → `host:4317`; HTTP → `http://host:4318` | _(unset)_ |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | Transport protocol: `""` / `"grpc"` → gRPC (default); `"http"` → HTTP/protobuf | _(unset — gRPC)_ |
 
 ---
 

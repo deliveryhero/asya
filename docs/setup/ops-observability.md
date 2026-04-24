@@ -236,10 +236,34 @@ Exposed via controller-runtime:
 
 ### Configuration
 
-Set `OTEL_EXPORTER_OTLP_ENDPOINT` on sidecar and gateway to enable tracing:
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` on sidecar and gateway to enable tracing. Both gRPC
+(default) and HTTP/protobuf transports are supported, selected by `OTEL_EXPORTER_OTLP_PROTOCOL`.
 
-- **Sidecar**: Set via `spec.tracing.endpoint` in AsyncActor CR
-- **Gateway**: Set via `tracing.endpoint` in gateway Helm values
+The endpoint format depends on the protocol:
+- **gRPC** (default, port 4317): bare `host:port` — e.g. `tempo:4317`
+- **HTTP/protobuf** (port 4318): full URL — e.g. `http://tempo:4318`
+
+**Sidecar (per-actor)**:
+```yaml
+spec:
+  tracing:
+    endpoint: "tempo:4317"      # or "http://tempo:4318" for HTTP
+    protocol: ""                # omit or "grpc" for gRPC; "http" for HTTP/protobuf
+```
+
+**Gateway** (Helm values):
+```yaml
+tracing:
+  endpoint: "tempo:4317"
+  protocol: ""                  # omit or "grpc" for gRPC; "http" for HTTP/protobuf
+```
+
+**Crossplane chart** (cluster-wide sidecar default):
+```yaml
+sidecar:
+  tracingEndpoint: "tempo:4317"
+  tracingProtocol: ""           # omit or "grpc" for gRPC; "http" for HTTP/protobuf
+```
 
 ### Playground Setup
 
