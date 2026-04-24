@@ -260,6 +260,48 @@ The `google-cloud-storage` Python SDK supports `STORAGE_EMULATOR_HOST` natively 
 
 **Workload Identity not working**: Verify GKE cluster has Workload Identity enabled, pod runs with correct service account, and IAM binding exists.
 
+## Analytics Queries via `/query`
+
+`gcs-buffered-lww` and `gcs-buffered-cas` connectors expose `POST /query` for
+Mango-style analytics over stored objects. The connector downloads blobs via the
+Google Cloud Storage SDK (inheriting Workload Identity or ADC credentials) and
+filters them locally with DuckDB.
+
+### Request
+
+```json
+{
+  "prefix": "runs/2024-01/",
+  "filter": {"status": "done", "model": "gemma-7b"},
+  "sort": ["-created_at"],
+  "limit": 100,
+  "offset": 0
+}
+```
+
+### Per-call limits
+
+Same environment variables as the S3 connector — see [S3 `/query` limits](s3.md#per-call-limits).
+
+| Env var | Default | Effect |
+|---------|---------|--------|
+| `QUERY_MAX_KEYS` | 10 000 | `list()` guard — returns 400 if exceeded |
+| `QUERY_MAX_FETCH_KEYS` | 1 000 | Max blobs downloaded per call |
+| `QUERY_MAX_FETCH_BYTES` | 268 435 456 (256 MiB) | Total bytes downloaded; stops after crossing the limit |
+| `QUERY_MAX_RESULT_ROWS` | 10 000 | SQL `LIMIT` cap on returned rows |
+
+### Helm configuration
+
+```yaml
+persistence:
+  config:
+    query:
+      maxFetchBytes: "67108864"   # 64 MiB
+      maxFetchKeys: "500"
+      maxKeys: "5000"
+      maxResultRows: "1000"
+```
+
 ## Related Documentation
 
 - [State Proxy Architecture](../components/core-state-proxy.md)

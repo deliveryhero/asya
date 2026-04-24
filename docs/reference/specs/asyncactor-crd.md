@@ -158,8 +158,9 @@ Override default sidecar configuration.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `image` | `string` | `ghcr.io/deliveryhero/asya-sidecar:latest` | Sidecar container image. |
-| `imagePullPolicy` | `string` | -- | Image pull policy for the sidecar. |
+| `image.repository` | `string` | `ghcr.io/deliveryhero/asya-sidecar` | Sidecar container image repository. |
+| `image.tag` | `string` | Chart.AppVersion | Sidecar image tag. |
+| `image.pullPolicy` | `string` | `IfNotPresent` | Image pull policy for the sidecar. |
 | `env` | `array` | `[]` | Additional environment variables for the sidecar container. Each entry requires `name` and `value`. |
 | `resources` | `object` | -- | Kubernetes resource requests/limits for the sidecar. |
 
@@ -176,6 +177,7 @@ a state proxy sidecar container and a logical mount to the pod.
 | `mount.path` | `string` | Absolute path inside the runtime container (must start with `/`). |
 | `writeMode` | `string` | Write buffering: `buffered` (default) or `passthrough`. |
 | `connector.image` | `string` | Container image for the state proxy connector. |
+| `connector.imagePullPolicy` | `string` | Image pull policy (`Always`, `IfNotPresent`, `Never`). Default: `IfNotPresent`. |
 | `connector.env` | `array` | Backend-specific environment variables (each: `name`, `value`). |
 | `connector.resources` | `object` | Kubernetes resource requests/limits for the connector. |
 

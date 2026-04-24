@@ -104,7 +104,7 @@ auto-detects scope from Python syntax.
 Context managers appear inside the flow function body. The compiler strips the
 `with` block and injects extracted config into every actor within the scope.
 
-Source: [`flow_with_asyncio_timeout.py`](https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py)
+Source: [`flow_with_asyncio_timeout.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/resiliency/flows/flow_with_asyncio_timeout.py)
 
 ```python
 @flow
@@ -132,7 +132,7 @@ The compiler:
 
 The generated router has no trace of the timeout — it is pure routing logic:
 
-Compiled output: [asya-samples](https://github.com/asyacore/asya-samples) (generated from the source above)
+Compiled output: [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) (generated from the source above)
 
 ```python
 async def start_document_pipeline(payload: dict):
@@ -148,7 +148,7 @@ async def start_document_pipeline(payload: dict):
 
 Nested scopes are supported — each tracks its own actors independently.
 
-Source: [`flow_with_nested_timeout_scopes.py`](https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_nested_timeout_scopes.py)
+Source: [`flow_with_nested_timeout_scopes.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/resiliency/flows/flow_with_nested_timeout_scopes.py)
 
 ```python
 @flow
@@ -168,7 +168,7 @@ Decorators appear on handler function definitions — either in the same file as
 the flow or in imported modules. The compiler extracts config from the decorator
 arguments and applies it to that single actor's manifest.
 
-Source: [`flow_decorator_retry.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_retry.py)
+Source: [`flow_decorator_retry.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_retry.py)
 
 ```python
 import asyncio
@@ -223,14 +223,14 @@ The compiler:
 4. Extracts `5` and stores it for `fetch_data`'s manifest
 5. Adds `tenacity.retry` to `ASYA_IGNORE_DECORATORS` so the runtime strips `@retry` before loading the handler
 
-Compiled output: [asya-samples](https://github.com/asyacore/asya-samples) (generated from the source above)
+Compiled output: [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) (generated from the source above)
 
 ### Inline overrides on flow statements
 
 For per-call control without rules, use `# asya: <action>` comments directly
 on flow statements.
 
-Source: [`flow_inline_comment_overrides.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_inline_comment_overrides.py)
+Source: [`flow_inline_comment_overrides.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_inline_comment_overrides.py)
 
 ```python
 @flow
@@ -246,7 +246,7 @@ def order_pipeline(p: dict) -> dict:
     return p
 ```
 
-Compiled output: [asya-samples](https://github.com/asyacore/asya-samples) (generated from the source above)
+Compiled output: [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) (generated from the source above)
 
 In the generated router, `normalize_keys` is inlined (its code runs inside the
 router function), while `validate_order` and `charge_payment` are resolved as
@@ -276,7 +276,7 @@ def validate(p: dict) -> dict:
 
 And the equivalent call-site pattern for functions defined elsewhere:
 
-Source: [`flow_decorator_callsite.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_callsite.py)
+Source: [`flow_decorator_callsite.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_callsite.py)
 
 ```python
 p = inline(stamp_timestamp)(p)  # force inline regardless of definition
@@ -297,7 +297,7 @@ Functions decorated with `@tool` from supported frameworks are classified as
 actors. When called with non-standard signatures, the compiler generates an
 adapter wrapper.
 
-Source: [`flow_tool_adapter.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py)
+Source: [`flow_tool_adapter.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_tool_adapter.py)
 
 ```python
 from claude_agent_sdk import tool
@@ -341,7 +341,7 @@ async def adapter_get_weather(payload: dict):
 Standard `p = fn(p)` calls with `@tool` are treated as regular actor calls
 (no adapter needed). The adapter is only generated for non-standard patterns.
 
-Compiled output: [asya-samples](https://github.com/asyacore/asya-samples) (generated from the source above)
+Compiled output: [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) (generated from the source above)
 
 ### asyncio.timeout
 
@@ -585,17 +585,17 @@ If a symbol cannot be resolved to an FQN, matching uses the bare name.
 
 The [`examples/flows/`](../../examples/flows/) directory contains teaser examples.
 Comprehensive working examples with compiled output are in
-[asya-samples](https://github.com/asyacore/asya-samples).
+[examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo).
 
 | Source file | Compiled output | Demonstrates |
 |-------------|-----------------|--------------|
-| [`flow_decorator_retry.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_retry.py) | [asya-samples](https://github.com/asyacore/asya-samples) | `@retry` config extraction + `asyncio.timeout` scope |
-| [`flow_with_asyncio_timeout.py`](https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_asyncio_timeout.py) | [asya-samples](https://github.com/asyacore/asya-samples) | Context manager scoped to multiple actors |
-| [`flow_with_nested_timeout_scopes.py`](https://github.com/asyacore/asya-samples/blob/main/src/resiliency/flows/flow_with_nested_timeout_scopes.py) | [asya-samples](https://github.com/asyacore/asya-samples) | Nested scopes with different timeouts |
+| [`flow_decorator_retry.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_retry.py) | [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) | `@retry` config extraction + `asyncio.timeout` scope |
+| [`flow_with_asyncio_timeout.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/resiliency/flows/flow_with_asyncio_timeout.py) | [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) | Context manager scoped to multiple actors |
+| [`flow_with_nested_timeout_scopes.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/resiliency/flows/flow_with_nested_timeout_scopes.py) | [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) | Nested scopes with different timeouts |
 | [`08_decorators.py`](../../examples/flows/08_decorators.py) | (compile locally) | `@actor` and `@inline` on function definitions |
-| [`flow_decorator_callsite.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_decorator_callsite.py) | [asya-samples](https://github.com/asyacore/asya-samples) | `actor(fn)(p)` and `inline(fn)(p)` wrappers |
-| [`flow_inline_comment_overrides.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_inline_comment_overrides.py) | [asya-samples](https://github.com/asyacore/asya-samples) | `# asya: actor` / `# asya: inline` directives |
-| [`flow_tool_adapter.py`](https://github.com/asyacore/asya-samples/blob/main/src/compiler-sugar/flows/flow_tool_adapter.py) | [asya-samples](https://github.com/asyacore/asya-samples) | `@tool` adapter generation for non-standard signatures |
+| [`flow_decorator_callsite.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_decorator_callsite.py) | [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) | `actor(fn)(p)` and `inline(fn)(p)` wrappers |
+| [`flow_inline_comment_overrides.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_inline_comment_overrides.py) | [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) | `# asya: actor` / `# asya: inline` directives |
+| [`flow_tool_adapter.py`](https://github.com/asyacore/asya/blob/main/examples/end-to-end/monorepo/src/compiler-sugar/flows/flow_tool_adapter.py) | [examples/end-to-end/monorepo](https://github.com/asyacore/asya/tree/main/examples/end-to-end/monorepo) | `@tool` adapter generation for non-standard signatures |
 
 Compile any example yourself:
 
