@@ -71,10 +71,14 @@ jobs:
 
         mv "$TEMP_FILE" CHANGELOG.md
 
-    - name: Commit and push CHANGELOG.md
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add CHANGELOG.md
-        git diff --cached --quiet || git commit -m "chore: Update CHANGELOG.md for ${{ steps.release.outputs.tag }}"
-        git push
+    - name: Open PR to update CHANGELOG.md
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: Update CHANGELOG.md for ${{ steps.release.outputs.tag }}"
+        branch: changelog/${{ steps.release.outputs.tag }}
+        delete-branch: true
+        title: "chore: Update CHANGELOG.md for ${{ steps.release.outputs.tag }}"
+        body: "Automated changelog update for release ${{ steps.release.outputs.tag }}."
+        base: main
+        author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
