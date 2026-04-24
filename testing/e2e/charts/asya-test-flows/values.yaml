@@ -11,7 +11,7 @@ stateProxy:
   connector:
     image:
       repository: ghcr.io/deliveryhero/asya-state-proxy-py
-      tag: latest
+      tag: dev
   config:
     bucket: asya-results
     # S3-specific
