@@ -111,6 +111,12 @@ awsProviderConfig:
 
 awsRegion: <your-aws-region>
 actorNamespace: asya
+
+# Pin sidecar to a specific release (tag defaults to Chart.AppVersion)
+sidecar:
+  image:
+    repository: ghcr.io/deliveryhero/asya-sidecar
+    tag: v0.5.12
 ```
 
 **Minimal example**:

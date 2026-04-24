@@ -9,10 +9,7 @@
 # The aggregator reads x-asya-fan-in header via ABI yield protocol
 # for fan-in coordination.
 {{- $sp := .Values.stateProxy }}
-{{- $connectorImage := dict "val" $sp.connector.image }}
-{{- if not $connectorImage.val }}
-  {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-py:dev" }}
-{{- end }}
+{{- $connectorImage := printf "%s:%s" $sp.connector.image.repository $sp.connector.image.tag }}
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -31,7 +28,7 @@ spec:
       mount:
         path: /state/checkpoints
       connector:
-        image: {{ $connectorImage.val }}
+        image: {{ $connectorImage }}
         env:
           - name: ASYA_CONNECTOR
             value: {{ if eq $sp.backend "s3" }}s3_buffered_cas{{ else }}gcs_buffered_cas{{ end }}

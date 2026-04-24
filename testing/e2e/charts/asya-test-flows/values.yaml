@@ -9,7 +9,9 @@ crewImage: ghcr.io/deliveryhero/asya-crew:latest
 stateProxy:
   backend: s3
   connector:
-    image: ""
+    image:
+      repository: ghcr.io/deliveryhero/asya-state-proxy-py
+      tag: dev
   config:
     bucket: asya-results
     # S3-specific

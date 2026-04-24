@@ -5,10 +5,7 @@
 {{- if not .Values.persistence.config.bucket }}
 {{- fail "persistence.config.bucket is required when persistence.enabled is true" }}
 {{- end }}
-{{- $connectorImage := dict "val" .Values.persistence.connector.image }}
-{{- if not $connectorImage.val }}
-  {{- $_ := set $connectorImage "val" (printf "ghcr.io/deliveryhero/asya-state-proxy-py:%s" .Chart.AppVersion) }}
-{{- end }}
+{{- $connectorImage := printf "%s:%s" .Values.persistence.connector.image.repository (.Values.persistence.connector.image.tag | default .Chart.AppVersion) }}
 apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
@@ -22,7 +19,7 @@ data:
       mount:
         path: /state/checkpoints
       connector:
-        image: {{ $connectorImage.val }}
+        image: {{ $connectorImage }}
         env:
           - name: ASYA_CONNECTOR
             value: {{ if eq .Values.persistence.backend "s3" }}s3_buffered_lww{{ else }}gcs_buffered_lww{{ end }}

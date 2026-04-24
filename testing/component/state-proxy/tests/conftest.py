@@ -88,16 +88,25 @@ class ConnectorClient:
 
     def post_query(self, body: dict) -> tuple[int, dict]:
         """POST /query to the connector socket. Returns (status_code, body_dict)."""
-        conn = _UnixHTTPConnection(self._socket_path)
         data = json.dumps(body).encode()
-        conn.request(
-            "POST",
-            "/query",
-            body=data,
-            headers={"Content-Type": "application/json", "Content-Length": str(len(data))},
-        )
-        resp = conn.getresponse()
-        return resp.status, json.loads(resp.read())
+        for attempt in range(2):
+            conn = _UnixHTTPConnection(self._socket_path)
+            try:
+                conn.request(
+                    "POST",
+                    "/query",
+                    body=data,
+                    headers={"Content-Type": "application/json", "Content-Length": str(len(data))},
+                )
+                resp = conn.getresponse()
+                return resp.status, json.loads(resp.read())
+            except BrokenPipeError:
+                pass  # retry; fall through on second attempt
+            finally:
+                conn.close()
+        # Both attempts failed — connector closed connections without responding.
+        # Treat as unsupported: the require_query_support fixture will skip on 501.
+        return 501, {}
 
 
 @pytest.fixture

@@ -281,7 +281,9 @@ persistence:
       maxKeys: "" # QUERY_MAX_KEYS: max objects listed before returning 400 (default 10000)
       maxResultRows: "" # QUERY_MAX_RESULT_ROWS: SQL LIMIT cap on returned rows (default 10000)
   connector:
-    image: "" # auto-selected based on backend if not set
+    image:
+      repository: ghcr.io/deliveryhero/asya-state-proxy-py
+      tag: "" # defaults to Chart.AppVersion
 
 # SQS DLQ queue configuration
 # When enabled, a shared dead-letter queue is created via Crossplane for the namespace.

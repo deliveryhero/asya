@@ -311,15 +311,21 @@ spec:
                   description: Sidecar configuration overrides
                   properties:
                     image:
-                      type: string
-                      default: ghcr.io/deliveryhero/asya-sidecar:latest
-                    imagePullPolicy:
-                      type: string
-                      description: Image pull policy for the sidecar container
-                      enum:
-                        - Always
-                        - IfNotPresent
-                        - Never
+                      type: object
+                      description: Sidecar container image
+                      properties:
+                        repository:
+                          type: string
+                          default: ghcr.io/deliveryhero/asya-sidecar
+                        tag:
+                          type: string
+                        pullPolicy:
+                          type: string
+                          description: Image pull policy for the sidecar container
+                          enum:
+                            - Always
+                            - IfNotPresent
+                            - Never
                     env:
                       type: array
                       description: Additional environment variables for the sidecar container
@@ -386,6 +392,14 @@ spec:
                             type: string
                             description: Container image for the state proxy connector
                             minLength: 1
+                          imagePullPolicy:
+                            type: string
+                            description: Image pull policy for the connector container
+                            enum:
+                              - Always
+                              - IfNotPresent
+                              - Never
+                            default: IfNotPresent
                           env:
                             type: array
                             description: Backend-specific environment variables

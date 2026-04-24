@@ -232,5 +232,7 @@ tracing:
 
 # --- Helm test configuration ---
 tests:
-  image: alpine/k8s:1.28.3
-  imagePullPolicy: IfNotPresent
+  image:
+    repository: alpine/k8s
+    tag: "1.28.3"
+    pullPolicy: IfNotPresent

@@ -69,7 +69,9 @@ crew:
       project: test-project
       emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
     connector:
-      image: ghcr.io/deliveryhero/asya-state-proxy-py:dev
+      image:
+        repository: ghcr.io/deliveryhero/asya-state-proxy-py
+        tag: dev
   x-sink:
     env:
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
@@ -239,8 +241,10 @@ crossplane:
     gcp:
       enabled: true
   sidecar:
-    image: ghcr.io/deliveryhero/asya-sidecar:latest
-    imagePullPolicy: Never
+    image:
+      repository: ghcr.io/deliveryhero/asya-sidecar
+      tag: latest
+      pullPolicy: Never
     pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
     gcpProjectId: test-project
   providerConfigs:

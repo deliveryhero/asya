@@ -229,21 +229,18 @@ helm.sh/chart: {{ include "asya-crew.chart" . }}
 
 {{/*
 Persistence stateProxy spec (inline on AsyncActor, read by Crossplane composition from XR spec)
-Call with bucket name override via dict: include "asya-crew.persistence.stateProxy" (dict "Values" .Values "bucket" "my-bucket")
+Call with bucket name override via dict: include "asya-crew.persistence.stateProxy" (dict "Values" .Values "Chart" .Chart "bucket" "my-bucket")
 If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
 */}}
 {{- define "asya-crew.persistence.stateProxy" -}}
 {{- $values := .Values }}
 {{- $bucket := default $values.persistence.config.bucket .bucket }}
-{{- $connectorImage := dict "val" $values.persistence.connector.image }}
-{{- if not $connectorImage.val }}
-  {{- $_ := set $connectorImage "val" (printf "ghcr.io/deliveryhero/asya-state-proxy-py:%s" $.Chart.AppVersion) }}
-{{- end }}
+{{- $connectorImage := printf "%s:%s" $values.persistence.connector.image.repository ($values.persistence.connector.image.tag | default .Chart.AppVersion) }}
 - name: checkpoints
   mount:
     path: /state/checkpoints
   connector:
-    image: {{ $connectorImage.val }}
+    image: {{ $connectorImage }}
     env:
       - name: ASYA_CONNECTOR
         value: {{ if eq $values.persistence.backend "s3" }}s3_buffered_lww{{ else }}gcs_buffered_lww{{ end }}
