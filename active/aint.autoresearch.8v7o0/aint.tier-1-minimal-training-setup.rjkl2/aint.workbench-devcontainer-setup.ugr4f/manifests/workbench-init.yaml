@@ -97,12 +97,26 @@ data:
 
     if ! command -v dp-devinfra &>/dev/null; then
       echo "[+] installing dp-devinfra"
-      su dev -c 'GOPATH=/home/dev/.local/gopath GOBIN=/home/dev/.local/bin go install github.com/nicholasgasior/dp-devinfra@latest'
+      su dev -c 'GOPRIVATE=github.com/deliveryhero GOPATH=/home/dev/.local/gopath GOBIN=/home/dev/.local/bin go install github.com/deliveryhero/dp-devinfra-cli@latest'
+      ln -sf /home/dev/.local/bin/dp-devinfra-cli /home/dev/.local/bin/dp-devinfra
     fi
 
     if [ ! -x /home/dev/.local/google-cloud-sdk/bin/gcloud ]; then
       echo "[+] installing gcloud CLI"
       su dev -c 'curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/home/dev/.local'
+    fi
+
+    if ! command -v gh &>/dev/null; then
+      echo "[+] installing gh CLI"
+      (type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) \
+      && sudo mkdir -p -m 755 /etc/apt/keyrings \
+      && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      && cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+      && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+      && sudo mkdir -p -m 755 /etc/apt/sources.list.d \
+      && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+      && sudo apt update \
+      && sudo apt install gh -y
     fi
 
     # --- GCP auth (activate SA if key exists and not already activated) ---
@@ -211,3 +225,5 @@ data:
         set-upstream = \
           !git branch \
               --set-upstream-to=origin/`git symbolic-ref --short HEAD`
+    [url "git@github.com:deliveryhero/"]
+      insteadOf = https://github.com/deliveryhero/
