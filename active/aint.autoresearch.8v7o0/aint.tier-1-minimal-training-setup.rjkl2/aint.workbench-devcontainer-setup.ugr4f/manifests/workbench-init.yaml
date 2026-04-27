@@ -87,6 +87,19 @@ data:
       cp /home/dev/.cargo/bin/git-aint /home/dev/.local/bin/
     fi
 
+    if ! command -v go &>/dev/null; then
+      echo "[+] installing go"
+      GO_VERSION=$(curl -sL 'https://go.dev/VERSION?m=text' | head -1)
+      curl -sL "https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz" | tar -C /home/dev/.local -xz
+      ln -sf /home/dev/.local/go/bin/go /home/dev/.local/bin/go
+      ln -sf /home/dev/.local/go/bin/gofmt /home/dev/.local/bin/gofmt
+    fi
+
+    if ! command -v dp-devinfra &>/dev/null; then
+      echo "[+] installing dp-devinfra"
+      su dev -c 'GOPATH=/home/dev/.local/gopath GOBIN=/home/dev/.local/bin go install github.com/nicholasgasior/dp-devinfra@latest'
+    fi
+
     if [ ! -x /home/dev/.local/google-cloud-sdk/bin/gcloud ]; then
       echo "[+] installing gcloud CLI"
       su dev -c 'curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/home/dev/.local'
