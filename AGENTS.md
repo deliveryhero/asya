@@ -145,7 +145,8 @@ profile assembly.
 - **Runtime** (not sidecar) shifts the route: `prev` grows, `curr` advances, `next` shrinks
 - `x-sink` and `x-sump` are **automatic** — never include them in route configs
   - Empty `route.curr` or `None` return → sidecar routes to `x-sink`
-  - Runtime error → sidecar applies resiliency policy (retry or route to `x-sink` with phase: failed)
+  - Handler error → sidecar applies resiliency policy (retry or route to `x-sink` with phase: failed)
+  - Infrastructure error (timeout, runtime crash, parse error) → sidecar routes directly to `x-sump`
 - Modify routing from a generator handler: `yield "SET", ".route.next", ["actor_a"]`
 - Only `.route.next`, `.headers`, and `.status` are writable; `.route.prev`, `.route.curr`, `.id`, `.parent_id` are read-only
 
@@ -212,9 +213,8 @@ Three fixed namespaces (planned `ASYA_BASE_PREFIX`, not yet implemented, would b
 | Namespace | Audience | Purpose |
 |---|---|---|
 | `/a2a/` | External AI agents, orchestrators | Full A2A protocol (SendMessage, GetTask, Subscribe, pause/resume, push notifications) |
-| `/mcp/` | LLM clients, developers | MCP Streamable HTTP + legacy SSE, REST tool invocation |
-| `/mesh/` | Sidecars, operators | Progress/FLY/final reporting from sidecars; `POST /mesh/config-reload` for immediate ConfigMap reload |
-| `/stream/` | Any client (A2A, MCP, UI) | Ephemeral FLY SSE — live per-token streaming by task ID |
+| `/mcp/` | LLM clients, developers | MCP Streamable HTTP + SSE — tool listing and invocation via MCP protocol |
+| `/mesh/` | Sidecars, operators | Progress/FLY/final reporting from sidecars (`POST /api/v1/mesh/{id}/events`); SSE stream at `GET /api/v1/mesh/{id}/events` |
 
 Special root routes (unaffected by base prefix):
 - `/.well-known/agent.json` — A2A Agent Card discovery

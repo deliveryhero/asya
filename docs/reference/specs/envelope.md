@@ -60,7 +60,7 @@ The mesh-api enforces monotonic status progression. When a status event arrives,
 | Order | Statuses | Description |
 |-------|----------|-------------|
 | 0 | `pending` | Created, not yet picked up |
-| 1 | `running` | Being processed by an actor |
+| 1 | `running` | Being processed by an actor (sidecar `received`/`processing`/`completed` events all map here) |
 | 2 | `paused` | Waiting for external input (HITL) |
 | 3 | `succeeded`, `failed`, `canceled` | Terminal — no further transitions |
 
@@ -124,7 +124,12 @@ Namespace: `example-ecommerce`
 
 **`x-sink`**: First layer of termination. Receives ALL terminal envelopes — both succeeded and failed. Routed by sidecar when route is exhausted (success), when SLA expires, or when resiliency policy is exhausted (failure). Reports final status to gateway, dispatches to hooks.
 
-**`x-sump`**: Second layer of termination (final terminal). Receives envelopes from x-sink after hook processing. Emits metrics and logs errors. Never reached directly from regular actor sidecars.
+**`x-sump`**: Dead-letter queue (final terminal). Receives envelopes from two paths:
+
+1. **From `x-sink`** — after hook processing for handler-level failures
+2. **Directly from sidecar** — for infrastructure errors (timeouts, runtime crashes, parse errors, route mismatches) that bypass `x-sink` entirely
+
+Emits metrics and logs errors. The sidecar routes directly to `x-sump` when the error cannot be handled by the resiliency policy.
 
 **Important**: Do not include `x-sink` or `x-sump` in route configurations - managed by sidecar.
 
@@ -181,7 +186,9 @@ Runtime returns error object:
 }
 ```
 
-**Action**: Sidecar applies resiliency policy: retries if configured, or routes to `x-sink` (phase: failed) if exhausted/non-retryable
+**Action**: Sidecar applies resiliency policy: retries if configured, or routes to `x-sink` (phase: failed) if exhausted/non-retryable.
+
+**Infrastructure errors** (timeout, runtime crash, parse error, route mismatch) bypass resiliency and route directly to `x-sump`.
 
 ## Payload Enrichment Pattern
 
@@ -232,7 +239,7 @@ When gateway is enabled, tasks have lifecycle statuses tracked throughout proces
 | Status | Description | When Set |
 |--------|-------------|----------|
 | `pending` | Task created, not yet processing | Gateway creates task from MCP tool call |
-| `running` | Task is being processed by actors | Sidecar sends first progress update |
+| `running` | Task is being processed by actors | Sidecar sends first progress update (maps `received`/`processing`/`completed` sidecar events) |
 | `succeeded` | Pipeline completed successfully | `x-sink` crew actor reports success |
 | `failed` | Pipeline failed with error | `x-sink` crew actor reports failure (or gateway backstop timer) |
 | `paused` | Waiting for external input | Sidecar detects `x-asya-pause` header from x-pause crew actor |

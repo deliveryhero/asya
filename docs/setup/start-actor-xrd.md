@@ -54,13 +54,15 @@ spec:
   #     default:
   #       maxAttempts: 3
   #       backoff: exponential        # constant | linear | exponential
-  #       initialInterval: 2s
+  #       initialDelay: 1s
   #       maxInterval: 60s
+  #     rate-limit:
+  #       maxAttempts: 5
+  #       backoff: constant
+  #       initialDelay: 10s
   #   rules:
-  #   - match: "RateLimitError"       # retry with default policy
-  #     policy: default
-  #   - match: "ContentPolicyViolation"
-  #     action: fail                  # skip retries, send to x-sump
+  #   - errors: ["RateLimitError"]    # retry with rate-limit policy
+  #     policy: rate-limit
 
   # --- Environment variables ---
   # env:
@@ -72,10 +74,14 @@ spec:
   #       name: api-credentials
   #       key: key
 
-  # --- Secret injection (all keys as env vars) ---
+  # --- Secret injection (per-key env var mapping) ---
   # secretRefs:
-  # - name: aws-creds
-  #   namespace: production
+  # - secretName: aws-creds
+  #   keys:
+  #   - key: aws-access-key-id
+  #     envVar: AWS_ACCESS_KEY_ID
+  #   - key: aws-secret-access-key
+  #     envVar: AWS_SECRET_ACCESS_KEY
 
   # --- Resources and GPU scheduling ---
   # resources:
@@ -156,18 +162,31 @@ spec:
       default:
         maxAttempts: 3
         backoff: exponential
-        initialInterval: 1s
+        initialDelay: 1s
         maxInterval: 60s
     rules:
-    - match: "RateLimitError"
+    - errors: ["RateLimitError"]
       policy: default
-    - match: "ContentPolicyViolation"
-      action: fail
 ```
 
 **Policies** define retry behavior (how many times, what backoff strategy).
-**Rules** match error messages to policies. Unmatched errors use the `default` policy.
-`action: fail` sends the message directly to x-sump without retrying.
+**Rules** match error type names to policies — checked against the exception MRO.
+Unmatched errors use the `default` policy. When a policy is exhausted, the envelope
+routes to `x-sink` (phase: failed). Use `onExhausted` on a policy to forward to
+a fallback actor instead:
+
+```yaml
+    policies:
+      retryable:
+        maxAttempts: 3
+        backoff: exponential
+        initialDelay: 1s
+        onExhausted: ["fallback-actor"]
+```
+
+The sidecar applies resiliency only to handler-level errors. Infrastructure errors
+(timeouts, runtime crashes, parse errors) bypass retry logic and route directly to
+`x-sump`.
 
 ## Flavors
 
@@ -203,11 +222,15 @@ spec:
         key: key
 
   secretRefs:
-  - name: aws-creds
-    namespace: default
+  - secretName: api-credentials
+    keys:
+    - key: api-key
+      envVar: API_KEY
+    - key: api-org
+      envVar: API_ORG
 ```
 
-`secretRefs` mounts all keys from the referenced secret as environment variables.
+Each `secretRefs` entry maps named Secret keys to environment variables.
 
 ## Resources and Scheduling
 

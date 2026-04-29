@@ -141,7 +141,7 @@ When the human sends a resume request (via the gateway's A2A `message/send` endp
 
 1. Loads the persisted envelope from storage
 2. Merges the user's input into the restored payload (shallow merge at root level by default)
-3. Restores the original `route.next` (e.g., `["publish"]`)
+3. Restores the original `route.next` from before the pause (e.g., `["publish"]`)
 4. Returns the merged payload
 
 The pipeline continues from where it stopped.

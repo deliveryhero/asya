@@ -52,6 +52,8 @@ The gateway maps internal mesh states to A2A protocol states:
 | `succeeded` | `completed` |
 | `paused` | `input_required` |
 | `failed` | `failed` |
+| `canceled` | `canceled` |
+| `auth_required` | `auth_required` |
 
 This enables interoperability with any A2A-compliant agent framework.
 
