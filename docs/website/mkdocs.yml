@@ -73,7 +73,6 @@ nav:
     - First Actor Mesh: usage/start-first-actor-mesh.md
     - First Flow: usage/start-first-flow.md
   - guides:
-    - AsyncActor Spec: usage/guide-actor-xrd.md
     - Handler Patterns: usage/guide-handler-patterns.md
     - Agentic Patterns: usage/guide-agentic-patterns.md
     - Streaming: usage/guide-streaming.md

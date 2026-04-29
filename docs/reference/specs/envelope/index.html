@@ -1268,23 +1268,6 @@
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/usage/guide-actor-xrd/"
-        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
-
-        
-        AsyncActor Spec
-        
-
-        
-
-        
-
-        
-    </a>
-</li>
-    
-    <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/usage/guide-handler-patterns/"
         class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
 
@@ -2857,7 +2840,7 @@
 <tr>
 <td>1</td>
 <td><code>running</code></td>
-<td>Being processed by an actor</td>
+<td>Being processed by an actor (sidecar <code>received</code>/<code>processing</code>/<code>completed</code> events all map here)</td>
 </tr>
 <tr>
 <td>2</td>
@@ -2945,7 +2928,12 @@ Namespace: <code>example-ecommerce</code>
 - Queue automatically sends to DLQ after max retries</p>
 <h2 id="end-queues">End Queues<a class="headerlink" href="#end-queues" title="Permanent link">#</a></h2>
 <p><strong><code>x-sink</code></strong>: First layer of termination. Receives ALL terminal envelopes — both succeeded and failed. Routed by sidecar when route is exhausted (success), when SLA expires, or when resiliency policy is exhausted (failure). Reports final status to gateway, dispatches to hooks.</p>
-<p><strong><code>x-sump</code></strong>: Second layer of termination (final terminal). Receives envelopes from x-sink after hook processing. Emits metrics and logs errors. Never reached directly from regular actor sidecars.</p>
+<p><strong><code>x-sump</code></strong>: Dead-letter queue (final terminal). Receives envelopes from two paths:</p>
+<ol>
+<li><strong>From <code>x-sink</code></strong> — after hook processing for handler-level failures</li>
+<li><strong>Directly from sidecar</strong> — for infrastructure errors (timeouts, runtime crashes, parse errors, route mismatches) that bypass <code>x-sink</code> entirely</li>
+</ol>
+<p>Emits metrics and logs errors. The sidecar routes directly to <code>x-sump</code> when the error cannot be handled by the resiliency policy.</p>
 <p><strong>Important</strong>: Do not include <code>x-sink</code> or <code>x-sump</code> in route configurations - managed by sidecar.</p>
 <h2 id="response-patterns">Response Patterns<a class="headerlink" href="#response-patterns" title="Permanent link">#</a></h2>
 <h3 id="single-response">Single Response<a class="headerlink" href="#single-response" title="Permanent link">#</a></h3>
@@ -2983,7 +2971,8 @@ Namespace: <code>example-ecommerce</code>
 <span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Invalid input format&quot;</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Action</strong>: Sidecar applies resiliency policy: retries if configured, or routes to <code>x-sink</code> (phase: failed) if exhausted/non-retryable</p>
+<p><strong>Action</strong>: Sidecar applies resiliency policy: retries if configured, or routes to <code>x-sink</code> (phase: failed) if exhausted/non-retryable.</p>
+<p><strong>Infrastructure errors</strong> (timeout, runtime crash, parse error, route mismatch) bypass resiliency and route directly to <code>x-sump</code>.</p>
 <h2 id="payload-enrichment-pattern">Payload Enrichment Pattern<a class="headerlink" href="#payload-enrichment-pattern" title="Permanent link">#</a></h2>
 <p><strong>Recommended</strong>: Actors append results to payload instead of replacing it.</p>
 <p><strong>Example pipeline</strong>: <code>["data-loader", "recipe-generator", "llm-judge"]</code></p>
@@ -3039,7 +3028,7 @@ Namespace: <code>example-ecommerce</code>
 <tr>
 <td><code>running</code></td>
 <td>Task is being processed by actors</td>
-<td>Sidecar sends first progress update</td>
+<td>Sidecar sends first progress update (maps <code>received</code>/<code>processing</code>/<code>completed</code> sidecar events)</td>
 </tr>
 <tr>
 <td><code>succeeded</code></td>
@@ -3703,13 +3692,6 @@ document.querySelectorAll('.typography img').forEach(function(img) {
         
 
 
-
-
-
-<a class="text-lg font-medium" href="../../../usage/guide-actor-xrd/"
-    style="padding-left: 32px">
-    AsyncActor Spec
-</a>
 
 
 

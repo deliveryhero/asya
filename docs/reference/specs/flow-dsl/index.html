@@ -1268,23 +1268,6 @@
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/usage/guide-actor-xrd/"
-        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
-
-        
-        AsyncActor Spec
-        
-
-        
-
-        
-
-        
-    </a>
-</li>
-    
-    <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/usage/guide-handler-patterns/"
         class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
 
@@ -3063,8 +3046,8 @@ the sidecar to route the message to <code>x-sink</code> (the terminal actor).</p
         <span class="k">break</span>
 </code></pre></div>
 <p>The compiler generates a loop-back router that re-inserts the loop body
-actors into <code>route.next</code> on each iteration. A guard prevents infinite
-loops (configurable via <code>--max-iterations</code>, default 100).</p>
+actors into <code>route.next</code> on each iteration. A guard prevents runaway
+iteration (default 100, set via <code>FlowCompiler(max_iterations=...)</code> API).</p>
 <p><code>while True:</code> with <code>break</code> is supported for indefinite loops:</p>
 <div class="highlight"><pre><span></span><code><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
     <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">poll_status</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
@@ -3136,15 +3119,12 @@ detailed examples and runtime flow diagrams.</p>
 <p><strong>Compile:</strong>
 <div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>pipeline.py<span class="w"> </span>--output-dir<span class="w"> </span>compiled/<span class="w"> </span>--plot<span class="w"> </span>--verbose
 </code></pre></div></p>
-<p><strong>Validate only (no code generation):</strong>
+<p><strong>Validate (runs full compilation in memory, no files written):</strong>
 <div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>validate<span class="w"> </span>pipeline.py
 </code></pre></div></p>
 <p><strong>Options:</strong>
 - <code>--output-dir</code> — where to write generated files
 - <code>--plot</code> — generate Graphviz DOT and PNG flow diagrams
-- <code>--plot-width N</code> — label width in diagrams (default: 50)
-- <code>--max-iterations N</code> — loop iteration guard (default: 100)
-- <code>--overwrite</code> — overwrite existing files
 - <code>--verbose</code> — detailed output</p>
 <h3 id="generated-files">Generated files<a class="headerlink" href="#generated-files" title="Permanent link">#</a></h3>
 <div class="table-wrapper"><table>
@@ -3182,7 +3162,7 @@ detailed examples and runtime flow diagrams.</p>
 </tbody>
 </table></div>
 <h3 id="router-naming">Router naming<a class="headerlink" href="#router-naming" title="Permanent link">#</a></h3>
-<p>Generated routers have predictable names tied to source line numbers:</p>
+<p>Generated routers have content-based slug names for readability:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
@@ -3196,28 +3176,28 @@ detailed examples and runtime flow diagrams.</p>
 <td>Entry point</td>
 </tr>
 <tr>
-<td><code>router_{flow}_line_{N}_if_{id}</code></td>
-<td>Conditional branch at line N</td>
+<td><code>router_{flow}_if_{slug}</code></td>
+<td>Conditional branch (slug derived from condition)</td>
 </tr>
 <tr>
-<td><code>router_{flow}_line_{N}_seq_{id}</code></td>
-<td>Sequential mutations at line N</td>
+<td><code>router_{flow}_seq_{slug}</code></td>
+<td>Sequential mutations (slug from mutation content)</td>
 </tr>
 <tr>
-<td><code>router_{flow}_line_{N}_while_{id}</code></td>
-<td>Loop control at line N</td>
+<td><code>router_{flow}_while_{slug}</code></td>
+<td>Loop control (slug from loop body)</td>
 </tr>
 <tr>
-<td><code>router_{flow}_line_{N}_except_{id}</code></td>
-<td>Error handler routing at line N</td>
+<td><code>router_{flow}_except_{slug}</code></td>
+<td>Error handler routing (slug from exception type)</td>
 </tr>
 <tr>
-<td><code>fanout_{flow}_line_{N}</code></td>
-<td>Fan-out dispatch</td>
+<td><code>fanout_{flow}_{slug}</code></td>
+<td>Fan-out dispatch (slug from target)</td>
 </tr>
 <tr>
-<td><code>fanin_{flow}_line_{N}</code></td>
-<td>Fan-out aggregator</td>
+<td><code>fanin_{flow}_{slug}</code></td>
+<td>Fan-out aggregator (slug from aggregation key)</td>
 </tr>
 </tbody>
 </table></div>
@@ -3512,12 +3492,18 @@ where the function is defined:</p>
 <span class="n">p</span> <span class="o">=</span> <span class="n">inline</span><span class="p">(</span><span class="n">inject_trace</span><span class="p">)(</span><span class="n">p</span><span class="p">)</span>
 </code></pre></div>
 <ol>
-<li><strong>Config rule</strong> — exact-match rules in <code>.asya/config.compiler.rules.yaml</code>:</li>
+<li><strong>Config rule</strong> — where-tree rules in <code>.asya/config.compiler.rules.yaml</code>:</li>
 </ol>
 <div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span>
 <span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
-<span class="w">  </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">max_attempt_number</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
+<span class="w">    </span><span class="nt">flatten-on</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;|&quot;</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;stop_after_attempt&quot;</span>
+<span class="w">      </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_attempt_number</span>
+<span class="w">        </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
 </code></pre></div>
 <ol>
 <li><strong>Implicit defaults</strong> — see table above</li>
@@ -3526,7 +3512,8 @@ where the function is defined:</p>
 <h3 id="config-extraction">Config extraction<a class="headerlink" href="#config-extraction" title="Permanent link">#</a></h3>
 <p>Rules with <code>treat-as: config</code> extract values from decorator arguments or
 context manager parameters and inject them into AsyncActor manifests.
-The <code>extract:</code> field maps parameter names to spec paths:</p>
+The <code>where:</code> tree walks nested AST elements, and <code>assign-to</code> maps extracted
+values to AsyncActor spec paths:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Context manager: asyncio.timeout(30) -&gt; spec.resiliency.timeout.actor: 30</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;asyncio.timeout&quot;</span>
 <span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
@@ -3637,7 +3624,7 @@ validation.</p>
 </tbody>
 </table></div>
 <h2 id="ir-specification">IR specification<a class="headerlink" href="#ir-specification" title="Permanent link">#</a></h2>
-<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/ir.py</code></p>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/parser.py</code> (IR dataclasses defined inline, no separate ir.py)</p>
 <p>All IR nodes inherit from <code>IROperation(lineno: int)</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Actor invocation — routed through a queue to a separate actor</span>
 <span class="n">ActorCall</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">treat_as</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extracted_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span>
@@ -3729,10 +3716,13 @@ suffix matching — any unambiguous suffix works.</p>
 <h3 id="single-actor-flows">Single-actor flows<a class="headerlink" href="#single-actor-flows" title="Permanent link">#</a></h3>
 <p>When a flow has exactly one actor call and no branching, the code generator
 emits a <code>FLOW_METADATA</code> constant instead of router functions.</p>
-<h2 id="future-adapter-generation">Future: adapter generation<a class="headerlink" href="#future-adapter-generation" title="Permanent link">#</a></h2>
+<h2 id="adapter-generation">Adapter generation<a class="headerlink" href="#adapter-generation" title="Permanent link">#</a></h2>
 <p>When a flow calls a decorated function (e.g. <code>@tool(...)</code>) that doesn't
-conform to the <code>dict -&gt; dict</code> actor protocol, the compiler will generate
-an adapter handler. See aint [ch0h] for the full design.</p>
+conform to the <code>dict -&gt; dict</code> actor protocol, the compiler generates
+an adapter handler that bridges the two signatures:</p>
+<div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">greet_user</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;tool_call&quot;</span><span class="p">][</span><span class="s2">&quot;args&quot;</span><span class="p">])</span>  <span class="c1"># asya: actor</span>
+</code></pre></div>
+<p>The parser extracts input/output paths from the AST. The code generator emits a standalone adapter Python file that wraps <code>greet_user</code> in the actor protocol.</p>
 <p>The adapter shape is inferred from the call site, not from templates:</p>
 <div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">greet_user</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;tool_call&quot;</span><span class="p">][</span><span class="s2">&quot;args&quot;</span><span class="p">])</span>  <span class="c1"># asya: actor</span>
 </code></pre></div>
@@ -4341,13 +4331,6 @@ document.querySelectorAll('.typography img').forEach(function(img) {
         
 
 
-
-
-
-<a class="text-lg font-medium" href="../../../usage/guide-actor-xrd/"
-    style="padding-left: 32px">
-    AsyncActor Spec
-</a>
 
 
 
@@ -5325,10 +5308,10 @@ document.querySelectorAll('.typography img').forEach(function(img) {
         
 
         
-        <a href="#future-adapter-generation"
+        <a href="#adapter-generation"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#future-adapter-generation');">
-            Future: adapter generation
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#adapter-generation');">
+            Adapter generation
         </a>
         
 

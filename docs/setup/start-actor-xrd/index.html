@@ -1268,23 +1268,6 @@
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/usage/guide-actor-xrd/"
-        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
-
-        
-        AsyncActor Spec
-        
-
-        
-
-        
-
-        
-    </a>
-</li>
-    
-    <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/usage/guide-handler-patterns/"
         class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
 
@@ -2840,13 +2823,15 @@ is commented with defaults — uncomment what you need:</p>
 <span class="w">  </span><span class="c1">#     default:</span>
 <span class="w">  </span><span class="c1">#       maxAttempts: 3</span>
 <span class="w">  </span><span class="c1">#       backoff: exponential        # constant | linear | exponential</span>
-<span class="w">  </span><span class="c1">#       initialInterval: 2s</span>
+<span class="w">  </span><span class="c1">#       initialDelay: 1s</span>
 <span class="w">  </span><span class="c1">#       maxInterval: 60s</span>
+<span class="w">  </span><span class="c1">#     rate-limit:</span>
+<span class="w">  </span><span class="c1">#       maxAttempts: 5</span>
+<span class="w">  </span><span class="c1">#       backoff: constant</span>
+<span class="w">  </span><span class="c1">#       initialDelay: 10s</span>
 <span class="w">  </span><span class="c1">#   rules:</span>
-<span class="w">  </span><span class="c1">#   - match: &quot;RateLimitError&quot;       # retry with default policy</span>
-<span class="w">  </span><span class="c1">#     policy: default</span>
-<span class="w">  </span><span class="c1">#   - match: &quot;ContentPolicyViolation&quot;</span>
-<span class="w">  </span><span class="c1">#     action: fail                  # skip retries, send to x-sump</span>
+<span class="w">  </span><span class="c1">#   - errors: [&quot;RateLimitError&quot;]    # retry with rate-limit policy</span>
+<span class="w">  </span><span class="c1">#     policy: rate-limit</span>
 
 <span class="w">  </span><span class="c1"># --- Environment variables ---</span>
 <span class="w">  </span><span class="c1"># env:</span>
@@ -2858,10 +2843,14 @@ is commented with defaults — uncomment what you need:</p>
 <span class="w">  </span><span class="c1">#       name: api-credentials</span>
 <span class="w">  </span><span class="c1">#       key: key</span>
 
-<span class="w">  </span><span class="c1"># --- Secret injection (all keys as env vars) ---</span>
+<span class="w">  </span><span class="c1"># --- Secret injection (per-key env var mapping) ---</span>
 <span class="w">  </span><span class="c1"># secretRefs:</span>
-<span class="w">  </span><span class="c1"># - name: aws-creds</span>
-<span class="w">  </span><span class="c1">#   namespace: production</span>
+<span class="w">  </span><span class="c1"># - secretName: aws-creds</span>
+<span class="w">  </span><span class="c1">#   keys:</span>
+<span class="w">  </span><span class="c1">#   - key: aws-access-key-id</span>
+<span class="w">  </span><span class="c1">#     envVar: AWS_ACCESS_KEY_ID</span>
+<span class="w">  </span><span class="c1">#   - key: aws-secret-access-key</span>
+<span class="w">  </span><span class="c1">#     envVar: AWS_SECRET_ACCESS_KEY</span>
 
 <span class="w">  </span><span class="c1"># --- Resources and GPU scheduling ---</span>
 <span class="w">  </span><span class="c1"># resources:</span>
@@ -2927,17 +2916,27 @@ is commented with defaults — uncomment what you need:</p>
 <span class="w">      </span><span class="nt">default</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">maxAttempts</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
 <span class="w">        </span><span class="nt">backoff</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exponential</span>
-<span class="w">        </span><span class="nt">initialInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1s</span>
+<span class="w">        </span><span class="nt">initialDelay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1s</span>
 <span class="w">        </span><span class="nt">maxInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60s</span>
 <span class="w">    </span><span class="nt">rules</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;RateLimitError&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">errors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;RateLimitError&quot;</span><span class="p p-Indicator">]</span>
 <span class="w">      </span><span class="nt">policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ContentPolicyViolation&quot;</span>
-<span class="w">      </span><span class="nt">action</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fail</span>
 </code></pre></div>
 <p><strong>Policies</strong> define retry behavior (how many times, what backoff strategy).
-<strong>Rules</strong> match error messages to policies. Unmatched errors use the <code>default</code> policy.
-<code>action: fail</code> sends the message directly to x-sump without retrying.</p>
+<strong>Rules</strong> match error type names to policies — checked against the exception MRO.
+Unmatched errors use the <code>default</code> policy. When a policy is exhausted, the envelope
+routes to <code>x-sink</code> (phase: failed). Use <code>onExhausted</code> on a policy to forward to
+a fallback actor instead:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">policies</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">retryable</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">maxAttempts</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">        </span><span class="nt">backoff</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exponential</span>
+<span class="w">        </span><span class="nt">initialDelay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1s</span>
+<span class="w">        </span><span class="nt">onExhausted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;fallback-actor&quot;</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<p>The sidecar applies resiliency only to handler-level errors. Infrastructure errors
+(timeouts, runtime crashes, parse errors) bypass retry logic and route directly to
+<code>x-sump</code>.</p>
 <h2 id="flavors">Flavors<a class="headerlink" href="#flavors" title="Permanent link">#</a></h2>
 <p>Platform engineers pre-configure common patterns as <strong>flavors</strong> — reusable templates
 that bundle scaling, resiliency, and infrastructure settings:</p>
@@ -2963,10 +2962,14 @@ infrastructure.</p>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key</span>
 
 <span class="w">  </span><span class="nt">secretRefs</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-creds</span>
-<span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-credentials</span>
+<span class="w">    </span><span class="nt">keys</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
+<span class="w">      </span><span class="nt">envVar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_KEY</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-org</span>
+<span class="w">      </span><span class="nt">envVar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_ORG</span>
 </code></pre></div>
-<p><code>secretRefs</code> mounts all keys from the referenced secret as environment variables.</p>
+<p>Each <code>secretRefs</code> entry maps named Secret keys to environment variables.</p>
 <h2 id="resources-and-scheduling">Resources and Scheduling<a class="headerlink" href="#resources-and-scheduling" title="Permanent link">#</a></h2>
 <p>Standard Kubernetes resource management:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
@@ -3572,13 +3575,6 @@ document.querySelectorAll('.typography img').forEach(function(img) {
         
 
 
-
-
-
-<a class="text-lg font-medium" href="../../usage/guide-actor-xrd/"
-    style="padding-left: 32px">
-    AsyncActor Spec
-</a>
 
 
 
