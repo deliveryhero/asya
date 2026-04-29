@@ -1,2 +1,2 @@
-litellm[google]
+litellm[google]>=1.83.7
 tenacity
