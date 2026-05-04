@@ -1,6 +1,6 @@
 # requirements for asya_testing dependencies + whatever you
 # might need to run tests from /testing/**/tests/ (e.g. boto3)
-boto3>=1.42.96
+boto3>=1.42.97
 coverage>=7.10.7
 pika>=1.3.2
 psycopg2-binary>=2.9.12
