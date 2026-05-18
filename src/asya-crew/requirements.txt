@@ -1,5 +1,5 @@
-requests>=2.33.1
-types-requests>=2.33.0.20260408
+requests>=2.34.2
+types-requests>=2.33.0.20260513
 
 # Fan-in aggregator:
 jsonpointer>=3.1.1
