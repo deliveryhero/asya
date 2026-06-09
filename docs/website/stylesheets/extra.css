@@ -504,7 +504,7 @@ table td code {
 .dark .codehilite .il,
 .dark .highlight .il { color: #79c0ff }
 
-/* Top-left logo — gray at rest, colored on hover */
+/* Top-left logo — colorful and always visible */
 .asya-home-link {
   margin-right: 4px;
 }
@@ -525,47 +525,12 @@ table td code {
   width: 20px;
   object-fit: contain;
   transition: opacity 0.2s ease;
+  opacity: 1;
 }
 
-.asya-logo-gray {
-  opacity: 0.6;
-}
-
-.asya-logo-light {
-  display: none;
-}
-
-.asya-logo-color {
-  display: none;
-}
-
-/* Light mode: gray at rest, colored on hover */
-.asya-home-link:hover .asya-logo-gray {
-  display: none;
-}
-
-.asya-home-link:hover .asya-logo-color {
-  display: block;
-  opacity: 0.6;
-}
-
-/* Dark mode: light gray at rest, colored on hover */
-.dark .asya-logo-gray {
-  display: none;
-}
-
-.dark .asya-logo-light {
-  display: block;
-  opacity: 0.6;
-}
-
-.dark .asya-home-link:hover .asya-logo-light {
-  display: none;
-}
-
-.dark .asya-home-link:hover .asya-logo-color {
-  display: block;
-  opacity: 0.5;
+/* Slightly dim on hover for feedback */
+.asya-home-link:hover .asya-home-logo {
+  opacity: 0.8;
 }
 
 /* KubeCon banner */
