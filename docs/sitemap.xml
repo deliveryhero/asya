@@ -2,422 +2,422 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://asya.sh/docs/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/architecture/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/motivation/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/as-actor-framework/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/as-agentic-framework/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/as-ai-serving/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/as-k8s-scheduler/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/as-ml-pipeline-tool/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/as-stream-processing/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/as-workflow-orchestrator/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/vs-dapr/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/vs-google-adk/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/vs-kagent/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/vs-kubeflow-pipelines/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/vs-langgraph/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/vs-ray-serve/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/comparisons/vs-temporal/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/actor-mesh/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/agentic-native/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/built-in-resiliency/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/developer-experience/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/dynamic-routing/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/flow-compiler/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/http-gateway/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/kubernetes-native/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/message-knows-the-way/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/observability/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/pluggable-storage/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/pluggable-transport/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/scale-to-zero/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/separation-of-concerns/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/concepts/virtual-actors/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/contributing/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/contributing/testing-a2a/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/contributing/testing-state-proxy/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/contributing/testing-transport/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/credentials/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/env-vars/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/core-actor/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/core-crew/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/core-crossplane/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/core-gateway/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/core-runtime/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/core-sidecar/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/core-state-proxy/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/lab-cli/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/components/lab-flow-compiler/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/scalers/pubsub/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/abi-protocol/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/asyncactor-crd/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/compiler-rules/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/envelope/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/error-handling/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/flow-dsl/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/gateway-api/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/mesh-api/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/sidecar-runtime/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/specs/streaming-events/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/state-proxy-connectors/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/state-proxy-connectors/gcs/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/state-proxy-connectors/nats-kv/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/state-proxy-connectors/pg/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/state-proxy-connectors/redis/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/state-proxy-connectors/s3/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/transports/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/transports/pubsub/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/transports/rabbitmq/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/transports/socket/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/reference/transports/sqs/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-actor-flavors/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-autoscaling/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-error-handling/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-gateway/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-helm-charts/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-pause-resume/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-state-proxy/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/guide-timeouts/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/ops-observability/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/ops-troubleshooting/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/ops-upgrades/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/start-actor-xrd/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/start-aws-eks/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/start-gcp-gke/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/start-quickstart/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-actor-flavors/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-agentic-patterns/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-compiler-rules/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-error-handling/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-handler-patterns/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-pause-resume/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-state-proxy/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-streaming/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/guide-timeouts/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/ops-debugging/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/start-first-actor-mesh/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/start-first-actor/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/usage/start-first-flow/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
     <url>
          <loc>https://asya.sh/docs/website/</loc>
-         <lastmod>2026-04-29</lastmod>
+         <lastmod>2026-06-09</lastmod>
     </url>
 </urlset>
