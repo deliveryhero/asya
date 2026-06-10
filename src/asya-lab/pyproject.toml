@@ -2,7 +2,7 @@
 name = "asya-lab"
 version = "0.1.0"
 description = "Developer tools for debugging and operating Asya framework"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["click>=8.1", "requests", "tqdm", "pyyaml", "omegaconf>=2.3.0"]
 
 [project.optional-dependencies]
