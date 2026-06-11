@@ -9,7 +9,7 @@ import (
 
 	pubsub "cloud.google.com/go/pubsub/v2/apiv1"
 	pubsubpb "cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
-	pb "github.com/deliveryhero/asya/scaler-pubsub/externalscaler"
+	pb "github.com/deliveryhero/asya/asya-scalers/externalscaler"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
