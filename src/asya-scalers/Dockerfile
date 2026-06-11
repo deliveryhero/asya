@@ -15,4 +15,8 @@ FROM gcr.io/distroless/static-debian12
 
 COPY --from=builder /app/scaler-pubsub /scaler-pubsub
 
+# Run as the distroless non-root user (uid/gid 65532); the scaler only binds
+# an unprivileged gRPC port and writes nothing to disk.
+USER nonroot:nonroot
+
 ENTRYPOINT ["/scaler-pubsub"]
