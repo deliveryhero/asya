@@ -1,12 +1,13 @@
 ---
 title: Publish scaler as standalone asya-scalers image; fix release/CI/dependabot image wiring
-status: working
+status: pushed
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/dqpob.asya-scalers-image
   - branch:dqpob.asya-scalers-image
 ---
+
 
 
 Now that ghcr.io/deliveryhero/asya-scalers and asya-state-proxy-{go,py} are public, remove the publish-readiness shims:
