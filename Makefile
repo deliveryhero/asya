@@ -30,6 +30,7 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	cd src/asya-sidecar && go mod download && go mod tidy
 	cd src/function-asya-flavors && go mod download && go mod tidy
 	cd src/asya-crew/cmd/dlq-worker && go mod download && go mod tidy
+	cd src/asya-scalers && go mod download && go mod tidy
 	@echo "[++] Setup complete! Ready for development."
 
 setup-dev: setup ## Alias for setup (backwards compatibility)
@@ -55,6 +56,7 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-runtime test-unit
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker test-unit
+	$(MAKE) -C src/asya-scalers test-unit
 	$(MAKE) -C src/asya-lab test-unit
 	$(MAKE) -C src/asya-state-proxy test-unit
 	$(MAKE) -C src/asya-ui test-unit
@@ -105,6 +107,7 @@ cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker cov-unit
+	$(MAKE) -C src/asya-scalers cov-unit
 	$(MAKE) -C src/asya-lab cov-unit
 	$(MAKE) -C src/asya-ui cov-unit
 	$(MAKE) -C src/function-asya-flavors cov-unit
@@ -121,6 +124,7 @@ build-go: ## Build all Go components
 	$(MAKE) -C src/asya-sidecar build
 	$(MAKE) -C src/function-asya-flavors build
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker build
+	$(MAKE) -C src/asya-scalers build
 	@echo "$(GREEN_START)[++] Success: All Go components built successfully!$(GREEN_END)"
 
 build-images: ## Build all Docker images for the framework
@@ -130,6 +134,7 @@ clean: clean-integration ## Clean build artifacts
 	$(MAKE) -C src/function-asya-flavors clean
 	$(MAKE) -C src/asya-crew clean
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker clean
+	$(MAKE) -C src/asya-scalers clean
 	$(MAKE) -C src/asya-lab clean
 	$(MAKE) -C src/asya-sidecar clean
 	$(MAKE) -C src/asya-runtime clean

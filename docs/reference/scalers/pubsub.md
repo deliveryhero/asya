@@ -92,9 +92,9 @@ When `scaler.enabled=true`:
 
 ### Docker image
 
-The scaler binary is currently built into the `asya-crew` Docker image
-(`/scaler-pubsub`). A standalone `asya-scalers` image will be published
-once the registry name is approved.
+The scaler ships in the standalone `ghcr.io/deliveryhero/asya-scalers` image,
+which hosts one binary per scaler. The `/scaler-pubsub` binary is selected via
+the container `command` override in the Crossplane chart's scaler Deployment.
 
 ### Environment variables
 

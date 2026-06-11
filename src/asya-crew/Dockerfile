@@ -6,14 +6,6 @@ RUN go mod download
 COPY cmd/dlq-worker/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -o dlq-worker .
 
-# Build the scaler-pubsub Go binary (KEDA external scaler)
-FROM golang:1.25 AS scaler-builder
-WORKDIR /build
-COPY cmd/scaler-pubsub/go.mod cmd/scaler-pubsub/go.sum ./
-RUN go mod download
-COPY cmd/scaler-pubsub/ .
-RUN CGO_ENABLED=0 GOOS=linux go build -o scaler-pubsub .
-
 # TODO: good to test multiple Python versions 3.7+
 FROM python:3.13-slim
 WORKDIR /app
@@ -29,6 +21,3 @@ COPY asya_crew/ asya_crew/
 
 # Copy the dlq-worker binary (invoked via command override in Helm)
 COPY --from=dlq-builder /build/dlq-worker /dlq-worker
-
-# Copy the scaler-pubsub binary (invoked via command override in Helm)
-COPY --from=scaler-builder /build/scaler-pubsub /scaler-pubsub
