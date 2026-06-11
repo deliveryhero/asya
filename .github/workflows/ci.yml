@@ -67,6 +67,7 @@ jobs:
         - asya-gateway
         - asya-lab
         - asya-runtime
+        - asya-scalers
         - asya-sidecar
         - asya-state-proxy
         - asya-testing

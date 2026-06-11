@@ -1,4 +1,4 @@
-module github.com/deliveryhero/asya/scaler-pubsub
+module github.com/deliveryhero/asya/asya-scalers
 
 go 1.25.8
 

@@ -206,9 +206,10 @@ pubsub:
       # gRPC address of the scaler service (host:port).
       # Auto-computed as asya-scaler-pubsub.{actorNamespace}.svc.cluster.local:6000 if empty.
       address: ""
-      # Container image (temporarily uses asya-crew until asya-scalers image is published)
+      # Container image hosting the scaler binaries; the /scaler-pubsub binary is
+      # selected via the command override in templates/scaler-pubsub.yaml.
       image:
-        repository: ghcr.io/deliveryhero/asya-crew
+        repository: ghcr.io/deliveryhero/asya-scalers
         tag: ""
         pullPolicy: IfNotPresent
       # K8s ServiceAccount for Workload Identity

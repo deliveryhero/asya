@@ -432,7 +432,7 @@ const file_externalscaler_externalscaler_proto_rawDesc = "" +
 	"\x0eStreamIsActive\x12\x1f.externalscaler.ScaledObjectRef\x1a .externalscaler.IsActiveResponse\"\x000\x01\x12Y\n" +
 	"\rGetMetricSpec\x12\x1f.externalscaler.ScaledObjectRef\x1a%.externalscaler.GetMetricSpecResponse\"\x00\x12U\n" +
 	"\n" +
-	"GetMetrics\x12!.externalscaler.GetMetricsRequest\x1a\".externalscaler.GetMetricsResponse\"\x00B;Z9github.com/deliveryhero/asya/scaler-pubsub/externalscalerb\x06proto3"
+	"GetMetrics\x12!.externalscaler.GetMetricsRequest\x1a\".externalscaler.GetMetricsResponse\"\x00B:Z8github.com/deliveryhero/asya/asya-scalers/externalscalerb\x06proto3"
 
 var (
 	file_externalscaler_externalscaler_proto_rawDescOnce sync.Once

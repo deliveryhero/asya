@@ -5,7 +5,7 @@ updates:
   - "/src/asya-sidecar"
   - "/src/asya-gateway"
   - "/src/asya-crew/cmd/dlq-worker"
-  - "/src/asya-crew/cmd/scaler-pubsub"
+  - "/src/asya-scalers"
   - "/src/function-asya-flavors"
   - "/testing/integration/sidecar"
   schedule:

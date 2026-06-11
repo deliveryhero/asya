@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	pubsub "cloud.google.com/go/pubsub/v2/apiv1"
-	pb "github.com/deliveryhero/asya/scaler-pubsub/externalscaler"
+	pb "github.com/deliveryhero/asya/asya-scalers/externalscaler"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

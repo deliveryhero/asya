@@ -5,7 +5,7 @@
 syntax = "proto3";
 
 package externalscaler;
-option go_package = "github.com/deliveryhero/asya/scaler-pubsub/externalscaler";
+option go_package = "github.com/deliveryhero/asya/asya-scalers/externalscaler";
 
 service ExternalScaler {
     rpc IsActive(ScaledObjectRef) returns (IsActiveResponse) {}
