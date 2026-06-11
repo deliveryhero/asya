@@ -25,3 +25,4 @@ and static analysis findings deferred to avoid scope creep in the initial PRs.
 | bd256 | P2 | Fix G120 gosec: OAuth MaxBytesReader | security |
 | av2bh | P3 | Fix revive lint in legacy packages | code quality |
 | 2swbh | P3 | Consider sseclient to pkg/ | structure |
+| tr8vc | P2 | A2A task id ≠ mesh envelope id (breaks --show-traces, tasks/get) | observability/bug |
