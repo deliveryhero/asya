@@ -78,7 +78,7 @@ def test_unexpose_help():
     assert "target" in result.output.lower()
 
 
-def test_expose_creates_configmap(tmp_path: Path):
+def test_expose_creates_intent_mcp_default(tmp_path: Path):
     _setup_project(tmp_path)
 
     runner = CliRunner()
@@ -89,8 +89,51 @@ def test_expose_creates_configmap(tmp_path: Path):
     assert result.exit_code == 0, result.output
 
     common_dir = tmp_path / "compiled" / "my-flow" / "manifests" / "common"
-    cm_path = common_dir / EXPOSE_FILENAME
-    assert cm_path.exists(), f"Expected {cm_path} to exist"
+    intent_path = common_dir / EXPOSE_FILENAME
+    assert intent_path.exists(), f"Expected {intent_path} to exist"
 
-    cm = yaml.safe_load(cm_path.read_text())
-    assert cm["kind"] == "ConfigMap"
+    intent = yaml.safe_load(intent_path.read_text())
+    # New format: a normalized intent doc, NOT a k8s ConfigMap.
+    assert "kind" not in intent
+    assert intent["flow"] == "my-flow"
+    # Default protocol is MCP; entrypoint (start actor) becomes `actor`.
+    assert intent["mcp"]["name"] == "my-flow"
+    assert intent["mcp"]["actor"] == "start-my-flow"
+    assert intent["mcp"]["description"] == "Test flow"
+    assert "a2a" not in intent
+
+
+def test_expose_a2a_emits_agent_entry(tmp_path: Path):
+    _setup_project(tmp_path)
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        os.chdir(tmp_path)
+        result = runner.invoke(expose, ["my-flow", "--description", "Test flow", "--a2a"])
+
+    assert result.exit_code == 0, result.output
+
+    common_dir = tmp_path / "compiled" / "my-flow" / "manifests" / "common"
+    intent = yaml.safe_load((common_dir / EXPOSE_FILENAME).read_text())
+    agent = intent["a2a"]
+    assert agent["name"] == "my-flow"
+    assert agent["actor"] == "start-my-flow"
+    assert agent["streaming"] is True
+    assert agent["skills"][0]["id"] == "my-flow"
+    assert agent["inputModes"] == ["text/plain", "application/json"]
+    assert "mcp" not in intent
+
+
+def test_expose_does_not_touch_kustomization(tmp_path: Path):
+    _setup_project(tmp_path)
+    common_dir = tmp_path / "compiled" / "my-flow" / "manifests" / "common"
+    before = (common_dir / "kustomization.yaml").read_text()
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        os.chdir(tmp_path)
+        result = runner.invoke(expose, ["my-flow", "--description", "Test flow", "--a2a"])
+
+    assert result.exit_code == 0, result.output
+    # The intent is consumed by `asya k apply`, not by kustomize.
+    assert (common_dir / "kustomization.yaml").read_text() == before

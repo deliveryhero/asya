@@ -1,7 +1,11 @@
-"""CLI commands for exposing and unexposing flows via gateway ConfigMap.
+"""CLI commands for exposing and unexposing flows via the gateway.
 
-Expose writes the gateway-flows ConfigMap into common/ (user overlay),
-and optionally enables it for a specific context via --context.
+`asya expose` writes a normalized flow-exposure intent (`flow-expose.yaml`) into the
+flow's manifests. `asya k apply` reads it and upserts the flow as an A2A agent and/or
+MCP tool into the gateway's shared, hot-reloaded ConfigMaps
+(`asya-gateway-a2a-agents` / `asya-gateway-mcp-tools`).
+
+The intent file is NOT a Kubernetes resource and is NOT added to kustomization.
 
     asya expose text-flow -d "Analyze text" --mcp --a2a
     asya expose text-flow -d "Analyze text" --mcp --a2a --context dev
@@ -21,12 +25,7 @@ import yaml
 from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
 from asya_lab.config.project import AsyaProject
-
-
-def _get_dumper() -> type:
-    from asya_lab.compiler.templater import _Dumper
-
-    return _Dumper
+from asya_lab.gateway_register import EXPOSE_FILENAME, build_flow_expose
 
 
 def _load_project(flow_name: str | None = None) -> AsyaProject:
@@ -69,101 +68,6 @@ def _find_entrypoint(base_dir: Path) -> str:
     sys.exit(1)
 
 
-def _build_flow_config(
-    flow_name: str,
-    entrypoint: str,
-    description: str,
-    timeout: int | None,
-    *,
-    mcp: bool,
-    a2a: bool,
-    input_schema: dict | None,
-    tags: str | None,
-    examples: tuple[str, ...],
-    input_modes: str | None,
-    output_modes: str | None,
-) -> dict:
-    """Build the flow configuration data for the ConfigMap."""
-    flow_data: dict = {
-        "name": flow_name,
-        "entrypoint": entrypoint,
-        "description": description,
-    }
-    if timeout is not None:
-        flow_data["timeout"] = timeout
-
-    if mcp:
-        mcp_section: dict = {}
-        if input_schema is not None:
-            mcp_section["inputSchema"] = input_schema
-        flow_data["mcp"] = mcp_section
-
-    if a2a:
-        a2a_section: dict = {}
-        if tags:
-            a2a_section["tags"] = [t.strip() for t in tags.split(",")]
-        if examples:
-            a2a_section["examples"] = list(examples)
-        if input_modes:
-            a2a_section["input_modes"] = [m.strip() for m in input_modes.split(",")]
-        if output_modes:
-            a2a_section["output_modes"] = [m.strip() for m in output_modes.split(",")]
-        flow_data["a2a"] = a2a_section
-
-    return flow_data
-
-
-def _build_configmap(flow_name: str, flow_data: dict) -> dict:
-    """Build a per-flow gateway ConfigMap.
-
-    Each flow gets its own CM with label asya.sh/config-type: flows.
-    The gateway reads all *.yaml files in its config directory,
-    so multiple per-flow CMs coexist.
-    """
-    flows_wrapper = {"flows": [flow_data]}
-    flow_yaml = yaml.dump(flows_wrapper, Dumper=_get_dumper(), default_flow_style=False, sort_keys=False)
-    return {
-        "apiVersion": "v1",
-        "kind": "ConfigMap",
-        "metadata": {
-            "name": f"asya-flow-{flow_name}-config",
-            "labels": {
-                "asya.sh/flow": flow_name,
-                "asya.sh/config-type": "flows",
-                "asya.sh/managed-by": "asya-lab",
-            },
-        },
-        "data": {
-            f"{flow_name}.yaml": flow_yaml,
-        },
-    }
-
-
-EXPOSE_FILENAME = "flow-expose.yaml"
-
-
-def _update_kustomization(kust_path: Path, resource: str, *, add: bool) -> bool:
-    """Add or remove a resource from a kustomization.yaml. Returns True if changed."""
-    if not kust_path.exists():
-        return False
-
-    kust = yaml.safe_load(kust_path.read_text()) or {}
-    resources = kust.get("resources", [])
-
-    if add:
-        if resource in resources:
-            return False
-        resources.append(resource)
-    else:
-        if resource not in resources:
-            return False
-        resources.remove(resource)
-
-    kust["resources"] = resources
-    kust_path.write_text(yaml.dump(kust, Dumper=_get_dumper(), default_flow_style=False, sort_keys=False))
-    return True
-
-
 def _resolve_input_schema(schema_inline: str | None, schema_file: str | None) -> dict | None:
     if schema_inline and schema_file:
         raise click.BadParameter("Specify only one of --input-schema or --input-schema-file")
@@ -190,12 +94,12 @@ def _rel(p: Path) -> str:
 )
 @click.option("--input-schema", "input_schema_inline", default=None, help="MCP: JSON Schema inline")
 @click.option("--input-schema-file", "input_schema_file", default=None, help="MCP: JSON Schema from file")
-@click.option("--a2a", "enable_a2a", is_flag=True, default=False, help="Expose as A2A skill")
+@click.option("--a2a", "enable_a2a", is_flag=True, default=False, help="Expose as A2A agent")
 @click.option("--tags", default=None, help="A2A: comma-separated skill tags")
 @click.option("--examples", multiple=True, help="A2A: example prompts (repeatable)")
 @click.option("--input-modes", default=None, help="A2A: comma-separated input MIME types")
 @click.option("--output-modes", default=None, help="A2A: comma-separated output MIME types")
-@click.option("--context", "ctx", default=None, help="Enable for this context (adds to overlay)")
+@click.option("--context", "ctx", default=None, help="Write intent into this context's overlay")
 def expose(
     target,
     description,
@@ -210,10 +114,10 @@ def expose(
     output_modes,
     ctx,
 ):
-    """Expose a compiled flow to the gateway via ConfigMap.
+    """Expose a compiled flow to the gateway.
 
-    Creates the flow config in common/ (user overlay). Use --context to
-    enable it for a specific environment.
+    Writes a flow-exposure intent that `asya k apply` upserts into the gateway's
+    A2A/MCP registry ConfigMaps. Use --context to target a specific overlay.
 
     \b
     Examples:
@@ -228,7 +132,6 @@ def expose(
     project = _load_project(flow_name)
     manifests_root = _find_manifests_root(project, flow_name)
     base_dir = manifests_root / BASE_DIR
-    common_dir = manifests_root / COMMON_DIR
 
     if not base_dir.is_dir():
         click.echo(f"[-] base/ not found: {base_dir}\n[-] Run 'asya compile' first.", err=True)
@@ -237,7 +140,7 @@ def expose(
     entrypoint = _find_entrypoint(base_dir)
     input_schema = _resolve_input_schema(input_schema_inline, input_schema_file)
 
-    flow_data = _build_flow_config(
+    intent = build_flow_expose(
         flow_name,
         entrypoint,
         description,
@@ -250,81 +153,51 @@ def expose(
         input_modes=input_modes,
         output_modes=output_modes,
     )
-    configmap = _build_configmap(flow_name, flow_data)
-
-    # Write CM to common/
-    common_dir.mkdir(parents=True, exist_ok=True)
-    cm_path = common_dir / EXPOSE_FILENAME
-    cm_path.write_text(yaml.dump(configmap, Dumper=_get_dumper(), default_flow_style=False, sort_keys=False))
-    click.echo(f"[+] {_rel(cm_path)}")
-
-    protocols = []
-    if enable_mcp:
-        protocols.append("mcp")
-    if enable_a2a:
-        protocols.append("a2a")
 
     if ctx:
-        # Enable for specific context: copy CM into overlay directory
-        overlay_dir = manifests_root / OVERLAYS_DIR / ctx
-        if not overlay_dir.is_dir():
-            click.echo(f"[-] Overlay not found: {overlay_dir}", err=True)
-            click.echo("[-] Run 'asya compile' first or create the overlay", err=True)
+        target_dir = manifests_root / OVERLAYS_DIR / ctx
+        if not target_dir.is_dir():
+            click.echo(f"[-] Overlay not found: {target_dir}\n[-] Run 'asya compile' first.", err=True)
             sys.exit(1)
-
-        overlay_cm = overlay_dir / EXPOSE_FILENAME
-        overlay_cm.write_text(cm_path.read_text())
-        overlay_kust = overlay_dir / "kustomization.yaml"
-        if _update_kustomization(overlay_kust, EXPOSE_FILENAME, add=True):
-            click.echo(f"[+] Enabled for context '{ctx}': {_rel(overlay_kust)}")
-        else:
-            click.echo(f"[.] Already enabled for context '{ctx}'")
     else:
-        # No context: add to common/ kustomization (all environments)
-        common_kust = common_dir / "kustomization.yaml"
-        if _update_kustomization(common_kust, EXPOSE_FILENAME, add=True):
-            click.echo(f"[+] Enabled in {_rel(common_kust)}")
-        else:
-            click.echo("[.] Already enabled in common/")
+        target_dir = manifests_root / COMMON_DIR
+        target_dir.mkdir(parents=True, exist_ok=True)
 
+    intent_path = target_dir / EXPOSE_FILENAME
+    intent_path.write_text(yaml.dump(intent, default_flow_style=False, sort_keys=False))
+    click.echo(f"[+] {_rel(intent_path)}")
+
+    protocols = [p for p, on in (("mcp", enable_mcp), ("a2a", enable_a2a)) if on]
     click.echo(f"[+] Flow '{flow_name}' exposed via {'+'.join(protocols)} (entrypoint: {entrypoint})")
+    suffix = f" --context {ctx}" if ctx else ""
+    click.echo(f"[.] Run 'asya k apply {flow_name}{suffix}' to register with the gateway.")
 
 
 @click.command("unexpose")
 @click.argument("target", type=ASYA_REF)
-@click.option("--context", "ctx", default=None, help="Disable for this context only")
+@click.option("--context", "ctx", default=None, help="Remove from this context's overlay only")
 def unexpose(target: AsyaRef, ctx: str | None):
-    """Remove flow exposure from the gateway.
+    """Remove a flow's gateway-exposure intent.
 
     \b
-    Without --context: removes the flow config from common/ entirely.
-    With --context: removes only the overlay reference (keeps config in common/).
+    Without --context: removes the intent from common/.
+    With --context: removes the intent from the context overlay.
+
+    Note: this removes the local intent only. To drop an already-registered flow
+    from the running gateway, edit the asya-gateway-a2a-agents / asya-gateway-mcp-tools
+    ConfigMap (the gateway hot-reloads the removal).
     """
     flow_name = target.name
     project = _load_project(flow_name)
     manifests_root = _find_manifests_root(project, flow_name)
-    common_dir = manifests_root / COMMON_DIR
 
-    if ctx:
-        # Remove from specific overlay
-        overlay_dir = manifests_root / OVERLAYS_DIR / ctx
-        overlay_kust = overlay_dir / "kustomization.yaml"
-        if _update_kustomization(overlay_kust, EXPOSE_FILENAME, add=False):
-            click.echo(f"[+] Disabled for context '{ctx}'")
-        else:
-            click.echo(f"[.] Not enabled for context '{ctx}'")
-        overlay_cm = overlay_dir / EXPOSE_FILENAME
-        if overlay_cm.exists():
-            overlay_cm.unlink()
+    target_dir = (manifests_root / OVERLAYS_DIR / ctx) if ctx else (manifests_root / COMMON_DIR)
+    intent_path = target_dir / EXPOSE_FILENAME
+
+    if intent_path.exists():
+        intent_path.unlink()
+        click.echo(f"[+] Removed {_rel(intent_path)}")
+        scope = f"context '{ctx}'" if ctx else "common/"
+        click.echo(f"[+] Flow '{flow_name}' unexposed from {scope}")
     else:
-        # Remove from common/ entirely
-        cm_path = common_dir / EXPOSE_FILENAME
-        if cm_path.exists():
-            cm_path.unlink()
-            click.echo(f"[+] Removed {_rel(cm_path)}")
-        else:
-            click.echo(f"[.] {EXPOSE_FILENAME} not found in common/")
-
-        common_kust = common_dir / "kustomization.yaml"
-        _update_kustomization(common_kust, EXPOSE_FILENAME, add=False)
-        click.echo(f"[+] Flow '{flow_name}' unexposed")
+        click.echo(f"[.] {EXPOSE_FILENAME} not found in {_rel(target_dir)}")

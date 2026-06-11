@@ -23,17 +23,7 @@ import yaml
 from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
 from asya_lab.config.project import AsyaProject
-
-
-class _LiteralStr(str):
-    """String subclass that yaml.dump renders as a block scalar (|)."""
-
-
-def _literal_representer(dumper: yaml.Dumper, data: _LiteralStr) -> yaml.ScalarNode:
-    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-
-
-yaml.add_representer(_LiteralStr, _literal_representer)
+from asya_lab.gateway_register import EXPOSE_FILENAME, build_flow_expose
 
 
 # -- Shorthand key mapping --------------------------------------------------
@@ -151,7 +141,7 @@ def _build_gateway_config(
     entrypoint: str,
     key_values: tuple[str, ...],
 ) -> dict | None:
-    """Build the gateway flow-expose ConfigMap from key=value pairs.
+    """Build the flow-exposure intent from key=value pairs.
 
     Returns None if expose=false (removal).
     """
@@ -174,42 +164,22 @@ def _build_gateway_config(
     if not has_mcp and not has_a2a:
         raise click.UsageError("--gateway requires at least one protocol: mcp=true and/or a2a=true")
 
-    flow_data: dict = {
-        "name": flow_name,
-        "entrypoint": entrypoint,
-        "description": description,
-    }
-
-    if has_mcp:
-        flow_data["mcp"] = {}
-    if has_a2a:
-        flow_data["a2a"] = {}
-
     timeout = kv_dict.pop("timeout", None)
-    if timeout is not None:
-        flow_data["timeout"] = int(timeout)
+    tags = kv_dict.pop("tags", None)
+    input_modes = kv_dict.pop("input_modes", None) or kv_dict.pop("inputModes", None)
+    output_modes = kv_dict.pop("output_modes", None) or kv_dict.pop("outputModes", None)
 
-    # Remaining keys go as-is
-    flow_data.update(kv_dict)
-
-    flows_wrapper = {"flows": [flow_data]}
-    flow_yaml = yaml.dump(flows_wrapper, default_flow_style=False, sort_keys=False)
-
-    return {
-        "apiVersion": "v1",
-        "kind": "ConfigMap",
-        "metadata": {
-            "name": f"asya-flow-{flow_name}-config",
-            "labels": {
-                "asya.sh/flow": flow_name,
-                "asya.sh/config-type": "flows",
-                "asya.sh/managed-by": "asya-lab",
-            },
-        },
-        "data": {
-            f"{flow_name}.yaml": _LiteralStr(flow_yaml),
-        },
-    }
+    return build_flow_expose(
+        flow_name,
+        entrypoint,
+        description,
+        int(timeout) if timeout is not None else None,
+        mcp=has_mcp,
+        a2a=has_a2a,
+        tags=str(tags) if tags is not None else None,
+        input_modes=str(input_modes) if input_modes is not None else None,
+        output_modes=str(output_modes) if output_modes is not None else None,
+    )
 
 
 def _find_entrypoint(base_dir: Path) -> str:
@@ -231,8 +201,6 @@ def _find_entrypoint(base_dir: Path) -> str:
 
 
 # -- File operations ---------------------------------------------------------
-
-EXPOSE_FILENAME = "flow-expose.yaml"
 
 
 def _resolve_actors(base_dir: Path) -> list[str]:
@@ -465,24 +433,21 @@ def patch(
             raise click.UsageError("-p is not supported with --gateway")
 
         entrypoint = _find_entrypoint(base_dir)
-        cm = _build_gateway_config(flow_name.name, entrypoint, key_values)
+        intent = _build_gateway_config(flow_name.name, entrypoint, key_values)
 
-        cm_path = patch_dir / EXPOSE_FILENAME
-        kust_path = patch_dir / "kustomization.yaml"
+        # Intent is consumed by `asya k apply`; it is NOT a kustomize resource.
+        intent_path = patch_dir / EXPOSE_FILENAME
 
-        if cm is None:
+        if intent is None:
             # expose=false: remove
-            if cm_path.exists():
-                cm_path.unlink()
-            _update_kustomization(kust_path, EXPOSE_FILENAME, add=False, field="resources")
-            click.echo(f"[+] Gateway config removed for '{flow_name.name}'")
+            if intent_path.exists():
+                intent_path.unlink()
+            click.echo(f"[+] Gateway exposure removed for '{flow_name.name}'")
         else:
             patch_dir.mkdir(parents=True, exist_ok=True)
-            cm_path.write_text(yaml.dump(cm, default_flow_style=False, sort_keys=False))
-            added = _update_kustomization(kust_path, EXPOSE_FILENAME, add=True, field="resources")
-            click.echo(f"[+] {_rel(cm_path)}")
-            if added:
-                click.echo(f"[+] Registered in {_rel(kust_path)}")
+            intent_path.write_text(yaml.dump(intent, default_flow_style=False, sort_keys=False))
+            click.echo(f"[+] {_rel(intent_path)}")
+            click.echo(f"[.] Run 'asya k apply {flow_name.name}' to register with the gateway.")
         return
 
     # -- Actor scope ---------------------------------------------------------
