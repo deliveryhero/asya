@@ -105,8 +105,8 @@ time {
   fi
 
   # Build framework images (no operator needed)
-  echo "[.] Building Docker images (gateway, sidecar, crew, testing)..."
-  "$ROOT_DIR/src/build-images.sh" asya-gateway asya-sidecar asya-crew asya-testing &
+  echo "[.] Building Docker images (gateway, sidecar, crew, scalers, testing)..."
+  "$ROOT_DIR/src/build-images.sh" asya-gateway asya-sidecar asya-crew asya-scalers asya-testing &
   BUILD_PID=$!
 
   # Build Crossplane function image (will be pushed to local registry in Phase 3)
@@ -212,6 +212,7 @@ time {
     "asya-gateway:latest"
     "asya-sidecar:latest"
     "asya-crew:latest"
+    "asya-scalers:latest"
     "asya-testing:latest"
     "asya-state-proxy-py:dev"
     "asya-state-proxy-go:dev"

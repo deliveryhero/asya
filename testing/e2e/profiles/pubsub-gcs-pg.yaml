@@ -269,7 +269,7 @@ crossplane:
         enabled: true
         address: "asya-scaler-pubsub.asya-system.svc.cluster.local:6000"
         image:
-          repository: ghcr.io/deliveryhero/asya-crew
+          repository: ghcr.io/deliveryhero/asya-scalers
           tag: latest
           pullPolicy: Never
         env:
