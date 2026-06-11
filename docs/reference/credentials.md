@@ -23,17 +23,14 @@ crossplane-system/              keda/                   $NS (actor namespace)
 | (or: WI on provider KSA) |   +-------------------+   |   credentials.json               |
 +---------------------------+                           |   Used by: TriggerAuthentication  |
                                                         |                                  |
-                                                        | asya-gateway-postgresql (Secret)  |
-                                                        |   password                       |
-                                                        |   Used by: gateway init container |
-                                                        |                                  |
                                                         | asya-gateway-db (Secret)          |
-                                                        |   database-url (DSN)             |
-                                                        |   Used by: gateway main container |
+                                                        |   password (pg-kv backend only)  |
+                                                        |   Used by: state-proxy-mesh      |
+                                                        |   (not needed for pvc-kv)        |
                                                         |                                  |
                                                         | asya-gateway-auth (Secret)        |
-                                                        |   a2a-api-key, mcp-api-key       |
-                                                        |   Used by: gateway (env)         |
+                                                        |   a2a-api-key                    |
+                                                        |   Used by: a2a-adapter (env)     |
                                                         |                                  |
                                                         | default KSA (ServiceAccount)      |
                                                         |   annotation: iam.gke.io/gcp-sa  |
@@ -60,9 +57,8 @@ crossplane-system/              keda/                   $NS (actor namespace)
 | `gcp-creds` | `crossplane-system` | `credentials.json` | Manual (`kubectl create secret`) | Crossplane GCP provider | `gcpProviderConfig.secretRef.*` |
 | `gcp-keda-secret` | `$NS` (actor namespace) | `credentials.json` | Manual | KEDA `TriggerAuthentication` (per-actor, created by composition) | `pubsub.keda.secretRef.name` |
 | `asya-runtime` | `$NS` | `asya_runtime.py` | `asya-crossplane` chart (ConfigMap) | All actor pods (volume mount) | Automatic |
-| `asya-gateway-postgresql` | `$NS` | `password` | Manual or gateway chart | Gateway init container (`PGPASSWORD`) | `externalDatabase.existingSecret` |
-| `asya-gateway-db` | `$NS` | `database-url` | Gateway chart (auto) or manual | Gateway main container (`ASYA_DATABASE_URL`) | Auto-generated from `externalDatabase.*` |
-| `asya-gateway-auth` | `$NS` | `a2a-api-key`, `mcp-api-key` | Manual (`openssl rand`) | Gateway (`ASYA_A2A_API_KEY`, `ASYA_MCP_API_KEY`) | Via `env[].valueFrom.secretKeyRef` |
+| `asya-gateway-db` | `$NS` | `password` | Manual (pg-kv only) | state-proxy-mesh sidecar (`DB_PASSWORD` → `STATE_PROXY_PG_URL`) | `database.existingSecret` (key `database.existingSecretKey`, default `password`) |
+| `asya-gateway-auth` | `$NS` | `a2a-api-key` | Manual (`openssl rand`) | a2a-adapter (`ASYA_A2A_API_KEY`) | `a2a.auth.apiKey` |
 
 ### Workload Identity Bindings
 
@@ -158,16 +154,17 @@ If an AsyncActor is created before `defaultCompositionRef` is set on the XRD, it
 up whatever composition Crossplane selects (often alphabetically). Changing the XRD
 default later does NOT affect existing actors. Delete and recreate them.
 
-**Gateway needs two DB secrets.**
-The `asya-gateway-postgresql` secret holds the raw password (used by the init container
-for `psql` health checks). The `asya-gateway-db` secret holds the full DSN (used by
-the main container for `ASYA_DATABASE_URL`). When using `externalDatabase.existingSecret`,
-the chart reads the password for init but still needs the DSN secret.
+**The gateway DB secret is only needed with the `pg-kv` backend.**
+With `stateProxy.mesh.backend: pg-kv`, the state-proxy-mesh sidecar reads the DB
+password from `database.existingSecret` (key `database.existingSecretKey`, default
+`password`) as `DB_PASSWORD` and assembles the connection string itself — there is no
+separate DSN secret and no init container. With the `pvc-kv` backend the gateway needs
+no database and no DB secret at all.
 
-**PostgreSQL password is set at initdb time.**
-The PG StatefulSet reads `POSTGRES_PASSWORD` from the secret on first start and stores
-it in the PVC. If the secret is later changed, PG still uses the old password. Fix with
-`ALTER USER asya WITH PASSWORD '...'` inside the running pod.
+**PostgreSQL password is set at initdb time (in-cluster PG only).**
+If you run your own in-cluster PostgreSQL, it reads `POSTGRES_PASSWORD` from the secret
+on first start and stores it in the PVC. If the secret is later changed, PG still uses
+the old password. Fix with `ALTER USER asya WITH PASSWORD '...'` inside the running pod.
 
 **Actor pods use WI, not JSON keys.**
 The `sidecar.gcpCredsSecret` helm value mounts a secret via `envFrom`. But Kubernetes

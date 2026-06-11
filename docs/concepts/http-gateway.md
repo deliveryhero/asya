@@ -17,21 +17,24 @@ for results. Endpoints are organized into three namespaces:
 |-----------|----------|----------|---------|
 | `/a2a/` | A2A (Agent-to-Agent) | AI agents, orchestrators | `POST /a2a/` — SendMessage |
 | `/mcp` | MCP (Model Context Protocol) | LLM clients, developers | `POST /mcp` — tool invocation |
-| `/mesh/` | REST (internal) | Sidecars, operators | `POST /mesh` — progress/final callbacks |
+| `/api/v1/mesh/` | REST (internal) | Sidecars, operators | `POST /api/v1/mesh/{id}/events` — status/FLY callbacks |
 
 Special root routes: `/.well-known/agent.json` (A2A Agent Card discovery) and
 `/health` (K8s liveness/readiness probe).
 
-## Two deployment modes
+## Split containers
 
-The gateway runs as a single binary in one of two modes:
+The gateway is one image (`asya-gateway`) that ships several binaries, each running
+as a container in a single pod:
 
-- **api** — handles external traffic (A2A, MCP, REST). Exposed via Ingress or
-  LoadBalancer
-- **mesh** — handles internal sidecar callbacks (progress, FLY events, final
-  results). Cluster-internal only
+- **mesh-api** — core HTTP server: task CRUD, SSE, queue publish, and the internal
+  `/api/v1/mesh/` callbacks from sidecars
+- **mcp-adapter** — MCP HTTP, backed by mesh-api
+- **a2a-adapter** — A2A JSON-RPC, backed by mesh-api
+- **state-proxy-mesh** — task state sidecar
 
-Both modes share the same database (PostgreSQL) for task state.
+Task state is pluggable: PostgreSQL (`pg-kv`, default) or local files / in-memory
+(`pvc-kv`, no database required).
 
 ## Real-time streaming
 
@@ -64,4 +67,4 @@ This enables interoperability with any A2A-compliant agent framework.
 - [Gateway API specification](../reference/specs/gateway-api.md) — endpoint
   reference, request/response formats
 - [Gateway setup guide](../setup/guide-gateway.md) — deployment, TLS,
-  PostgreSQL configuration
+  state backend configuration

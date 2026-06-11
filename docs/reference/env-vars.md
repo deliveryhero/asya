@@ -119,69 +119,16 @@ Source: `src/asya-runtime/asya_runtime.py`
 
 ## asya-gateway
 
-Source: `src/asya-gateway/cmd/gateway/main.go`
+The gateway is no longer a single binary with an `ASYA_GATEWAY_MODE` switch. It is
+split into separate containers, all built from the one `asya-gateway` image:
 
-### Core
+- **asya-mesh-api** — core HTTP server (see section below)
+- **mcp-adapter** — MCP HTTP adapter (see section below)
+- **a2a-adapter** — A2A JSON-RPC adapter (see section below)
+- **state-proxy-mesh** — task/mesh state connector (`pg-kv` or `pvc-kv`, see below)
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ASYA_GATEWAY_MODE` | Deployment mode: `api`, `mesh`, or `testing` | _(unset)_ |
-| `ASYA_GATEWAY_PORT` | HTTP listen port | `8080` |
-| `ASYA_DATABASE_URL` | PostgreSQL connection string | `""` |
-| `ASYA_CONFIG_PATH` | Path to `flows.yaml` ConfigMap mount | _(unset)_ |
-| `ASYA_CONFIG_POLL_INTERVAL` | How often to poll the ConfigMap for changes | `10s` |
-| `ASYA_NAMESPACE` | Kubernetes namespace for queue name prefix | `default` |
-| `ASYA_LOG_LEVEL` | Log level | `INFO` |
-| `ASYA_PERSISTENCE_MOUNT` | Mount path for file-based persistence | _(unset)_ |
-
-### Transport (same as sidecar)
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ASYA_RABBITMQ_URL` | RabbitMQ connection URL | `""` |
-| `ASYA_RABBITMQ_EXCHANGE` | RabbitMQ exchange | `asya` |
-| `ASYA_RABBITMQ_POOL_SIZE` | RabbitMQ connection pool size | `20` |
-| `ASYA_SQS_ENDPOINT` | SQS endpoint URL | `""` |
-| `ASYA_SQS_REGION` | SQS region | `us-east-1` |
-| `ASYA_SQS_VISIBILITY_TIMEOUT` | SQS visibility timeout | `300` |
-| `ASYA_SQS_WAIT_TIME_SECONDS` | SQS long-poll wait time | `20` |
-| `ASYA_PUBSUB_PROJECT_ID` | GCP Pub/Sub project ID | `""` |
-| `ASYA_PUBSUB_ENDPOINT` | Pub/Sub emulator endpoint | `""` |
-
-### Database connection pool
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ASYA_DB_MAX_CONNS` | Maximum PostgreSQL connections | `10` |
-| `ASYA_DB_MIN_CONNS` | Minimum PostgreSQL connections | `2` |
-| `ASYA_DB_MAX_CONN_LIFETIME` | Maximum connection lifetime | `1h` |
-| `ASYA_DB_MAX_CONN_IDLE_TIME` | Maximum connection idle time | `30m` |
-
-### A2A configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ASYA_A2A_API_KEY` | API key for A2A authentication | _(unset)_ |
-| `ASYA_A2A_JWT_JWKS_URL` | JWKS URL for JWT validation | _(unset)_ |
-| `ASYA_A2A_JWT_ISSUER` | Expected JWT issuer | _(unset)_ |
-| `ASYA_A2A_JWT_AUDIENCE` | Expected JWT audience | _(unset)_ |
-| `ASYA_A2A_NAME` | Agent card display name | `Asya Gateway` |
-| `ASYA_A2A_DESCRIPTION` | Agent card description | `AI Actor Mesh for distributed agentic workloads` |
-| `ASYA_A2A_VERSION` | Agent card version | `1.0.0` |
-| `ASYA_A2A_PUBLIC_URL` | Public base URL for the agent card | `""` |
-| `ASYA_A2A_PROVIDER_ORG` | Agent card provider organization | `Asya` |
-| `ASYA_A2A_PROVIDER_URL` | Agent card provider URL | `https://asya.sh` |
-
-### MCP configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ASYA_MCP_API_KEY` | API key for MCP authentication | _(unset)_ |
-| `ASYA_MCP_OAUTH_ENABLED` | Enable OAuth 2.1 for MCP | _(unset)_ |
-| `ASYA_MCP_OAUTH_ISSUER` | OAuth issuer URL | _(unset)_ |
-| `ASYA_MCP_OAUTH_SECRET` | OAuth HMAC signing secret | _(unset)_ |
-| `ASYA_MCP_OAUTH_TOKEN_TTL` | OAuth access token TTL (seconds) | `3600` |
-| `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` | Bearer token for dynamic client registration | _(unset)_ |
+There is no shared `asya-gateway` env-var set; each container has its own. See the
+[Gateway component reference](components/core-gateway.md) for the container split.
 
 ---
 
@@ -200,10 +147,12 @@ Unix socket.
 |----------|-------------|---------|
 | `ASYA_MESH_EXTERNAL_PORT` | External API listen port | _(required)_ |
 | `ASYA_MESH_INTERNAL_PORT` | Internal sidecar listen port | _(required)_ |
-| `ASYA_STATEPROXY_SOCKET` | Unix socket path to pg-kv | _(required)_ |
+| `ASYA_STATEPROXY_SOCKET` | Unix socket path to the state-proxy (pg-kv or pvc-kv) | _(required)_ |
 | `ASYA_INTERNAL_URL` | URL sidecars use for callbacks (stamped as `x-asya-gateway-url`) | _(required)_ |
+| `ASYA_QUEUE_TRANSPORT` | Queue backend: `rabbitmq`, `sqs`, or `pubsub` | _(required)_ |
 | `ASYA_NAMESPACE` | Kubernetes namespace for queue name prefix | `""` |
 | `ASYA_MESH_API_PREFIX` | HTTP route prefix for mesh API (e.g. `/api/v1`, or `""` for unprefixed) | `/api/v1` |
+| `ASYA_BACKSTOP_INTERVAL` | Poll cadence for the SLA backstop reaper (Go duration) | `5s` |
 | `ASYA_LOG_LEVEL` | Log level | _(unset)_ |
 
 ### Transport (same as gateway)
@@ -220,18 +169,37 @@ Uses the same queue transport env vars as asya-gateway (`ASYA_QUEUE_TRANSPORT`,
 
 ---
 
-## pg-kv
+## state-proxy-mesh (pg-kv — default)
 
 Source: `src/asya-state-proxy/go/cmd/pg-kv/main.go`
 
-Go-based PostgreSQL state proxy connector. Runs as a sidecar alongside
-asya-mesh-api, serving KV operations and Mango-style queries over a Unix socket.
+Default mesh state backend. Go-based PostgreSQL connector that runs as a sidecar
+alongside asya-mesh-api, serving KV operations and Mango-style queries over a Unix
+socket. Selected by `stateProxy.mesh.backend: pg-kv` in the gateway chart.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `CONNECTOR_SOCKET` | Unix socket path | _(required)_ |
 | `STATE_PROXY_PG_URL` | PostgreSQL connection string | _(required)_ |
 | `STATE_PROXY_PG_INDEXES` | Comma-separated expression index specs (e.g. `status,(deadline_at)::timestamptz`) | `""` |
+
+---
+
+## state-proxy-mesh (pvc-kv — no PostgreSQL)
+
+Source: `src/asya-state-proxy/go/cmd/pvc-kv/main.go`
+
+Alternative mesh state backend that needs **no external database**. Stores task
+state as JSON files on a PVC (or in memory) and queries them in-process with
+DuckDB. Selected by `stateProxy.mesh.backend: pvc-kv` (requires `replicaCount: 1`).
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CONNECTOR_SOCKET` | Unix socket path | _(required)_ |
+| `PVC_KV_MODE` | Storage mode: `pvc` (files) or `inmem` (in-memory) | _(required)_ |
+| `PVC_KV_BASE_DIR` | Storage root directory | _(required for `pvc` mode)_ |
+| `PVC_KV_PARTITION` | `"true"` enables `active/` + `archive/` subdirs | `false` |
+| `PVC_KV_ARCHIVE_STATUSES` | Comma-separated statuses to archive on delete | `""` |
 
 ---
 
