@@ -23,6 +23,7 @@ from asya_lab.config.discovery import (
     find_asya_dir,
 )
 from asya_lab.config.project import AsyaProject
+from asya_lab.gateway_register import register_flow_with_gateway
 
 
 # ---------------------------------------------------------------------------
@@ -188,94 +189,6 @@ def _find_flow_for_actor(manifests_dir: Path, actor_name: str) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _register_flow_with_gateway(runner: KubeRunner, flow_name: str) -> None:
-    """Patch the gateway deployment to mount the per-flow ConfigMap.
-
-    After `asya k apply` deploys a flow-expose CM (asya-flow-<name>-config),
-    this patches the gateway-api deployment's projected volume to include it.
-    Idempotent — skips if the CM doesn't exist or is already mounted.
-    """
-    import json as _json
-
-    cm_name = f"asya-flow-{flow_name}-config"
-
-    # Check if the per-flow CM exists
-    result = runner.kubectl(
-        "get",
-        "cm",
-        cm_name,
-        "-o",
-        "name",
-        quiet=True,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return
-
-    # Check if already in the projected volume
-    result = runner.kubectl(
-        "get",
-        "deployment",
-        "asya-gateway-api",
-        "-o",
-        "jsonpath={.spec.template.spec.volumes[?(@.name=='gateway-flows')].projected.sources}",
-        quiet=True,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return
-    if cm_name in result.stdout:
-        return
-
-    # Find the volume index for gateway-flows
-    vol_result = runner.kubectl(
-        "get",
-        "deployment",
-        "asya-gateway-api",
-        "-o",
-        "jsonpath={.spec.template.spec.volumes}",
-        quiet=True,
-        capture_output=True,
-        text=True,
-    )
-    if vol_result.returncode != 0:
-        return
-
-    volumes = _json.loads(vol_result.stdout)
-    vol_idx = next((i for i, v in enumerate(volumes) if v.get("name") == "gateway-flows"), None)
-    if vol_idx is None:
-        return
-
-    # Only works with projected volumes (requires chart change)
-    if "projected" not in volumes[vol_idx]:
-        return
-
-    sources = volumes[vol_idx]["projected"].get("sources", [])
-    source_idx = len(sources)
-
-    patch = [
-        {
-            "op": "add",
-            "path": f"/spec/template/spec/volumes/{vol_idx}/projected/sources/{source_idx}",
-            "value": {"configMap": {"name": cm_name, "optional": True}},
-        }
-    ]
-    patch_result = runner.kubectl(
-        "patch",
-        "deployment",
-        "asya-gateway-api",
-        "--type=json",
-        f"-p={_json.dumps(patch)}",
-        quiet=True,
-        capture_output=True,
-        text=True,
-    )
-    if patch_result.returncode == 0:
-        click.echo(f"[+] Registered flow '{flow_name}' with gateway (projected volume)")
-
-
 @click.command()
 @click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
@@ -286,9 +199,9 @@ def apply(target: AsyaRef | None, ctx: str, verbose: bool) -> None:
     TARGET is a flow name (kebab-case, snake_case, or path/to/flow.py).
 
     Uses kustomize build piped to kubectl apply --server-side with
-    per-flow field manager for safe, idempotent deploys. If the flow
-    includes a gateway-flows ConfigMap (from `asya expose`), the
-    gateway deployment is automatically patched to mount it.
+    per-flow field manager for safe, idempotent deploys. If the flow was
+    exposed (`asya expose` / `asya patch --gateway`), its A2A/MCP entry is
+    upserted into the gateway's registry ConfigMaps, which hot-reload.
     """
     if target is None:
         raise click.MissingParameter(
@@ -301,7 +214,7 @@ def apply(target: AsyaRef | None, ctx: str, verbose: bool) -> None:
     overlay = runner.resolve_overlay(manifests_dir)
 
     runner.kustomize_apply(overlay, field_manager=f"asya-flow-{target.name}")
-    _register_flow_with_gateway(runner, target.name)
+    register_flow_with_gateway(runner, overlay, manifests_dir)
 
     # Rollout restart to pick up ConfigMap changes (routers, adapters)
     result = runner.kubectl(
@@ -807,9 +720,12 @@ def _print_port_forward_hint(url: str, ctx_config: dict | None) -> None:
 
     click.echo("[.] Run in a separate terminal:", err=True)
 
-    gw = _find_svc("app.kubernetes.io/name=asya-gateway,asya.sh/gateway-mode=api", [actor_ns, "asya-system"])
-    gw_svc = f"-n {gw[0]} svc/{gw[1]}" if gw else f"-n {actor_ns} svc/asya-gateway-api"
-    click.echo(f"    kubectl port-forward {gw_svc} {gw_port}:80  # required", err=True)
+    gw = _find_svc("app.kubernetes.io/name=asya-gateway,app.kubernetes.io/component=a2a", [actor_ns, "asya-system"])
+    gw_svc = f"-n {gw[0]} svc/{gw[1]}" if gw else f"-n {actor_ns} svc/asya-gateway-a2a"
+    click.echo(
+        f"    kubectl port-forward {gw_svc} {gw_port}:8083  # required (A2A; use svc/asya-gateway-mcp {gw_port}:8082 for --mcp)",
+        err=True,
+    )
 
     for key, label, default_port, comment in [
         ("tempo_url", "app.kubernetes.io/name=tempo", 3200, "for --trace"),
@@ -1426,10 +1342,10 @@ def _resolve_gateway_url(runner: KubeRunner, url_override: str | None) -> str:
 
     click.echo(
         "[-] No gateway URL configured. Options:\n"
-        "    1. Set in .asya/config.yaml: contexts.dev.gateway: http://...\n"
+        "    1. Set in .asya/config.yaml: contexts.dev.gateway_url: http://...\n"
         "    2. Set env: export ASYA_GATEWAY_URL=http://...\n"
         "    3. Use flag: --url http://...\n"
-        "    4. Start port-forward: kubectl port-forward -n <ns> svc/asya-gateway-api 18080:80",
+        "    4. Start port-forward: kubectl port-forward -n <ns> svc/asya-gateway-a2a 18080:8083",
         err=True,
     )
     sys.exit(1)

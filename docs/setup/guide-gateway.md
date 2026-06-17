@@ -216,16 +216,20 @@ The gateway acts as its own authorization server, issuing HMAC-SHA256 JWTs.
 | `mcp:invoke` | Call tools, send messages |
 | `mcp:read` | List tools, read task state |
 
-## Tool Registration
+## Flow Registration
 
-The gateway reads tool definitions from `*.yaml` files in `/etc/asya/flows/`. It polls
-every 10 seconds (configurable via `ASYA_CONFIG_POLL_INTERVAL`) and hot-reloads without
-a pod restart.
+A flow is exposed to the gateway as an **A2A agent** and/or an **MCP tool**. Each protocol
+has its own registry ConfigMap, hot-reloaded without a pod restart (polled every 10s,
+configurable via `ASYA_CONFIG_POLL_INTERVAL`; or force a reload — see below):
 
-The directory is populated from ConfigMaps via a projected volume. Two sources:
+| Protocol | ConfigMap | Data key | Adapter mount |
+|---|---|---|---|
+| A2A | `asya-gateway-a2a-agents` | `agents.yaml` (`agents:` list) | `ASYA_A2A_CONFIG_DIR` |
+| MCP | `asya-gateway-mcp-tools` | `tools.yaml` (`tools:` list) | `ASYA_MCP_CONFIG_DIR` |
 
-1. **Helm-managed** (`asya-gateway-flows` CM) — seeded at deploy time via `exposedFlows`
-2. **Per-flow CMs** — deployed alongside actors by `asya k apply`, auto-registered
+Seed entries at deploy time via the chart's `a2aAgents` / `mcpTools` values; add or update them
+later with the CLI (below) or by editing the ConfigMap directly. Each entry's `actor` field is
+the flow's entrypoint actor (`start-<flow>` for compiled flows).
 
 ### Using the CLI (recommended)
 
@@ -242,8 +246,9 @@ asya expose text-flow -d "Analyze text" --mcp --a2a --context dev
 asya k apply text-flow --context dev
 ```
 
-`asya k apply` detects the per-flow ConfigMap and patches the gateway deployment
-to include it as a projected volume source. No Helm upgrade needed.
+`asya expose` (or `asya patch --gateway`) writes a local `flow-expose.yaml` intent; `asya k apply`
+upserts it (keyed by `name`) into the `asya-gateway-a2a-agents` / `asya-gateway-mcp-tools` ConfigMaps,
+which the gateway hot-reloads. No deployment patch and no Helm upgrade needed.
 
 To disable for an environment:
 
@@ -254,124 +259,60 @@ asya k apply text-flow --context dev
 
 ### Using Helm Values
 
-Seed flows at deploy time via `exposedFlows`, or list per-flow CMs via `flowConfigMaps`:
+Seed agents/tools at deploy time via the chart's `a2aAgents` and `mcpTools` values:
 
 ```yaml
 # values.yaml
-exposedFlows:
+a2aAgents:
 - name: echo
-  entrypoint: echo-actor
-  description: Echo handler
-  mcp: {}
-
-flowConfigMaps:
-- asya-flow-text-flow-config
-- asya-flow-greet-flow-config
-```
-
-### Manual ConfigMap
-
-For custom setups, create a flows ConfigMap directly:
-
-### Step 1: Create flows.yaml
-
-```yaml
-flows:
-- name: echo
-  entrypoint: echo-actor
   description: Echo back the input with a greeting
-  mcp:
-    inputSchema:
-      type: object
-      properties:
-        name:
-          type: string
-          description: Name to greet
-      required: [name]
+  actor: echo-actor          # the flow entrypoint actor
+  timeout: 60
+  streaming: true
+  skills:
+  - {id: echo, name: echo, description: Echo handler}
+  inputModes: [text/plain, application/json]
+  outputModes: [text/plain, application/json]
+
+mcpTools:
+- name: echo
+  description: Echo back the input with a greeting
+  actor: echo-actor
+  timeout: 60
+  inputSchema:
+    type: object
+    properties:
+      name: {type: string, description: Name to greet}
+    required: [name]
 ```
 
-### Multi-Actor Pipeline
+### Entry Fields
 
-```yaml
-flows:
-- name: text-analysis
-  entrypoint: preprocess
-  route_next: [inference, postprocess]
-  description: Analyze text through a preprocessing, inference, and postprocessing pipeline
-  timeout: 120
-  mcp:
-    inputSchema:
-      type: object
-      properties:
-        text:
-          type: string
-          description: Text to analyze
-      required: [text]
-```
-
-### Expose as Both MCP and A2A
-
-```yaml
-flows:
-- name: text-analysis
-  entrypoint: preprocess
-  route_next: [inference, postprocess]
-  description: Analyze text
-  mcp:
-    inputSchema:
-      type: object
-      properties:
-        text:
-          type: string
-      required: [text]
-  a2a: {}
-```
-
-### Flow Configuration Fields
+**A2A agent** (`agents.yaml`):
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | yes | Unique flow name; becomes the MCP tool name and A2A skill name |
-| `entrypoint` | yes | First actor in the pipeline (actor name, not queue name) |
-| `route_next` | no | Ordered list of subsequent actors |
-| `description` | no | Human-readable description surfaced in tool/skill listings |
+| `name` | yes | Unique agent name; the A2A endpoint is `/a2a/<name>` |
+| `actor` | yes | Flow entrypoint actor (`start-<flow>` for compiled flows) |
+| `description` | yes | Surfaced in the agent card |
 | `timeout` | no | Max seconds to wait for completion |
-| `mcp` | no | Present = exposed as MCP tool; requires `inputSchema` |
-| `a2a` | no | Present = exposed as A2A skill |
+| `streaming` | no | Advertise SSE streaming support |
+| `skills` | no | A2A skills `[{id, name, description, tags?, examples?}]` |
+| `inputModes` / `outputModes` | no | MIME types (default `[text/plain, application/json]`) |
 
-### Step 2: Apply the ConfigMap
+**MCP tool** (`tools.yaml`): same `name` / `actor` / `description` / `timeout`, plus
+`inputSchema` (JSON Schema) and `progress` (bool — emit progress notifications).
 
-```bash
-kubectl create configmap gateway-flows \
-  -n asya-system \
-  --from-file=flows.yaml=flows.yaml \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
+### Manual ConfigMap edit
 
-Or patch the existing ConfigMap:
+For custom setups, edit the registry ConfigMaps directly (the gateway hot-reloads):
 
 ```bash
-kubectl patch configmap gateway-flows -n asya-system \
-  --type merge \
-  -p "$(cat <<'EOF'
-data:
-  flows.yaml: |
-    flows:
-    - name: echo
-      entrypoint: echo-actor
-      description: Echo handler
-      mcp:
-        inputSchema:
-          type: object
-          properties:
-            name:
-              type: string
-          required: [name]
-EOF
-)"
+kubectl edit configmap asya-gateway-a2a-agents   # data.agents.yaml -> agents: [...]
+kubectl edit configmap asya-gateway-mcp-tools    # data.tools.yaml  -> tools:  [...]
 ```
 
-### Step 3: Verify Registration
+### Verify Registration
 
 ```bash
 # List available tools via MCP

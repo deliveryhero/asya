@@ -781,29 +781,30 @@ from actors arrive at the client as streaming text chunks.
 
 ### Flow registry: exposing actor pipelines as tools/skills
 
-Which pipelines are exposed via A2A and MCP is configured in the
-`gateway-flows` ConfigMap:
+A pipeline is exposed as an A2A agent and/or MCP tool via two per-protocol registry
+ConfigMaps — `asya-gateway-a2a-agents` (`agents.yaml`) and `asya-gateway-mcp-tools`
+(`tools.yaml`). Each entry's `actor` is the pipeline's entrypoint actor:
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gateway-flows
+  name: asya-gateway-a2a-agents
 data:
-  flows.yaml: |
-    flows:
+  agents.yaml: |
+    agents:
       - name: document-summarizer
         description: Summarizes documents using LLM
-        entrypoint: start-document-pipeline  # first actor in the pipeline
-        route_next:
-          - preprocessor
-          - llm-summarizer
-          - formatter
+        actor: start-document-pipeline   # first actor in the pipeline
+        streaming: true
+        skills:
+          - {id: document-summarizer, name: document-summarizer, description: Summarizes documents}
 ```
 
-The gateway polls this ConfigMap at runtime (configurable via
-`ASYA_CONFIG_POLL_INTERVAL`). Updating the ConfigMap updates the exposed
-tools without restarting the gateway.
+The gateway adapters poll these ConfigMaps at runtime (configurable via
+`ASYA_CONFIG_POLL_INTERVAL`). Updating a ConfigMap updates the exposed agents/tools
+without restarting the gateway. `asya k apply` upserts these entries for you; see
+[Gateway setup → Flow Registration](../setup/guide-gateway.md).
 
 ---
 
