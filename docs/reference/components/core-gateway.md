@@ -1,53 +1,78 @@
 ---
-description: "Gateway (Go): MCP/A2A HTTP bridge, api/mesh modes, task state, PostgreSQL, SSE streaming"
+description: "Gateway (Go): split mesh-api + mcp-adapter + a2a-adapter containers, pluggable pg-kv/pvc-kv state, SSE streaming"
 ---
 
 # Gateway
 
 ## Responsibilities
 
-- Expose MCP-compliant HTTP API
+- Expose MCP- and A2A-compliant HTTP APIs
 - Create tasks from HTTP requests
-- Track task status in PostgreSQL
+- Track task status in a pluggable state backend (PostgreSQL or local files)
 - Stream progress updates and ephemeral FLY events via Server-Sent Events (SSE)
-- Receive status reports from crew actors
-- Broadcast FLY events via PG LISTEN/NOTIFY for cross-process delivery
+- Receive status reports from sidecars and crew actors
+- Fan out SSE events to subscribed clients
 
 ## How It Works
 
-1. Client calls MCP tool via HTTP POST
-2. Gateway creates task with unique ID
-3. Gateway stores task in PostgreSQL (status: `pending`)
-4. Gateway sends envelope to first actor's queue
-5. Crew actors (`x-sink`, `x-sump`) report final task status
-6. Client polls or streams task status updates via SSE
+1. Client calls an MCP tool or A2A skill via HTTP
+2. The adapter (mcp-adapter / a2a-adapter) forwards to the local mesh-api
+3. mesh-api creates a task with a unique ID (status: `pending`)
+4. mesh-api stores the task via the state-proxy sidecar
+5. mesh-api sends the envelope to the first actor's queue
+6. Crew actors (`x-sink`, `x-sump`) report final task status to mesh-api
+7. Client polls or streams task status updates via SSE
 
 ## Deployment
 
-The gateway binary supports three modes via `ASYA_GATEWAY_MODE`:
+The gateway is **one image** (`asya-gateway`) that ships three binaries. Each runs
+as a separate container in a single pod, selected via the container `command:`:
 
-| Mode | Routes | Use |
-|------|--------|-----|
-| `api` | A2A, MCP, OAuth, health | External-facing; behind Ingress |
-| `mesh` | Mesh routes, health | Internal-only; ClusterIP, no Ingress |
-| `testing` | All routes | Local development and integration tests |
+| Container | Command | Ports | Role |
+|-----------|---------|-------|------|
+| `mesh-api` | _(default entrypoint)_ | 8080 (external), 8081 (internal) | Core HTTP server: task CRUD, SSE, queue publish, sidecar callbacks |
+| `mcp-adapter` | `./mcp-adapter` | 8082 | MCP Streamable HTTP — translates `tools/list` / `tools/call` into mesh-api calls |
+| `a2a-adapter` | `./a2a-adapter` | 8083 | A2A JSON-RPC — implements the A2A protocol over mesh-api calls |
+
+A fourth container, the **state-proxy-mesh** sidecar, persists task/mesh state.
+The mesh-api never talks to a database directly — it issues KV operations to the
+state-proxy over a Unix socket, and the state-proxy translates them to its backend.
+
+The adapters are optional (`mcp.enabled` / `a2a.enabled` in Helm values). mesh-api
+and its state-proxy are always present.
+
+### State backend (pluggable)
+
+The state-proxy backend is selected by `stateProxy.mesh.backend`:
+
+| Backend | Storage | Replicas | When to use |
+|---------|---------|----------|-------------|
+| `pg-kv` _(default)_ | PostgreSQL | Multiple | Production; horizontal scaling, durable shared state |
+| `pvc-kv` | DuckDB over JSON files on a PVC, or in-memory | `replicaCount: 1` only | Lightweight deployments, demos, environments without PostgreSQL |
+
+**PostgreSQL is no longer mandatory.** With `pvc-kv` the gateway keeps task state
+in local files (or memory) and requires no external database. Because local storage
+is not shared across pods, `pvc-kv` enforces `replicaCount: 1` (the chart fails the
+render otherwise).
+
+The state layer is distinct from the pluggable **transports** (SQS, RabbitMQ,
+Pub/Sub) used to publish envelopes to actor queues, and from the actor-side
+**state proxy connectors** (S3, GCS, Redis, NATS KV) used for high-throughput data.
 
 ### State ownership
 
-The gateway uses two independent state stores with clearly separated ownership:
-
 ```
                         ┌─────────────────────────────┐
-                        │   gateway-flows ConfigMap   │
-                        │   (flows.yaml — K8s object) │
-                        └──────────────┬──────────────┘
-                                       │ polls every 10 s
-                                       │ (toolstore.Watch)
+   external client ───► │   mcp-adapter (:8082)       │
+   MCP                  │   a2a-adapter (:8083)       │
+   A2A                  └──────────────┬──────────────┘
+                                       │ POST /api/v1/mesh/ (create)
+                                       │ GET  /api/v1/mesh/{id} (status)
                         ┌──────────────▼──────────────┐
-   external client ───► │        api pod              │
-   MCP / A2A / OAuth    │  - MCP dispatch             │
-                        │  - A2A routing              │
-                        │  - agent card               │
+                        │   mesh-api external (:8080) │
+                        │   - task create / list      │
+                        │   - GET {id} / SSE events   │
+                        │   - DELETE {id} (cancel)    │
                         └──────────────┬──────────────┘
                                        │ sends envelope
                                        ▼
@@ -55,78 +80,43 @@ The gateway uses two independent state stores with clearly separated ownership:
                                        │
                                        ▼
                                   actor pod
-                                       │ POST /mesh/{id}/…
+                                       │ POST /api/v1/mesh/{id}/events
                         ┌──────────────▼──────────────┐
-                        │        mesh pod             │
-                        │  - progress callbacks       │
-                        │  - final status             │
-                        │  - SSE fan-out              │
+                        │   mesh-api internal (:8081) │
+                        │   - status + FLY callbacks  │
+                        │   - sidecar heartbeat (GET) │
                         └──────────────┬──────────────┘
-                                       │ reads / writes
+                                       │ KV ops over Unix socket
                         ┌──────────────▼──────────────┐
-                        │        PostgreSQL           │
-                        │  tasks, task_updates        │
-                        │  oauth_clients, tokens      │
+                        │   state-proxy-mesh sidecar  │
+                        │   pg-kv → PostgreSQL        │
+                        │   pvc-kv → local files/mem  │
                         └─────────────────────────────┘
-                                       ▲
-                        ───────────────┘
-                        api pod also reads/writes
-                        (task creation, OAuth, GetTask)
 ```
 
-**ConfigMap** (`gateway-flows`) — routing configuration:
+The mesh-api exposes **two ports**:
 
-| | api pod | mesh pod |
-|---|---|---|
-| Mounts ConfigMap | ✅ (`ASYA_CONFIG_PATH`) | ❌ |
-| Hot-reloads on change | ✅ every 10 s (default) | ❌ |
-| Uses for dispatch | ✅ MCP + A2A + agent card | ❌ |
+- **External (8080)** — client-facing: task create/list, get, cancel, SSE subscribe.
+  Reachable via the `asya-gateway-mesh-api` Service and (optionally) Ingress.
+- **Internal (8081)** — sidecar callbacks: publish status/FLY events, heartbeat
+  check. Reachable only in-cluster via the `asya-gateway-mesh-api-int` Service.
+  Sidecars learn this URL from the `x-asya-gateway-url` envelope header, stamped
+  by mesh-api from `ASYA_INTERNAL_URL`.
 
-The ConfigMap is the source of truth for *what flows exist*. It is seeded by
-Helm at deploy time and can be patched at runtime (e.g., via `kubectl patch` or
-`asya mcp expose`) without a pod restart.
+### Services
 
-**Database** — task and auth state (PostgreSQL):
+The chart renders four Services (release name `asya-gateway`):
 
-| | api pod | mesh pod |
-|---|---|---|
-| Creates tasks | ✅ (on MCP/A2A call) | ❌ |
-| Writes progress | ❌ | ✅ (via `/mesh/{id}/progress`) |
-| Writes final status | ❌ | ✅ (via `/mesh/{id}/final`) |
-| Reads task state | ✅ (GetTask, SSE, OAuth) | ✅ (SSE stream) |
-| Stores OAuth clients/tokens | ✅ (when OAuth enabled) | ❌ |
+| Service | Port | Type | Audience |
+|---------|------|------|----------|
+| `asya-gateway-mesh-api` | 8080 | ClusterIP | External clients (via Ingress) |
+| `asya-gateway-mesh-api-int` | 8081 | ClusterIP | Sidecars / crew (in-cluster only) |
+| `asya-gateway-mcp` | 8082 | ClusterIP | MCP clients (rendered when `mcp.enabled`) |
+| `asya-gateway-a2a` | 8083 | ClusterIP | A2A clients (rendered when `a2a.enabled`) |
 
-Both pods connect to the **same** database instance. The database is the shared
-coordination point: the api pod creates a task record, then mesh pod workers
-update it as actors report progress.
-
-The storage layer is abstracted internally. PostgreSQL is the provided
-implementation — it handles metadata and task state well for all current use
-cases. Additional backends may be added if specific requirements emerge. Note
-that this is distinct from the pluggable **transports** (SQS, RabbitMQ, Pub/Sub)
-and pluggable **state proxy connectors** (S3, GCS, Redis, NATS KV), which are
-designed for high-throughput data paths.
-
-Production deployments use **two Helm releases** from the same chart:
-
-```bash
-# External-facing API gateway (with Ingress)
-helm install asya-gateway deploy/helm-charts/asya-gateway/ \
-  --set mode=api \
-  -f gateway-values.yaml
-
-# Internal mesh gateway (ClusterIP only, no Ingress)
-helm install asya-gateway-mesh deploy/helm-charts/asya-gateway/ \
-  --set mode=mesh \
-  -f gateway-mesh-values.yaml
-```
-
-Both releases share the same container image and database. Sidecars
-and crew actors reach the mesh deployment via in-cluster DNS:
-`asya-gateway-mesh.<namespace>.svc.cluster.local`.
-
-**Gateway is stateful**: Requires a database (PostgreSQL) for task tracking and
-(when OAuth is enabled) for OAuth client/token storage.
+External exposure is via the Ingress (`ingress.enabled`), not a per-deployment
+LoadBalancer. The mesh-api-int Service has no Ingress and is unreachable from
+outside the cluster by design.
 
 ## Configuration
 
@@ -134,99 +124,99 @@ Configured via Helm values. Key sections:
 
 ```yaml
 # gateway-values.yaml
-mode: api  # api | mesh | testing
-config:
-  sqsRegion: "us-east-1"
-  postgresHost: "postgres.default.svc.cluster.local"
-  postgresDatabase: "asya_gateway"
-  postgresPasswordSecretRef:
-    name: postgres-secret
-    key: password
+
+stateProxy:
+  mesh:
+    backend: pg-kv   # pg-kv (PostgreSQL) | pvc-kv (local files / in-memory)
+
+# Only consulted by the pg-kv backend:
+database:
+  host: postgres.default.svc.cluster.local
+  port: 5432
+  name: asya_gateway
+  username: asya
+  existingSecret: postgres-secret   # key "password" by default
+  sslMode: require
+
+transports:
+  pubsub:
+    enabled: true     # exactly one of rabbitmq | sqs | pubsub
+    config:
+      projectId: my-project
+
+mcp:
+  enabled: true
+a2a:
+  enabled: true
+  auth:
+    apiKey: ""        # ASYA_A2A_API_KEY
+    jwt:
+      jwksURL: ""
+      issuer: ""
+      audience: ""
 ```
 
-Tool/skill registration is **ConfigMap-backed**: flows are declared in
-`flows.yaml`, mounted into the api pod, and hot-reloaded every 10 seconds (configurable via `ASYA_CONFIG_POLL_INTERVAL`) by a
-polling watcher (`toolstore.Watch`). Updating the ConfigMap is the only way to
-add, change, or remove an exposed tool or A2A skill — no restart is needed.
+Tool and skill registration is **ConfigMap-backed**. MCP tools are mounted into
+the mcp-adapter (`mcpTools` values) and A2A agents into the a2a-adapter
+(`a2aAgents` values). Each adapter hot-reloads its ConfigMap by polling every
+`ASYA_MCP_POLL_INTERVAL` / `ASYA_A2A_POLL_INTERVAL` (default `10s`). No restart is
+needed to add, change, or remove a tool or skill.
 
-The Helm chart creates an empty `gateway-flows` ConfigMap. After deployment,
-flows are registered by patching the ConfigMap (e.g., via `asya flow expose`
-or `kubectl patch`). No Helm upgrade is needed.
+**See**: [Gateway Setup Guide](../../setup/guide-gateway.md) for how flows are
+compiled into these ConfigMaps and registered.
 
 ## API Endpoints
 
-**See**: [Gateway API spec](../specs/gateway-api.md) for the full API reference with complete request/response schemas for all routes.
+**See**: [Gateway API spec](../specs/gateway-api.md) for full request/response schemas.
 
-
-
-Routes are split across the two deployments.
-
-### External API routes (`mode: api`)
-
-#### MCP endpoints
+### mesh-api external routes (port 8080)
 
 ```bash
-POST /mcp        # MCP Streamable HTTP transport (recommended)
-GET  /mcp/sse    # MCP SSE transport (for clients that require SSE)
-POST /tools/call # MCP tool invocation (REST convenience path)
+POST   /api/v1/mesh/            # Create task (returns task ID)
+GET    /api/v1/mesh/            # List tasks
+GET    /api/v1/mesh/{id}        # Get task status
+GET    /api/v1/mesh/{id}/events # Subscribe to SSE updates
+DELETE /api/v1/mesh/{id}        # Cancel task
+GET    /health                  # Liveness
+GET    /ready                   # Readiness (checks state-proxy reachability)
 ```
 
-Both `/mcp` and `/mcp/sse` are active transports — neither is deprecated. Use
-whichever your MCP client supports.
+The route prefix is configurable via `ASYA_MESH_API_PREFIX` (default `/api/v1`;
+set to `""` for unprefixed `/mesh/` routes).
 
-```bash
-GET  /.well-known/agent.json   # A2A Agent Card (public, no auth)
-POST /a2a/                     # A2A JSON-RPC endpoint
-```
-
-OAuth 2.1 endpoints (when `ASYA_MCP_OAUTH_ENABLED=true`):
-
-```bash
-GET  /.well-known/oauth-protected-resource    # RFC 9728 resource metadata
-GET  /.well-known/oauth-authorization-server  # RFC 8414 server metadata
-POST /oauth/register                          # Dynamic Client Registration
-GET  /oauth/authorize                         # Authorization Code endpoint
-POST /oauth/token                             # Token exchange and refresh
-```
-
-### Mesh routes (`mode: mesh`)
+### mesh-api internal routes (port 8081)
 
 Called exclusively by sidecars and crew actors within the cluster.
 
-#### Call Tool (REST, external api mode)
+```bash
+POST /api/v1/mesh/{id}/events  # Publish status + FLY events (sidecar)
+GET  /api/v1/mesh/{id}         # Heartbeat / pre-flight check (sidecar)
+```
+
+#### Publish events
 
 ```bash
-POST /tools/call
+POST /api/v1/mesh/{id}/events
 Content-Type: application/json
 
 {
-  "name": "text-processor",
-  "arguments": {
-    "text": "Hello world",
-    "model": "gpt-4"
-  }
+  "status": "running",
+  "current_actor_idx": 0,
+  "actors": ["prep", "infer", "post"]
 }
 ```
 
-Response (MCP CallToolResult):
-```json
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "{\"task_id\":\"5e6fdb2d...\",\"message\":\"Task created successfully\",\"status_url\":\"/mesh/5e6fdb2d...\",\"stream_url\":\"/mesh/5e6fdb2d.../stream\"}"
-    }
-  ],
-  "isError": false
-}
-```
+Both progress/status updates and ephemeral FLY events flow through this single
+endpoint. **Called by**: sidecars (per-actor status) and `x-sink` / `x-sump`
+(final status).
 
-See [Envelope Protocol](../specs/envelope.md) for more details on task statuses.
+⚠️ **FLY events are ephemeral** — never persisted. Clients connecting after task
+completion will NOT see historical FLY events.
 
-#### Get Task Status
+#### Get task status
 
 ```bash
-GET /tasks/{id}
+GET /api/v1/mesh/{id}
 ```
 
 Response:
@@ -234,232 +224,61 @@ Response:
 {
   "id": "5e6fdb2d-1d6b-4e91-baef-73e825434e7b",
   "status": "succeeded",
-  "message": "Task completed successfully",
-  "result": {"response": "Processed: Hello world"},
-  "progress_percent": 100,
-  "current_actor_idx": 2,
-  "current_actor_name": "postprocess",
-  "actors_completed": 3,
-  "total_actors": 3,
   "created_at": "2025-11-18T12:00:00Z",
-  "updated_at": "2025-11-18T12:01:30Z"
+  "updated_at": "2025-11-18T12:01:30Z",
+  "data": {"result": {"response": "Processed: Hello world"}}
 }
 ```
 
-#### Stream Task Updates (SSE)
+See [Envelope Protocol](../specs/envelope.md) for task statuses.
+
+#### Subscribe to updates (SSE)
 
 ```bash
-GET /mesh/{id}/stream
+GET /api/v1/mesh/{id}/events
 Accept: text/event-stream
 ```
 
-Internal mesh endpoint for streaming progress and FLY events. For external API access, use `GET /stream/{id}` on the API gateway.
-
 **Features**:
 
-- Sends historical progress and status updates first (no missed progress)
+- Sends historical status updates first (no missed progress)
 - Streams real-time updates as they occur
-- Broadcasts ephemeral FLY events via PG LISTEN/NOTIFY for cross-process delivery
+- Relays ephemeral FLY events to connected subscribers
 - Keepalive comments every 15 seconds
-- Auto-closes on final status (`succeeded` or `failed`)
+- Auto-closes on terminal status (`succeeded`, `failed`, `canceled`)
 
-⚠️ **FLY events are ephemeral** — not persisted to the database. Clients connecting after task completion will NOT see historical FLY events.
-
-Stream events (TaskUpdate):
-```
-event: update
-data: {"id":"task-123","status":"running","progress_percent":10,"current_actor_idx":0,"actor_state":"received","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: received","timestamp":"2025-11-18T12:00:15Z"}
-
-event: update
-data: {"id":"task-123","status":"running","progress_percent":33,"current_actor_idx":0,"actor_state":"completed","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: completed","timestamp":"2025-11-18T12:00:20Z"}
-
-event: update
-data: {"id":"task-123","status":"running","progress_percent":66,"current_actor_idx":1,"actor_state":"completed","actor":"infer","actors":["preprocess","infer","post"],"message":"Actor infer: completed","timestamp":"2025-11-18T12:01:00Z"}
-
-event: update
-data: {"id":"task-123","status":"succeeded","progress_percent":100,"result":{...},"message":"Task completed successfully","timestamp":"2025-11-18T12:01:30Z"}
-```
-
-**TaskUpdate fields**:
-
-- `id`: Task ID
-- `status`: Task status (`pending`, `running`, `succeeded`, `failed`)
-- `progress_percent`: Progress 0-100 (omitted if not a progress update)
-- `current_actor_idx`: Current actor index (0-based, omitted for final states)
-- `actor_state`: Actor processing state (`received`, `processing`, `completed`)
-- `actor`: Current actor name (omitted for final states)
-- `actors`: Full route (may be modified via VFS)
-- `message`: Human-readable status message
-- `result`: Final result (only for `succeeded` status)
-- `error`: Error message (only for `failed` status)
-- `timestamp`: When this update occurred
-
-#### Check Task Active
+### MCP routes (mcp-adapter, port 8082)
 
 ```bash
-GET /mesh/{id}/active
+POST /mcp        # MCP Streamable HTTP transport (recommended)
+GET  /mcp/sse    # MCP SSE transport (for clients that require SSE)
+GET  /health     # Liveness
 ```
 
-**Used by**: Actors to verify task hasn't timed out
-
-Response (active):
-```json
-{"active": true}
-```
-
-Response (inactive - HTTP 410 Gone):
-```json
-{"active": false}
-```
-
-### Mesh endpoints (Sidecar/Crew, `mode: mesh`)
-
-#### Report Progress
+### A2A routes (a2a-adapter, port 8083)
 
 ```bash
-POST /mesh/{id}/progress
-Content-Type: application/json
-
-{
-  "actors": ["prep", "infer", "post"],
-  "current_actor_idx": 0,
-  "status": "completed"
-}
+POST /a2a/                     # A2A JSON-RPC endpoint
+GET  /.well-known/agent.json   # A2A Agent Card (public, no auth)
+GET  /health                   # Liveness
 ```
-
-**Called by**: Sidecars at three points per actor (`received`, `processing`, `completed`)
-
-**Progress formula**: `(actor_idx * 100 + status_weight) / total_actors`
-- `received` = 10, `processing` = 50, `completed` = 100
-
-**Unknown task IDs**: Progress updates for tasks not found in the store are
-silently accepted (200 OK). This is expected for direct-SQS envelopes that bypass
-gateway task creation. Infrastructure errors (e.g., database failures) still
-return 500.
-
-Response:
-```json
-{"status": "ok", "progress_percent": 33.3}
-```
-
-#### Report Final Status
-
-```bash
-POST /mesh/{id}/final
-Content-Type: application/json
-
-{
-  "id": "task-123",
-  "status": "succeeded",
-  "result": {...}
-}
-```
-
-**Called by**: `x-sink` (success) or `x-sump` (failure) crew actors
-
-#### Create Fanout Task
-
-```bash
-POST /tasks
-Content-Type: application/json
-
-{
-  "id": "task-123-1",
-  "parent_id": "task-123",
-  "actors": ["prep", "infer"],
-  "current": 1
-}
-```
-
-**Called by**: Sidecars when runtime returns array (fan-out)
-
-**Fanout ID semantics**:
-
-- Index 0: Original ID (`task-123`)
-- Index 1+: Suffixed (`task-123-1`, `task-123-2`)
-- All children have `parent_id` for traceability
-
-### Health Check
-
-```bash
-GET /health
-```
-
-Response: `OK`
-
-## Flow Examples
-
-Flows are declared in `flows.yaml` (mounted as a ConfigMap). Each entry is a
-`FlowConfig` that maps a name to an actor pipeline and declares whether it is
-exposed as an MCP tool, an A2A skill, or both.
-
-**Single-actor MCP tool**:
-```yaml
-flows:
-- name: hello
-  entrypoint: hello-actor
-  description: Say hello
-  mcp:
-    inputSchema:
-      type: object
-      properties:
-        who:
-          type: string
-          description: Name to greet
-      required: [who]
-```
-
-**Multi-actor pipeline exposed as both MCP and A2A**:
-```yaml
-flows:
-- name: image-enhance
-  entrypoint: download-image
-  route_next: [enhance, upload]
-  description: Enhance image quality
-  timeout: 120
-  mcp:
-    inputSchema:
-      type: object
-      properties:
-        image_url:
-          type: string
-          description: URL of image to enhance
-        quality:
-          type: string
-          description: "Target quality: low | medium | high"
-      required: [image_url]
-  a2a: {}
-```
-
-**Fields**:
-
-| Field | Required | Description |
-|---|---|---|
-| `name` | ✅ | Unique flow name; becomes the MCP tool name and A2A skill name |
-| `entrypoint` | ✅ | First actor in the pipeline (queue name without `asya-<ns>-` prefix) |
-| `route_next` | ❌ | Ordered list of subsequent actors |
-| `description` | ❌ | Human-readable description surfaced in tool/skill listings |
-| `timeout` | ❌ | Max seconds to wait for completion (default: no limit) |
-| `mcp` | ❌ | Present → exposed as MCP tool; `inputSchema` is the JSON Schema for arguments |
-| `a2a` | ❌ | Present → exposed as A2A skill |
 
 ## Authentication & Security
 
-The gateway implements protocol-native authentication on external routes and
-network-level isolation for mesh routes. No auth code runs on mesh routes —
-they are unreachable from outside the cluster by design.
+Authentication is applied per adapter. mesh-api internal routes carry no auth
+code — they are protected by network isolation (ClusterIP only).
 
-| Route group | Auth mechanism |
-|-------------|---------------|
-| A2A (`/a2a/`) | API key (`X-API-Key`) or JWT Bearer — configured via `ASYA_A2A_*` env vars |
-| MCP (`/mcp`, `/mcp/sse`, `/tools/call`) | API key Bearer or OAuth 2.1 token — configured via `ASYA_MCP_*` env vars |
-| Mesh (`/mesh/…`) | None — ClusterIP only, unreachable externally |
-| Well-known + health | Always public |
+| Route group | Container | Auth mechanism |
+|-------------|-----------|---------------|
+| A2A (`/a2a/`) | a2a-adapter | API key (`X-API-Key`) or JWT Bearer — `ASYA_A2A_*` env vars |
+| A2A Agent Card + health | a2a-adapter | Always public |
+| MCP (`/mcp`, `/mcp/sse`) | mcp-adapter | None currently wired |
+| mesh-api (`/api/v1/mesh/…`) | mesh-api | None — internal port is ClusterIP only |
 
 ### A2A Authentication
 
 Two schemes are supported with OR semantics — a request is authenticated if
-either check passes:
+either check passes.
 
 **API Key**
 
@@ -467,8 +286,7 @@ either check passes:
 X-API-Key: <value>
 ```
 
-Configured via `ASYA_A2A_API_KEY`. When set, the header value must match
-exactly (constant-time comparison).
+Configured via `ASYA_A2A_API_KEY`. When set, the header value must match exactly.
 
 **JWT Bearer**
 
@@ -477,123 +295,35 @@ Authorization: Bearer <JWT>
 ```
 
 Configured via `ASYA_A2A_JWT_JWKS_URL` + `ASYA_A2A_JWT_ISSUER` +
-`ASYA_A2A_JWT_AUDIENCE`. The gateway fetches the JWKS from the configured URL
-and validates the token signature, issuer, and audience claims.
+`ASYA_A2A_JWT_AUDIENCE`. The adapter fetches the JWKS from the configured URL and
+validates the token signature, issuer, and audience claims.
 
-When neither `ASYA_A2A_API_KEY` nor `ASYA_A2A_JWT_JWKS_URL` is set, A2A auth
-is disabled (all requests pass). This is the default for local development.
-
-The public Agent Card at `/.well-known/agent.json` advertises the configured
-schemes. Authenticated clients access only their own tasks — the gateway must
-not reveal the existence of tasks belonging to other clients.
-
-### MCP Authentication
-
-MCP auth is applied to `/mcp`, `/mcp/sse`, and `/tools/call`. Two modes are
-mutually exclusive:
-
-**API Key (simple, non-spec-compliant)**
-
-```
-Authorization: Bearer <static-key>
-```
-
-Set `ASYA_MCP_API_KEY` to a shared secret. Suitable for internal tooling
-(`asya-lab` CLI, known MCP hosts) where full OAuth is not needed.
-
-When `ASYA_MCP_API_KEY` is empty, MCP auth is disabled.
-
-**OAuth 2.1 (full MCP spec compliance)**
-
-Set `ASYA_MCP_OAUTH_ENABLED=true` plus `ASYA_MCP_OAUTH_ISSUER` and
-`ASYA_MCP_OAUTH_SECRET`. The gateway acts as its own authorization server,
-issuing HMAC-SHA256 JWTs. PostgreSQL is required (`ASYA_DATABASE_URL`).
-
-Scopes (issued but not yet enforced per-endpoint):
-
-| Scope | Intended permission |
-|-------|-------------------|
-| `mcp:invoke` | Call tools, send messages |
-| `mcp:read` | List tools, read task state |
-
-Scopes are issued into access tokens and stored in the database. However,
-`MCPAuthMiddleware` currently only validates that a token is authentic (signature,
-`iss`, `aud`, `exp`) — it does **not** check that the token's scope is sufficient
-for the specific operation being requested.
-
-OAuth 2.1 endpoints (when `ASYA_MCP_OAUTH_ENABLED=true`):
-
-```bash
-GET  /.well-known/oauth-protected-resource    # RFC 9728 resource metadata
-GET  /.well-known/oauth-authorization-server  # RFC 8414 server metadata
-POST /oauth/register                          # Dynamic Client Registration
-GET  /oauth/authorize                         # Authorization Code endpoint
-POST /oauth/token                             # Token exchange and refresh
-```
-
-PKCE (`code_challenge_method=S256`) is required for all clients.
-
-Dynamic Client Registration (`/oauth/register`) is public by default. To restrict
-it, set `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` — callers must then supply
-`Authorization: Bearer <registration-token>` to register.
+When neither `ASYA_A2A_API_KEY` nor `ASYA_A2A_JWT_JWKS_URL` is set, A2A auth is
+disabled (all requests pass). This is the default for local development. The
+public Agent Card at `/.well-known/agent.json` advertises the configured schemes.
 
 ### Mesh Security
 
-Mesh routes carry no authentication code. Security is enforced at the network
-layer:
+The mesh-api internal port (8081) carries no authentication code. Security is
+enforced at the network layer:
 
-- `asya-gateway-mesh` K8s Service is `ClusterIP` — no Ingress, no NodePort.
+- `asya-gateway-mesh-api-int` is a `ClusterIP` Service — no Ingress, no NodePort.
   It is physically unreachable from outside the cluster.
 - Sidecars and crew actors reach it via in-cluster DNS:
-  `asya-gateway-mesh.<namespace>.svc.cluster.local`.
+  `asya-gateway-mesh-api-int.<namespace>.svc.cluster.local:8081`.
 
-For defence in depth, add a K8s NetworkPolicy restricting ingress to actor pods:
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: gateway-mesh-ingress
-spec:
-  podSelector:
-    matchLabels:
-      app: asya-gateway-mesh
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              asya.sh/component: actor
-      ports:
-        - port: 8080
-```
-
-Alternatively, enable a service mesh (Istio/Linkerd) for automatic mTLS between
-all pods with zero Asya code changes.
+For defence in depth, add a K8s NetworkPolicy restricting ingress to actor pods,
+or enable a service mesh (Istio/Linkerd) for automatic mTLS.
 
 ### Environment Variables
 
-All auth-related environment variables:
-
-| Variable | Default | Required | Description |
-|----------|---------|----------|-------------|
-| `ASYA_GATEWAY_MODE` | — | Yes | `api`, `mesh`, or `testing` |
-| `ASYA_DATABASE_URL` | `""` | For OAuth 2.1 | PostgreSQL DSN; required when `ASYA_MCP_OAUTH_ENABLED=true` |
-| **A2A** | | | |
-| `ASYA_A2A_API_KEY` | `""` | No | Static API key; auth disabled when empty |
-| `ASYA_A2A_JWT_JWKS_URL` | `""` | No | JWKS endpoint URL for JWT validation |
-| `ASYA_A2A_JWT_ISSUER` | `""` | With JWKS | Expected `iss` claim |
-| `ASYA_A2A_JWT_AUDIENCE` | `""` | With JWKS | Expected `aud` claim |
-| **MCP Phase 2** | | | |
-| `ASYA_MCP_API_KEY` | `""` | No | Static Bearer token; auth disabled when empty |
-| **MCP Phase 3 (OAuth 2.1)** | | | |
-| `ASYA_MCP_OAUTH_ENABLED` | `false` | No | Set to `true` to enable OAuth 2.1 |
-| `ASYA_MCP_OAUTH_ISSUER` | `""` | Yes (OAuth) | Issuer URL embedded in tokens and metadata |
-| `ASYA_MCP_OAUTH_SECRET` | `""` | Yes (OAuth) | HMAC-SHA256 signing key for access tokens |
-| `ASYA_MCP_OAUTH_TOKEN_TTL` | `3600` | No | Access token lifetime in seconds |
-| `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` | `""` | No | Bearer token protecting `/oauth/register`; empty = open |
+Per-component variables are documented in the
+[Environment Variables reference](../env-vars.md) — see the `asya-mesh-api`,
+`mcp-adapter`, and `a2a-adapter` sections.
 
 ## Using MCP tools
-**See**: [Quickstart](../../setup/start-quickstart.md) for instructions how to test MCP locally.
+
+**See**: [Quickstart](../../setup/start-quickstart.md) for instructions on testing MCP locally.
 
 ## Deployment Helm Charts
 

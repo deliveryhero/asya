@@ -314,7 +314,6 @@ helm install asya-crossplane asya/asya-crossplane --version $ASYA_VERSION \
   --set gcpProviderConfig.secretRef.name=gcp-creds \
   --set gcpProviderConfig.secretRef.key=credentials.json \
   --set sidecar.gcpProjectId=$PROJECT \
-  --set sidecar.gatewayURL=http://asya-gateway-mesh.${NS}.svc.cluster.local \
   --set functions.flavorsEnabled=true \
   --set keda.authProvider=secret \
   --set pubsub.keda.secretRef.name=gcp-keda-secret \
@@ -322,9 +321,9 @@ helm install asya-crossplane asya/asya-crossplane --version $ASYA_VERSION \
   --wait --timeout=10m
 ```
 
-> **`sidecar.gatewayURL`** must be the base URL with **no path suffix**. The sidecar progress
-> reporter appends `/health`, `/mesh`, `/mesh/{id}/final` etc. automatically. Setting it to
-> `http://host/mesh` produces double-path URLs and silently breaks task completion callbacks.
+> Sidecars no longer need a gateway URL at install time. The mesh-api stamps its
+> internal callback URL (`asya-gateway-mesh-api-int`) into the `x-asya-gateway-url`
+> envelope header on every task it creates, and the sidecar reads it from there.
 
 Wait for the GCP Pub/Sub provider to become healthy:
 
@@ -399,14 +398,62 @@ helm install asya-crew asya/asya-crew --version $ASYA_VERSION \
 
 ### asya-gateway
 
-The gateway requires PostgreSQL for task state. For production use Cloud SQL, AlloyDB,
-or another managed service. For a quick in-cluster instance:
+The gateway is one image (`asya-gateway`) that runs as several containers in a
+single pod: `mesh-api` (core HTTP), optional `mcp-adapter` and `a2a-adapter`, and a
+`state-proxy-mesh` sidecar. Task state is pluggable via `stateProxy.mesh.backend`:
+
+- **`pvc-kv`** — local files / in-memory, **no database**. Simplest to start with
+  (requires `replicaCount: 1`).
+- **`pg-kv`** _(default)_ — PostgreSQL. For production use Cloud SQL, AlloyDB, or
+  another managed service.
+
+The gateway publishes envelopes to Pub/Sub, so its Service Account needs Pub/Sub
+publish access. Bind the gateway SA to the `asya-actor` GCP SA via Workload Identity
+(the chart creates an SA named `asya-gateway` by default):
+
+```bash
+kubectl annotate serviceaccount asya-gateway -n $NS \
+  iam.gke.io/gcp-service-account=asya-actor@${PROJECT}.iam.gserviceaccount.com \
+  --overwrite 2>/dev/null || true
+
+gcloud iam service-accounts add-iam-policy-binding \
+  asya-actor@${PROJECT}.iam.gserviceaccount.com \
+  --role=roles/iam.workloadIdentityUser \
+  --member="serviceAccount:${PROJECT}.svc.id.goog[${NS}/asya-gateway]" \
+  --condition=None --project=$PROJECT
+```
+
+> If the SA does not exist yet, install the gateway first (below), then run the
+> annotate/bind commands and `kubectl rollout restart deployment/asya-gateway -n $NS`.
+
+#### Option A: pvc-kv (no PostgreSQL)
+
+```bash
+helm install asya-gateway asya/asya-gateway --version $ASYA_VERSION \
+  --namespace=$NS \
+  --set replicaCount=1 \
+  --set stateProxy.mesh.backend=pvc-kv \
+  --set transports.pubsub.enabled=true \
+  --set "transports.pubsub.config.projectId=${PROJECT}" \
+  --set mcp.enabled=true \
+  --set a2a.enabled=true \
+  --set a2a.auth.apiKey=$(kubectl get secret asya-gateway-auth -n $NS \
+        -o jsonpath='{.data.a2a-api-key}' | base64 -d) \
+  --set ingress.enabled=true \
+  --set ingress.host=<your-gateway-host> \
+  --wait --timeout=5m
+```
+
+#### Option B: pg-kv (PostgreSQL)
+
+For PostgreSQL state, point the `database.*` values at your instance. For a quick
+in-cluster instance, create a Secret and StatefulSet first:
 
 <details>
 <summary>In-cluster PostgreSQL (click to expand)</summary>
 
 ```bash
-kubectl create secret generic asya-gateway-postgresql \
+kubectl create secret generic asya-gateway-db \
   --namespace=$NS \
   --from-literal=password=$(openssl rand -hex 16)
 
@@ -437,7 +484,7 @@ spec:
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: asya-gateway-postgresql
+              name: asya-gateway-db
               key: password
         volumeMounts:
         - name: data
@@ -466,75 +513,63 @@ EOF
 
 </details>
 
-Then install the gateway, referencing the secret directly:
-
 ```bash
 helm install asya-gateway asya/asya-gateway --version $ASYA_VERSION \
   --namespace=$NS \
-  --set image.tag=$ASYA_VERSION \
+  --set stateProxy.mesh.backend=pg-kv \
+  --set database.host=asya-gateway-postgresql \
+  --set database.port=5432 \
+  --set database.name=asya_gateway \
+  --set database.username=asya \
+  --set database.existingSecret=asya-gateway-db \
+  --set database.existingSecretKey=password \
   --set transports.pubsub.enabled=true \
   --set "transports.pubsub.config.projectId=${PROJECT}" \
-  --set postgresql.enabled=false \
-  --set externalDatabase.host=asya-gateway-postgresql \
-  --set externalDatabase.port=5432 \
-  --set externalDatabase.database=asya_gateway \
-  --set externalDatabase.username=asya \
-  --set externalDatabase.existingSecret=asya-gateway-postgresql \
-  --set externalDatabase.existingSecretKey=password \
-  --set "volumes[0].name=gcp-creds" \
-  --set "volumes[0].secret.secretName=asya-actor-creds" \
-  --set "volumeMounts[0].name=gcp-creds" \
-  --set "volumeMounts[0].mountPath=/secrets/gcp" \
-  --set "volumeMounts[0].readOnly=true" \
-  --set "env[0].name=GOOGLE_APPLICATION_CREDENTIALS" \
-  --set "env[0].value=/secrets/gcp/sa-key.json" \
-  --set "env[1].name=ASYA_A2A_API_KEY" \
-  --set "env[1].valueFrom.secretKeyRef.name=asya-gateway-auth" \
-  --set "env[1].valueFrom.secretKeyRef.key=a2a-api-key" \
-  --set "env[2].name=ASYA_MCP_API_KEY" \
-  --set "env[2].valueFrom.secretKeyRef.name=asya-gateway-auth" \
-  --set "env[2].valueFrom.secretKeyRef.key=mcp-api-key" \
-  --set service.type=LoadBalancer \
+  --set mcp.enabled=true \
+  --set a2a.enabled=true \
+  --set a2a.auth.apiKey=$(kubectl get secret asya-gateway-auth -n $NS \
+        -o jsonpath='{.data.a2a-api-key}' | base64 -d) \
+  --set ingress.enabled=true \
+  --set ingress.host=<your-gateway-host> \
   --wait --timeout=5m
 ```
 
 ### Gateway security
 
-`asya-gateway` is deployed as two separate Deployments from the same binary:
+The gateway exposes four ClusterIP Services from the single pod:
 
-| Deployment | Service | Reachable from | Auth |
+| Service | Port | Reachable from | Auth |
 |---|---|---|---|
-| `asya-gateway-api` | LoadBalancer (port 80) | External clients, LLMs, AI agents | API key / JWT Bearer |
-| `asya-gateway-mesh` | ClusterIP | Actor sidecars only (in-cluster DNS) | None — network isolation |
+| `asya-gateway-mesh-api` | 8080 | External clients (via Ingress) | None on mesh-api itself |
+| `asya-gateway-mesh-api-int` | 8081 | Actor sidecars only (in-cluster DNS) | None — network isolation |
+| `asya-gateway-mcp` | 8082 | MCP clients (via Ingress) | None currently wired |
+| `asya-gateway-a2a` | 8083 | A2A clients (via Ingress) | API key / JWT Bearer |
 
-**Protected routes** (`asya-gateway-api`): all `/a2a/*` and `/mcp/*` routes require
-authentication when `ASYA_A2A_API_KEY` / `ASYA_MCP_API_KEY` are set.
+External traffic is exposed through the Ingress (`ingress.enabled=true`), not a
+per-Service LoadBalancer. The `asya-gateway-mesh-api-int` Service has no Ingress and
+is unreachable from outside the cluster.
 
-**Always public**: `/.well-known/agent.json` (A2A spec requirement) and `/health`
-(K8s probes).
-
-Clients must send the API key in the `X-API-Key` header for A2A, or
-`Authorization: Bearer <key>` for MCP:
+**A2A auth** is configured via `a2a.auth.apiKey` (→ `ASYA_A2A_API_KEY`) or
+`a2a.auth.jwt.*`. When set, clients must send the API key in the `X-API-Key` header.
+MCP auth is not currently wired in the mcp-adapter.
 
 ```bash
 A2A_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
   -o jsonpath='{.data.a2a-api-key}' | base64 -d)
 
-curl -X POST http://${GATEWAY_IP}/a2a/hello \
+curl -X POST https://<your-gateway-host>/a2a/ \
   -H "X-API-Key: $A2A_KEY" \
   -H "Content-Type: application/json" \
   -d '...'
 ```
 
-**For production exposure** (beyond a local demo), configure HTTPS before sharing
-the gateway URL externally:
+**For production exposure** (beyond a local demo), terminate TLS at the Ingress
+before sharing the gateway URL externally:
 
-- **GCP-managed certificate**: annotate the Service or Ingress with
+- **GCP-managed certificate**: annotate the Ingress with
   `networking.gke.io/managed-certificates` pointing to a `ManagedCertificate` resource.
-  Requires a domain name with an A record pointing at the LoadBalancer IP.
+  Requires a domain name with an A record pointing at the Ingress IP.
 - **cert-manager + Ingress**: standard Kubernetes approach, works with Let's Encrypt.
-- The MCP OAuth 2.1 flow (already implemented in the gateway) formally requires HTTPS
-  — HTTP is acceptable for API key auth but not for OAuth redirect URIs.
 
 ---
 
@@ -597,31 +632,20 @@ Watch the actor become ready (Crossplane creates the Pub/Sub topic and subscript
 kubectl get asyncactor hello -n $NS -w
 ```
 
-Register the `hello` flow with the gateway. The gateway hot-reloads its
-`flows.yaml` ConfigMap — patching it is all that's needed:
+Register the `hello` flow with the gateway as an MCP tool and/or A2A agent. Tool and
+agent definitions are mounted as ConfigMaps into the mcp-adapter and a2a-adapter and
+hot-reloaded — see the [Gateway Setup Guide](guide-gateway.md) for how to compile and
+register flows.
+
+Send a test message via the gateway (replace `<your-gateway-host>` with the
+`ingress.host` you set above; for a quick local check, `kubectl port-forward
+svc/asya-gateway-a2a 8083:8083 -n $NS` and use `localhost:8083`):
 
 ```bash
-kubectl patch configmap asya-gateway-flows -n $NS --type merge -p '
-data:
-  flows.yaml: |
-    flows:
-    - name: hello
-      entrypoint: hello
-      description: A simple hello world actor
-      mcp:
-        progress: true
-'
-```
-
-Send a test message via the gateway:
-
-```bash
-GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 A2A_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
   -o jsonpath='{.data.a2a-api-key}' | base64 -d)
 
-curl -s -X POST http://${GATEWAY_IP}/a2a/hello \
+curl -s -X POST https://<your-gateway-host>/a2a/ \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $A2A_KEY" \
   -d '{"jsonrpc":"2.0","id":"1","method":"message/send","params":{
@@ -642,35 +666,29 @@ kubectl get asyncactors -n $NS
 # Pub/Sub topics created by Crossplane
 gcloud pubsub topics list --project=$PROJECT | grep asya
 
-# Gateway IP and API keys
-GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+# Gateway host (the ingress.host you set) and A2A key.
+# External traffic is path-routed by the Ingress to the per-protocol services:
+#   /mcp -> asya-gateway-mcp, /a2a/ + /.well-known/agent.json -> asya-gateway-a2a
+GATEWAY_HOST=<your-gateway-host>
 A2A_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
   -o jsonpath='{.data.a2a-api-key}' | base64 -d)
-MCP_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
-  -o jsonpath='{.data.mcp-api-key}' | base64 -d)
-
-# Health (public, no key needed)
-curl http://${GATEWAY_IP}/health
 
 # A2A agent card (public, no key needed)
-curl http://${GATEWAY_IP}/.well-known/agent.json | python3 -m json.tool
+curl https://${GATEWAY_HOST}/.well-known/agent.json | python3 -m json.tool
 
-# MCP tools list (requires MCP key)
+# MCP tools list (MCP auth is not currently wired in the adapter)
 SESSION_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
-curl -s -X POST http://${GATEWAY_IP}/mcp \
+curl -s -X POST https://${GATEWAY_HOST}/mcp \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $MCP_KEY" \
   -H "Mcp-Session-Id: ${SESSION_ID}" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' > /dev/null
-curl -s -X POST http://${GATEWAY_IP}/mcp \
+curl -s -X POST https://${GATEWAY_HOST}/mcp \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $MCP_KEY" \
   -H "Mcp-Session-Id: ${SESSION_ID}" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | python3 -m json.tool
 
 # End-to-end test via A2A (requires A2A key)
-curl -s -X POST http://${GATEWAY_IP}/a2a/hello \
+curl -s -X POST https://${GATEWAY_HOST}/a2a/ \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $A2A_KEY" \
   -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"messageId":"test-1","role":"user","parts":[{"kind":"text","text":"hello"}]}}}' \

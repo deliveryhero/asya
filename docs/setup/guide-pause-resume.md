@@ -243,10 +243,11 @@ mc ls local/asya-checkpoints/paused/
 
 ### Resume fails with "task not paused"
 
-The task must be in `paused` status. Check task status:
+The task must be in `paused` status. Check task status via the mesh-api external
+service:
 
 ```bash
-curl http://<gateway-api>/mesh/<task-id>
+curl http://asya-gateway-mesh-api.<namespace>.svc.cluster.local:8080/api/v1/mesh/<task-id>
 ```
 
 ---
