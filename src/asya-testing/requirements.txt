@@ -1,21 +1,21 @@
 # requirements for asya_testing dependencies + whatever you
 # might need to run tests from /testing/**/tests/ (e.g. boto3)
-boto3>=1.43.27
-coverage>=7.14.1
+boto3>=1.43.34
+coverage>=7.14.2
 pika>=1.4.1
 psycopg2-binary>=2.9.12
 pytest-asyncio>=1.4.0
 pytest-cov>=7.1.0
-pytest-order>=1.4.0
+pytest-order>=1.5.0
 pytest-timeout>=2.4.0
 pytest-xdist>=3.8.0
-pytest>=9.0.3
+pytest>=9.1.1
 pyyaml>=6.0.3
 redis>=8.0.0
 requests>=2.34.2
 sseclient-py>=1.9.0
 google-cloud-pubsub>=2.39.0
-google-cloud-storage>=3.11.0
+google-cloud-storage>=3.12.0
 PyJWT[cryptography]>=2.13.0
-cryptography>=48.0.1
+cryptography>=49.0.0
 prometheus_client>=0.25.0
