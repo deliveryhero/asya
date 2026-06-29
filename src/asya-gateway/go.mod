@@ -10,8 +10,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.43.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
-	github.com/mark3labs/mcp-go v0.54.1
-	github.com/rabbitmq/amqp091-go v1.11.0
+	github.com/mark3labs/mcp-go v0.55.1
+	github.com/rabbitmq/amqp091-go v1.12.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.44.0
