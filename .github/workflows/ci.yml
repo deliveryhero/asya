@@ -39,7 +39,7 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -73,7 +73,7 @@ jobs:
         - asya-ui
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -148,7 +148,7 @@ jobs:
           config_value: redis-cas
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -222,7 +222,7 @@ jobs:
           #   storage: gcs
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -290,7 +290,7 @@ jobs:
           #   run_crossplane: true
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Setup environment
       uses: ./.github/actions/setup-env
@@ -389,7 +389,7 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Download all unit test coverage
       uses: actions/download-artifact@v8

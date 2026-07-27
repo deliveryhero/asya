@@ -44,7 +44,7 @@ jobs:
 
     steps:
     - name: Label PR by changed files
-      uses: actions/labeler@v6
+      uses: actions/labeler@v7
       with:
         sync-labels: true
 
